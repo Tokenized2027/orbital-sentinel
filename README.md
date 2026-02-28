@@ -2,7 +2,7 @@
 
 **Autonomous AI agent platform for DeFi protocol health monitoring, built on Chainlink CRE.**
 
-Orbital Sentinel runs 5 production CRE workflows that continuously read live Ethereum mainnet data, feed it through a Claude AI analysis layer, and write verifiable risk proofs on-chain. No human in the loop. Every monitoring run produces an immutable audit trail on Sepolia.
+Orbital Sentinel runs 5 production CRE workflows that continuously read live Ethereum mainnet data and feed it through a Claude AI analysis layer. The treasury-risk workflow writes verifiable risk proofs on-chain — 7 times per day, fully autonomous, no human in the loop. Every run produces an immutable audit trail on Sepolia.
 
 ---
 
@@ -16,7 +16,7 @@ Chainlink CRE Workflow
   └── Write proof on-chain (SentinelRegistry.sol → Sepolia)
 ```
 
-Each workflow runs autonomously on a cron schedule. Alerts fire when thresholds are breached. Every run is anchored on-chain.
+All 5 workflows run autonomously on a cron schedule. The treasury-risk workflow anchors each run on-chain via the SentinelRegistry contract. The other 4 workflows feed intelligence signals into the analytics pipeline.
 
 ---
 

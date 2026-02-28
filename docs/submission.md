@@ -31,7 +31,7 @@ We built 5 production CRE workflows for stake.link (the largest Chainlink liquid
 
 5. **Token Flows** — tracks SDL + stLINK balances across 50+ classified addresses (NOPs, whales, DEX pools, vesting contracts). Detects large movements that may indicate protocol stress.
 
-Every treasury-risk run produces an immutable on-chain audit trail: a HealthRecorded event on the SentinelRegistry contract (Sepolia), containing the keccak256 hash of the full risk snapshot. The contract has 50+ records from 7 daily autonomous runs — no manual triggering.
+Every treasury-risk run produces an immutable on-chain audit trail: a HealthRecorded event on the SentinelRegistry contract (Sepolia), containing the keccak256 hash of the full risk snapshot. The contract accumulates ~7 records per day from fully autonomous runs — projected 50+ by submission deadline, no manual triggering.
 
 The on-chain records also feed back into our analytics dashboard via a collector that reads HealthRecorded events, stores them in PostgreSQL, and surfaces them in a CRE Operations Console alongside live depeg monitoring, service health, and operator controls.
 
