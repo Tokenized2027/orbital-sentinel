@@ -201,9 +201,17 @@ orbital-sentinel/
 
 ---
 
+## Demo
+
+**Video:** *Coming soon — will be linked here before submission deadline.*
+
+---
+
 ## Built For
 
 **Chainlink Convergence Hackathon 2026**
-Tracks: AI Agents + DeFi & Tokenization
+Tracks: CRE & AI + DeFi & Tokenization + Autonomous Agents (Moltbook)
 
 **By:** [Orbital](https://github.com/Tokenized2027) — managed AI ops platform for DeFi protocols.
+
+**License:** MIT
