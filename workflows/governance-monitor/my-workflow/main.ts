@@ -1,12 +1,16 @@
 import {
 	consensusIdenticalAggregation,
 	cre,
+	encodeCallMsg,
+	getNetwork,
 	Runner,
 	type HTTPSendRequester,
 	type Runtime,
 	type CronPayload,
 } from '@chainlink/cre-sdk';
+import { encodeFunctionData, keccak256, encodeAbiParameters, parseAbiParameters, type Address, zeroAddress } from 'viem';
 import { z } from 'zod';
+import { SentinelRegistry } from '../contracts/abi/SentinelRegistry';
 
 // ---------- Config ----------
 
@@ -21,6 +25,11 @@ const configSchema = z.object({
 	forumBaseUrl: z.string(),
 	// Number of recent forum topics to fetch
 	forumTopicCount: z.number().default(10),
+	// On-chain registry write (Sepolia)
+	registry: z.object({
+		address: z.string(),
+		chainName: z.string().default('ethereum-testnet-sepolia'),
+	}).optional(),
 	// Optional webhook
 	webhook: z.object({
 		enabled: z.boolean().default(false),
@@ -322,6 +331,38 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 			forumNewTopics: forumTopics.length,
 		},
 	};
+
+	// --- On-chain write to SentinelRegistry (Sepolia) ---
+	if (runtime.config.registry?.address && runtime.config.registry.address !== '0x0000000000000000000000000000000000000000') {
+		try {
+			const net = getNetwork({ chainFamily: 'evm', chainSelectorName: runtime.config.registry.chainName, isTestnet: true });
+			if (!net) throw new Error(`Network not found: ${runtime.config.registry.chainName}`);
+			const sepoliaClient = new cre.capabilities.EVMClient(net.chainSelector.selector);
+
+			const timestampUnix = BigInt(Math.floor(Date.now() / 1000));
+			const risk = urgentProposals.length > 0 ? 'warning' : 'ok';
+			const snapshotHash = keccak256(
+				encodeAbiParameters(
+					parseAbiParameters('uint256 ts, string wf, string risk, uint256 active, uint256 urgent'),
+					[timestampUnix, 'governance', risk, BigInt(activeProposals.length), BigInt(urgentProposals.length)],
+				),
+			);
+
+			const writeCallData = encodeFunctionData({
+				abi: SentinelRegistry,
+				functionName: 'recordHealth',
+				args: [snapshotHash, `governance:${risk}`],
+			});
+
+			sepoliaClient.callContract(runtime, {
+				call: encodeCallMsg({ from: zeroAddress, to: runtime.config.registry.address as Address, data: writeCallData }),
+			}).result();
+
+			runtime.log(`Registry write | governance:${risk} hash=${snapshotHash}`);
+		} catch (e) {
+			runtime.log(`Registry write failed (degraded): ${e instanceof Error ? e.message : String(e)}`);
+		}
+	}
 
 	// --- Optional webhook ---
 	if (runtime.config.webhook?.enabled && runtime.config.webhook.url) {

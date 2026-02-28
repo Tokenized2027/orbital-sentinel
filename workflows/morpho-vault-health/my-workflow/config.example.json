@@ -4,5 +4,9 @@
   "morphoAddress": "0xBBBBBBBBbb9cc5e90e3b3Af64bdAF62C37EEFFCb",
   "marketId": "YOUR_MORPHO_MARKET_ID",
   "vaultAddress": "YOUR_ERC4626_VAULT_ADDRESS",
-  "linkTokenAddress": "0x514910771AF9Ca656af840dff83E8264EcF986CA"
+  "linkTokenAddress": "0x514910771AF9Ca656af840dff83E8264EcF986CA",
+  "registry": {
+    "address": "0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334",
+    "chainName": "ethereum-testnet-sepolia"
+  }
 }

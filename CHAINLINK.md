@@ -116,7 +116,7 @@ Schedules:
 
 ## 5. SentinelRegistry.sol — On-Chain Write (Sepolia)
 
-The `treasury-risk` workflow writes a verifiable proof to `OrbitalSentinelRegistry` after each run:
+**All 5 CRE workflows** write verifiable proof hashes to `OrbitalSentinelRegistry` on Sepolia after each run. A bridge script (`scripts/record-all-snapshots.mjs`) reads live CRE snapshots and writes proofs on-chain every 15 minutes via cron.
 
 **File:** `contracts/SentinelRegistry.sol`
 
@@ -125,20 +125,28 @@ function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external
 event HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 ts)
 ```
 
-The hash is computed in TypeScript using `viem`'s `keccak256` + `encodeAbiParameters` — identical encoding to Solidity's `abi.encode()`:
+Risk levels use a prefixed format: `treasury:ok`, `feeds:warning`, `morpho:critical`, `governance:ok`, `flows:ok`, `ccip:ok`.
 
-**File:** `workflows/treasury-risk/my-workflow/main.ts` (Step 4)
+The hash is computed in TypeScript using `viem`'s `keccak256` + `encodeAbiParameters` — identical encoding to Solidity's `abi.encode()`:
 
 ```typescript
 const snapshotHash = keccak256(
   encodeAbiParameters(
-    parseAbiParameters('uint256 ts, string risk, string assessment'),
-    [timestampUnix, overallRisk, assessmentSnippet],
+    parseAbiParameters('uint256 ts, string wf, string risk, uint256 m1, uint256 m2'),
+    [timestampUnix, workflowType, risk, metric1, metric2],
   ),
 );
 ```
 
-This creates an immutable, verifiable audit trail: every CRE workflow run → one on-chain record.
+Each workflow encodes domain-specific metrics:
+- **treasury**: `communityFillPct`, `runwayDays`
+- **feeds**: `stlinkLinkRatio × 1e6`, `depegBps × 100`
+- **governance**: `activeProposals`, `urgentProposals`
+- **morpho**: `utilization × 1e6`, `totalSupply`
+- **flows**: `totalSdlTracked`, `addressCount`
+- **ccip**: `okLanes`, `totalLanes`
+
+This creates an immutable, verifiable audit trail: every CRE workflow run → one on-chain record per workflow type.
 
 ---
 
@@ -163,5 +171,5 @@ const sepoliaNet = getNetwork({ chainFamily: 'evm', chainSelectorName: 'ethereum
 | `HTTPClient` + `consensusIdenticalAggregation` | treasury-risk, governance-monitor, price-feeds |
 | `CronCapability` | All 5 workflows |
 | `getNetwork()` chain selector | treasury-risk, price-feeds, morpho-vault-health, token-flows |
-| `SentinelRegistry.sol` (on-chain write) | `contracts/SentinelRegistry.sol` + treasury-risk Step 4 |
+| `SentinelRegistry.sol` (on-chain write) | All 5 workflow `main.ts` files + `scripts/record-all-snapshots.mjs` |
 | `encodeCallMsg` | treasury-risk, morpho-vault-health, token-flows |

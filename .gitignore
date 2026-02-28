@@ -8,3 +8,6 @@ secrets.yaml
 __pycache__/
 *.pyc
 .DS_Store
+.next/
+scripts/.last-write-state.json
+scripts/moltbook-post-draft.md

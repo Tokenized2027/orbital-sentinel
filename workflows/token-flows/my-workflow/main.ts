@@ -7,9 +7,10 @@ import {
 	type Runtime,
 	type CronPayload,
 } from '@chainlink/cre-sdk';
-import { encodeFunctionData, decodeFunctionResult, formatUnits, type Address, zeroAddress } from 'viem';
+import { encodeFunctionData, decodeFunctionResult, formatUnits, keccak256, encodeAbiParameters, parseAbiParameters, type Address, zeroAddress } from 'viem';
 import { z } from 'zod';
 import { ERC20, SDLVesting } from '../contracts/abi';
+import { SentinelRegistry } from '../contracts/abi/SentinelRegistry';
 import {
 	SDL_TOKEN,
 	STLINK_TOKEN,
@@ -24,6 +25,10 @@ import {
 const configSchema = z.object({
 	schedule: z.string(),
 	chainName: z.string(),
+	registry: z.object({
+		address: z.string(),
+		chainName: z.string().default('ethereum-testnet-sepolia'),
+	}).optional(),
 });
 
 type Config = z.infer<typeof configSchema>;
@@ -210,6 +215,38 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 			timestamp: new Date().toISOString(),
 		},
 	};
+
+	// --- On-chain write to SentinelRegistry (Sepolia) ---
+	if (runtime.config.registry?.address && runtime.config.registry.address !== '0x0000000000000000000000000000000000000000') {
+		try {
+			const net = getNetwork({ chainFamily: 'evm', chainSelectorName: runtime.config.registry.chainName, isTestnet: true });
+			if (!net) throw new Error(`Network not found: ${runtime.config.registry.chainName}`);
+			const sepoliaClient = new cre.capabilities.EVMClient(net.chainSelector.selector);
+
+			const timestampUnix = BigInt(Math.floor(Date.now() / 1000));
+			const totalSdlBig = totalSdl > 10n ** 20n ? totalSdl / 10n ** 18n : totalSdl;
+			const snapshotHash = keccak256(
+				encodeAbiParameters(
+					parseAbiParameters('uint256 ts, string wf, string risk, uint256 totalSdl, uint256 addrCount'),
+					[timestampUnix, 'flows', 'ok', totalSdlBig, BigInt(allAddresses.length)],
+				),
+			);
+
+			const writeCallData = encodeFunctionData({
+				abi: SentinelRegistry,
+				functionName: 'recordHealth',
+				args: [snapshotHash, 'flows:ok'],
+			});
+
+			sepoliaClient.callContract(runtime, {
+				call: encodeCallMsg({ from: zeroAddress, to: runtime.config.registry.address as Address, data: writeCallData }),
+			}).result();
+
+			runtime.log(`Registry write | flows:ok hash=${snapshotHash}`);
+		} catch (e) {
+			runtime.log(`Registry write failed (degraded): ${e instanceof Error ? e.message : String(e)}`);
+		}
+	}
 
 	runtime.log(`TOKEN_FLOWS_OUTPUT_JSON=${JSON.stringify(outputPayload)}`);
 

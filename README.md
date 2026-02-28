@@ -2,7 +2,7 @@
 
 **Autonomous AI agent platform for DeFi protocol health monitoring, built on Chainlink CRE.**
 
-Orbital Sentinel runs 5 production CRE workflows that continuously read live Ethereum mainnet data and feed it through a Claude AI analysis layer. The treasury-risk workflow writes verifiable risk proofs on-chain — 7 times per day, fully autonomous, no human in the loop. Every run produces an immutable audit trail on Sepolia.
+Orbital Sentinel runs 5 production CRE workflows that continuously read live Ethereum mainnet data and feed it through a Claude AI analysis layer. All workflows write verifiable risk proofs on-chain via `SentinelRegistry` on Sepolia — every 15 minutes, fully autonomous, no human in the loop. Each proof is a `keccak256` hash of workflow-specific metrics with a prefixed risk level (e.g., `treasury:ok`, `feeds:warning`, `morpho:critical`).
 
 ---
 
@@ -16,7 +16,7 @@ Chainlink CRE Workflow
   └── Write proof on-chain (SentinelRegistry.sol → Sepolia)
 ```
 
-All 5 workflows run autonomously on a cron schedule. The treasury-risk workflow anchors each run on-chain via the SentinelRegistry contract. The other 4 workflows feed intelligence signals into the analytics pipeline.
+All 5 workflows run autonomously on a cron schedule. Each workflow writes a proof hash on-chain via the SentinelRegistry contract on Sepolia. A 6th data source (CCIP lane health) is also bridged on-chain. The real-time dashboard shows CRE capability tags per workflow and per-workflow on-chain proof statistics.
 
 ---
 
@@ -143,14 +143,16 @@ Update `registry.address` in your workflow config with the deployed address.
 
 ## SentinelRegistry (Sepolia)
 
-Every treasury-risk workflow run writes a verifiable hash to `OrbitalSentinelRegistry` on Sepolia:
+Every workflow run writes a verifiable hash to `OrbitalSentinelRegistry` on Sepolia:
 
 ```solidity
 function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external
 event HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 ts)
 ```
 
-`snapshotHash = keccak256(abi.encode(timestamp, riskLevel, aiAssessmentSnippet))`
+Risk levels use a prefixed format: `treasury:ok`, `feeds:warning`, `morpho:critical`, `governance:ok`, `flows:ok`, `ccip:ok`.
+
+`snapshotHash = keccak256(abi.encode(timestamp, workflowType, risk, metric1, metric2))`
 
 Deployed address: ``0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334``
 
@@ -191,9 +193,10 @@ orbital-sentinel/
 │   └── SentinelRegistry.sol    ← On-chain risk proof registry (Sepolia)
 ├── platform/
 │   └── cre_analyze_endpoint.py ← Flask AI analysis server (Claude Sonnet)
+├── dashboard/                    ← Next.js analytics dashboard (CRE ops console)
 ├── scripts/
+│   ├── record-all-snapshots.mjs ← Bridge: CRE snapshots → on-chain proofs (every 15 min)
 │   ├── record-health.mjs       ← One-shot recordHealth call
-│   ├── record-health-cron.mjs  ← Scheduled cron with rotating scenarios
 │   └── verify-contract.mjs     ← Sourcify contract verification
 ├── README.md
 └── CHAINLINK.md                ← All Chainlink touchpoints documented

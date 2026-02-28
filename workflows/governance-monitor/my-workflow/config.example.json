@@ -4,6 +4,10 @@
   "snapshotSpaces": ["your-dao.eth", "your-council.eth"],
   "forumBaseUrl": "https://your-protocol-forum.example.com",
   "forumTopicCount": 10,
+  "registry": {
+    "address": "0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334",
+    "chainName": "ethereum-testnet-sepolia"
+  },
   "webhook": {
     "enabled": false,
     "url": "",

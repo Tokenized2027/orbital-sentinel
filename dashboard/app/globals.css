@@ -1,0 +1,614 @@
+:root {
+  /* ── Chainlink Convergence palette ── */
+  --bg:            #00015E;        /* Deep navy — exact hackathon bg */
+  --bg-surface:    #010458;        /* Slightly lighter navy */
+  --bg-card:       #01034E;        /* Card backgrounds */
+  --bg-card-hover: #020566;        /* Card hover state */
+
+  --border:        rgba(46, 123, 255, 0.15);
+  --border-bright: rgba(46, 123, 255, 0.35);
+  --border-glow:   rgba(46, 123, 255, 0.5);
+
+  --cl-blue:       #2E7BFF;        /* Primary electric blue */
+  --cl-blue-bright:#4d65ff;        /* Brighter accent */
+  --cl-brand:      #0847F7;        /* Chainlink brand blue (logo) */
+  --cl-blue-dim:   rgba(46, 123, 255, 0.08);
+  --cl-glow:       rgba(46, 123, 255, 0.2);
+  --cl-purple:     #7850FF;        /* Convergence purple accent */
+  --cl-purple-dim: rgba(120, 80, 255, 0.12);
+
+  --green:         #22c55e;
+  --amber:         #f59e0b;
+  --red:           #ef4444;
+
+  --t1:            #ffffff;        /* Primary text — white */
+  --t2:            #e0e6f0;        /* Secondary — near-white */
+  --t3:            #c0c8d8;        /* Muted — light gray (still readable) */
+
+  --mono:          'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --sans:          var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+
+  --r-sm:          8px;
+  --r-md:          12px;
+  --r-lg:          16px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--t1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  /* Multi-zone depth — varying opacity pools to break the flat feel */
+  background-image:
+    /* Top center: bright blue hero glow */
+    radial-gradient(ellipse 70% 35% at 50% 0%, rgba(8, 71, 247, 0.2) 0%, transparent 70%),
+    /* Upper left: purple wash */
+    radial-gradient(ellipse 45% 40% at 10% 20%, rgba(120, 80, 255, 0.1) 0%, transparent 60%),
+    /* Mid right: blue accent */
+    radial-gradient(circle 400px at 90% 45%, rgba(46, 123, 255, 0.08) 0%, transparent 70%),
+    /* Center: subtle lighter zone behind cards */
+    radial-gradient(ellipse 50% 20% at 50% 50%, rgba(1, 4, 88, 0.6) 0%, transparent 80%),
+    /* Lower left: purple pool */
+    radial-gradient(circle 350px at 15% 75%, rgba(120, 80, 255, 0.07) 0%, transparent 60%),
+    /* Bottom right: deep blue glow */
+    radial-gradient(ellipse 40% 30% at 85% 85%, rgba(8, 71, 247, 0.1) 0%, transparent 60%),
+    /* Noise-like variation: conic sweep for subtle texture */
+    conic-gradient(from 180deg at 50% 50%, rgba(0, 1, 94, 0) 0%, rgba(1, 4, 88, 0.3) 25%, rgba(0, 1, 94, 0) 50%, rgba(1, 4, 88, 0.2) 75%, rgba(0, 1, 94, 0) 100%);
+  background-attachment: fixed;
+}
+
+a {
+  color: var(--cl-blue);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--cl-blue-bright);
+  text-decoration: underline;
+}
+
+/* ── Layout ── */
+
+.page-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ── Neon glow border — Convergence hackathon style ── */
+/* Animated gradient border using a pseudo-element overlay */
+
+.neon-border {
+  position: relative;
+  border-radius: var(--r-md);
+  padding: 1px; /* The border width */
+  background: linear-gradient(
+    135deg,
+    rgba(46, 123, 255, 0.4) 0%,
+    rgba(120, 80, 255, 0.3) 25%,
+    rgba(46, 123, 255, 0.15) 50%,
+    rgba(120, 80, 255, 0.3) 75%,
+    rgba(46, 123, 255, 0.4) 100%
+  );
+  background-size: 300% 300%;
+  animation: neon-shift 8s ease infinite;
+}
+.neon-border > * {
+  background: var(--bg-card);
+  border-radius: calc(var(--r-md) - 1px);
+}
+
+@keyframes neon-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ── Cards — Convergence style ── */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid rgba(120, 80, 255, 0.12);
+  border-radius: var(--r-md);
+  padding: 24px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  position: relative;
+}
+.card:hover {
+  border-color: rgba(120, 80, 255, 0.35);
+  box-shadow:
+    0 0 15px rgba(46, 123, 255, 0.12),
+    0 0 30px rgba(120, 80, 255, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.3);
+  background: var(--bg-card-hover);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+/* ── Section headers ── */
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--t1);
+  letter-spacing: 0.02em;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Grid layouts ── */
+
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* Workflow grid cards get neon border on hover */
+.workflow-grid .card {
+  border-color: rgba(120, 80, 255, 0.12);
+}
+.workflow-grid .card:hover {
+  border-color: rgba(120, 80, 255, 0.4);
+  box-shadow:
+    0 0 12px rgba(120, 80, 255, 0.15),
+    0 0 24px rgba(46, 123, 255, 0.08),
+    inset 0 0 12px rgba(120, 80, 255, 0.03);
+}
+
+/* Selected card gets persistent neon glow */
+.workflow-grid .card[style*="border-glow"] {
+  box-shadow:
+    0 0 15px rgba(120, 80, 255, 0.2),
+    0 0 30px rgba(46, 123, 255, 0.1);
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+  .workflow-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+  .page-wrap {
+    padding: 24px 16px 48px;
+  }
+}
+
+/* ── Status dots ── */
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-dot.ok          { background: var(--green); }
+.status-dot.warning     { background: var(--amber); }
+.status-dot.critical    { background: var(--red); }
+.status-dot.stale       { background: var(--t3); }
+.status-dot.unknown     { background: var(--t3); }
+.status-dot.unavailable { background: var(--t3); }
+
+.status-dot.ok.pulse      { animation: pulse-green 2s ease-in-out infinite; }
+.status-dot.warning.pulse  { animation: pulse-amber 2s ease-in-out infinite; }
+.status-dot.critical.pulse { animation: pulse-red 2s ease-in-out infinite; }
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
+}
+@keyframes pulse-amber {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(245, 158, 11, 0); }
+}
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
+}
+
+/* ── Badge ── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+.badge.ok       { background: rgba(34, 197, 94, 0.1); color: var(--green); border-color: rgba(34, 197, 94, 0.2); }
+.badge.warning  { background: rgba(245, 158, 11, 0.1); color: var(--amber); border-color: rgba(245, 158, 11, 0.2); }
+.badge.critical { background: rgba(239, 68, 68, 0.1); color: var(--red); border-color: rgba(239, 68, 68, 0.2); }
+.badge.stale    { background: rgba(107, 125, 179, 0.1); color: var(--t3); border-color: rgba(107, 125, 179, 0.2); }
+.badge.info     { background: rgba(46, 123, 255, 0.1); color: var(--cl-blue); border-color: rgba(46, 123, 255, 0.2); }
+
+/* ── Progress bar ── */
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+.progress-fill.ok       { background: var(--green); }
+.progress-fill.warning  { background: var(--amber); }
+.progress-fill.critical { background: var(--red); }
+
+/* ── Metric display ── */
+
+.metric-value {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--t1);
+  line-height: 1.2;
+}
+.metric-label {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--t3);
+  margin-bottom: 4px;
+}
+.metric-sub {
+  font-size: 14px;
+  color: var(--t2);
+  margin-top: 2px;
+}
+
+/* ── Table ── */
+
+.compact-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.compact-table th {
+  text-align: left;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--t3);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 500;
+}
+.compact-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--t2);
+}
+.compact-table tr:last-child td {
+  border-bottom: none;
+}
+.compact-table tr:hover td {
+  background: rgba(46, 123, 255, 0.04);
+}
+.compact-table .mono {
+  font-family: var(--mono);
+  font-size: 14px;
+}
+
+/* ── External link ── */
+
+.ext-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--cl-blue);
+  font-size: 14px;
+  transition: color 0.2s;
+}
+.ext-link:hover {
+  color: var(--cl-blue-bright);
+  text-decoration: none;
+}
+.ext-link::after {
+  content: '↗';
+  font-size: 10px;
+}
+
+/* ── Quote box (AI analysis) ── */
+
+.quote-box {
+  background: rgba(46, 123, 255, 0.05);
+  border-left: 3px solid var(--cl-blue);
+  padding: 12px 16px;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  font-size: 14px;
+  color: var(--t2);
+  line-height: 1.5;
+}
+
+/* ── Architecture diagram ── */
+
+.arch-pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.arch-node {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 14px 18px;
+  text-align: center;
+  min-width: 140px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.arch-node:hover {
+  border-color: var(--border-bright);
+  box-shadow: 0 0 12px rgba(46, 123, 255, 0.1);
+}
+.arch-node-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cl-blue);
+  margin-bottom: 4px;
+}
+.arch-node-desc {
+  font-size: 14px;
+  color: var(--t3);
+}
+.arch-arrow {
+  color: var(--cl-blue);
+  font-size: 18px;
+  padding: 0 8px;
+  opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+  .arch-pipeline {
+    flex-direction: column;
+  }
+  .arch-arrow {
+    transform: rotate(90deg);
+    padding: 4px 0;
+  }
+}
+
+/* ── Footer ── */
+
+.footer {
+  text-align: center;
+  padding: 32px 0;
+  color: var(--t3);
+  font-size: 14px;
+  border-top: 1px solid var(--border);
+}
+.footer a {
+  color: var(--t3);
+  transition: color 0.2s;
+}
+.footer a:hover {
+  color: var(--cl-blue);
+}
+
+/* ── Vote bar ── */
+
+.vote-bar-track {
+  display: flex;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+.vote-bar-yes {
+  background: var(--green);
+  height: 100%;
+  transition: width 0.4s ease;
+}
+.vote-bar-no {
+  background: var(--red);
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+/* ── Lane card ── */
+
+.lane-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  transition: border-color 0.3s, background 0.3s;
+}
+.lane-card:hover {
+  border-color: var(--border-bright);
+  background: var(--bg-card);
+}
+.lane-card + .lane-card {
+  margin-top: 10px;
+}
+
+/* ── Chainlink badge ── */
+
+.cl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  background: rgba(8, 71, 247, 0.1);
+  border: 1px solid rgba(8, 71, 247, 0.25);
+  font-size: 14px;
+  color: var(--cl-blue);
+  font-weight: 500;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.cl-badge:hover {
+  border-color: rgba(8, 71, 247, 0.5);
+  box-shadow: 0 0 12px rgba(8, 71, 247, 0.15);
+}
+
+/* ── Gauge (runway) ── */
+
+.gauge-track {
+  position: relative;
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.gauge-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.6s ease;
+}
+
+/* ── Empty state ── */
+
+.empty-state {
+  text-align: center;
+  padding: 32px;
+  color: var(--t3);
+  font-size: 14px;
+}
+
+/* ── Hero section ── */
+
+.hero-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--t1);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.hero-subtitle {
+  font-size: 16px;
+  color: var(--t2);
+  max-width: 560px;
+  margin: 0 auto 24px;
+  line-height: 1.5;
+}
+
+/* ── Neon top-edge glow for major sections ── */
+/* Mimics the Convergence hackathon navbar glow */
+
+.card-neon {
+  position: relative;
+  overflow: hidden;
+}
+.card-neon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 5%;
+  right: 5%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(120, 80, 255, 0.8) 15%,
+    rgba(46, 123, 255, 1) 50%,
+    rgba(120, 80, 255, 0.8) 85%,
+    transparent 100%
+  );
+}
+.card-neon::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 10%;
+  right: 10%;
+  height: 12px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(120, 80, 255, 0.25) 25%,
+    rgba(46, 123, 255, 0.35) 50%,
+    rgba(120, 80, 255, 0.25) 75%,
+    transparent 100%
+  );
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+/* ── Glow ring for status ── */
+
+.status-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  border-radius: 100px;
+  border: 1px solid var(--border-bright);
+  background: rgba(46, 123, 255, 0.06);
+  box-shadow: 0 0 16px rgba(46, 123, 255, 0.1);
+  transition: box-shadow 0.3s;
+}
+.status-ring:hover {
+  box-shadow: 0 0 24px rgba(46, 123, 255, 0.2);
+}
+
+/* ── Convergence-style outlined button ── */
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border-radius: 100px;
+  border: 1px solid var(--border-bright);
+  background: transparent;
+  color: var(--t1);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+.btn-outline:hover {
+  border-color: var(--cl-blue);
+  background: rgba(46, 123, 255, 0.08);
+  box-shadow: 0 0 16px rgba(46, 123, 255, 0.12);
+  text-decoration: none;
+}

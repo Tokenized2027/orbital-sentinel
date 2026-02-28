@@ -7,9 +7,10 @@ import {
 	type Runtime,
 	type CronPayload,
 } from '@chainlink/cre-sdk';
-import { encodeFunctionData, decodeFunctionResult, formatUnits, type Address, zeroAddress } from 'viem';
+import { encodeFunctionData, decodeFunctionResult, formatUnits, keccak256, encodeAbiParameters, parseAbiParameters, type Address, zeroAddress } from 'viem';
 import { z } from 'zod';
 import { MorphoBlue, ERC4626Vault, ERC20 } from '../contracts/abi';
+import { SentinelRegistry } from '../contracts/abi/SentinelRegistry';
 
 // ---------- Config ----------
 
@@ -20,6 +21,10 @@ const configSchema = z.object({
 	marketId: z.string(),
 	vaultAddress: z.string(),
 	linkTokenAddress: z.string(),
+	registry: z.object({
+		address: z.string(),
+		chainName: z.string().default('ethereum-testnet-sepolia'),
+	}).optional(),
 });
 
 type Config = z.infer<typeof configSchema>;
@@ -211,6 +216,40 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 			timestamp: new Date().toISOString(),
 		},
 	};
+
+	// --- On-chain write to SentinelRegistry (Sepolia) ---
+	if (runtime.config.registry?.address && runtime.config.registry.address !== '0x0000000000000000000000000000000000000000') {
+		try {
+			const net = getNetwork({ chainFamily: 'evm', chainSelectorName: runtime.config.registry.chainName, isTestnet: true });
+			if (!net) throw new Error(`Network not found: ${runtime.config.registry.chainName}`);
+			const sepoliaClient = new cre.capabilities.EVMClient(net.chainSelector.selector);
+
+			const timestampUnix = BigInt(Math.floor(Date.now() / 1000));
+			const util = morphoMarket.utilization;
+			const risk = util > 0.95 ? 'critical' : util > 0.85 ? 'warning' : 'ok';
+			const utilScaled = BigInt(Math.round(util * 1e6));
+			const snapshotHash = keccak256(
+				encodeAbiParameters(
+					parseAbiParameters('uint256 ts, string wf, string risk, uint256 util, uint256 supply'),
+					[timestampUnix, 'morpho', risk, utilScaled, BigInt(vault.totalSupply)],
+				),
+			);
+
+			const writeCallData = encodeFunctionData({
+				abi: SentinelRegistry,
+				functionName: 'recordHealth',
+				args: [snapshotHash, `morpho:${risk}`],
+			});
+
+			sepoliaClient.callContract(runtime, {
+				call: encodeCallMsg({ from: zeroAddress, to: runtime.config.registry.address as Address, data: writeCallData }),
+			}).result();
+
+			runtime.log(`Registry write | morpho:${risk} hash=${snapshotHash}`);
+		} catch (e) {
+			runtime.log(`Registry write failed (degraded): ${e instanceof Error ? e.message : String(e)}`);
+		}
+	}
 
 	runtime.log(`MORPHO_CRE_OUTPUT_JSON=${JSON.stringify(outputPayload)}`);
 

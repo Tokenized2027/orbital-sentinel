@@ -582,7 +582,7 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 			const writeCallData = encodeFunctionData({
 				abi: SentinelRegistry,
 				functionName: 'recordHealth',
-				args: [snapshotHash, overallRisk],
+				args: [snapshotHash, `treasury:${overallRisk}`],
 			});
 
 			const writeTxResp = sepoliaClient
