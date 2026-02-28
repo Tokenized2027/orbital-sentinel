@@ -12,7 +12,7 @@ Orbital Sentinel runs 5 production CRE workflows that continuously read live Eth
 Chainlink CRE Workflow
   ├── Read on-chain data (EVMClient → mainnet contracts)
   ├── Fetch off-chain signals (HTTPClient → price feeds, governance, lending)
-  ├── POST to AI analysis endpoint (Claude Haiku → risk assessment)
+  ├── POST to AI analysis endpoint (Claude Sonnet → risk assessment)
   └── Write proof on-chain (SentinelRegistry.sol → Sepolia)
 ```
 
@@ -23,7 +23,7 @@ Each workflow runs autonomously on a cron schedule. Alerts fire when thresholds 
 ## The 5 Workflows
 
 ### 1. `treasury-risk` — Protocol Treasury Health
-Monitors staking pool utilization, reward vault runway, lending market exposure, and priority queue depth. Computes an overall risk score (`ok / warning / critical`) and calls Claude Haiku for a structured assessment. Writes a `keccak256` snapshot hash to `SentinelRegistry` on Sepolia.
+Monitors staking pool utilization, reward vault runway, lending market exposure, and priority queue depth. Computes an overall risk score (`ok / warning / critical`) and calls Claude Sonnet for a structured assessment. Writes a `keccak256` snapshot hash to `SentinelRegistry` on Sepolia.
 
 **Chainlink usage:** `EVMClient.callContract()` reads `getTotalPrincipal()`, `getMaxPoolSize()`, `getRewardBuckets()`, `balanceOf()` from deployed staking contracts on Ethereum mainnet.
 
@@ -72,7 +72,7 @@ Tracks token and staked-token balances across classified address categories (val
               ┌──────────────┼──────────────┐
               ▼              ▼              ▼
     ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-    │  Risk Output │  │ Claude Haiku │  │ SentinelReg  │
+    │  Risk Output │  │ Claude Sonnet │  │ SentinelReg  │
     │  (JSON)      │  │ Assessment   │  │ (Sepolia tx) │
     └──────────────┘  └──────────────┘  └──────────────┘
 ```
@@ -171,7 +171,7 @@ orbital-sentinel/
 ├── contracts/
 │   └── SentinelRegistry.sol    ← On-chain risk proof registry (Sepolia)
 ├── platform/
-│   └── cre_analyze_endpoint.py ← Flask AI analysis server (Claude Haiku)
+│   └── cre_analyze_endpoint.py ← Flask AI analysis server (Claude Sonnet)
 ├── README.md
 └── CHAINLINK.md                ← All Chainlink touchpoints documented
 ```

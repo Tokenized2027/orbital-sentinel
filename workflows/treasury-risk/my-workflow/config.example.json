@@ -18,7 +18,7 @@
   },
   "registry": {
     "address": "0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334",
-    "chainName": "ethereum-sepolia"
+    "chainName": "ethereum-testnet-sepolia"
   },
   "thresholds": {
     "communityPoolFillPctWarning": 95,

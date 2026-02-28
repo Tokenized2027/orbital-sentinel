@@ -310,8 +310,8 @@ function readRewardMetrics(
 // ---------- Analytics API Readers ----------
 
 type DefiApiResult = {
-	morphoUtilization: number | null;
-	vaultTvlUsd: number | null;
+	morphoUtilization: number; // -1 = unavailable
+	vaultTvlUsd: number;       // -1 = unavailable
 };
 
 function fetchDefiData(
@@ -333,8 +333,8 @@ function fetchDefiData(
 	const decoded = JSON.parse(Buffer.from(resp.body).toString('utf-8')) as Record<string, unknown>;
 	const morpho = (decoded.morpho as Record<string, unknown>) || {};
 
-	const utilization = toNumberOrNull(morpho.utilization ?? morpho.utilizationRate);
-	const vaultTvlUsd = toNumberOrNull(morpho.vaultTvlUsd ?? morpho.tvlUsd ?? morpho.vault_tvl_usd);
+	const utilization = toNumberOrNull(morpho.utilization ?? morpho.utilizationRate) ?? -1;
+	const vaultTvlUsd = toNumberOrNull(morpho.vaultTvlUsd ?? morpho.tvlUsd ?? morpho.vault_tvl_usd) ?? -1;
 
 	return { morphoUtilization: utilization, vaultTvlUsd };
 }
@@ -468,8 +468,8 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 				)({ url: `${baseUrl}/api/defi` })
 				.result();
 
-			morphoUtilization = defiResult.morphoUtilization;
-			vaultTvlUsd = defiResult.vaultTvlUsd;
+			morphoUtilization = defiResult.morphoUtilization >= 0 ? defiResult.morphoUtilization : null;
+			vaultTvlUsd = defiResult.vaultTvlUsd >= 0 ? defiResult.vaultTvlUsd : null;
 
 			if (morphoUtilization != null) {
 				morphoRisk = classifyRisk(morphoUtilization, thresholds.morphoUtilizationWarning, thresholds.morphoUtilizationCritical);
@@ -627,7 +627,7 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 	}
 
 	// Emit compact marker for run_snapshot parser reliability.
-	runtime.log(`SENTINEL_OUTPUT_JSON=${JSON.stringify(outputPayload)}`);
+	runtime.log(`SDL_CRE_OUTPUT_JSON=${JSON.stringify(outputPayload)}`);
 
 	return safeJsonStringify(outputPayload);
 }
