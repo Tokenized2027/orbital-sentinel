@@ -152,9 +152,9 @@ event HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 ts)
 
 `snapshotHash = keccak256(abi.encode(timestamp, riskLevel, aiAssessmentSnippet))`
 
-Deployed address: `[TODO — deploy to Sepolia and update here]`
+Deployed address: ``0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334``
 
-View on Sepolia Etherscan: `[TODO]`
+View on Sepolia Etherscan: `https://sepolia.etherscan.io/address/0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334`
 
 ---
 
