@@ -158,6 +158,25 @@ View on Sepolia Etherscan: `https://sepolia.etherscan.io/address/0xAFc081cde50fA
 
 ---
 
+## Analytics Integration
+
+Sentinel on-chain records feed back into the SDL analytics dashboard, creating a closed intelligence loop:
+
+```
+SentinelRegistry (Sepolia)
+  ↓ HealthRecorded events
+Sentinel Collector (cron, viem getLogs)
+  ↓ sentinel_records table
+SDL Analytics API (/api/sentinel)
+  ↓ JSON + Etherscan links
+CRE Ops Console (/ops/cre)
+  → On-Chain Sentinel section with stats, risk breakdown, tx timeline
+```
+
+The collector reads `HealthRecorded` events from the registry contract, stores them in PostgreSQL via Drizzle ORM, and serves them through the analytics dashboard. Each record links back to its Sepolia Etherscan transaction for full auditability.
+
+---
+
 ## Project Structure
 
 ```
@@ -172,6 +191,10 @@ orbital-sentinel/
 │   └── SentinelRegistry.sol    ← On-chain risk proof registry (Sepolia)
 ├── platform/
 │   └── cre_analyze_endpoint.py ← Flask AI analysis server (Claude Sonnet)
+├── scripts/
+│   ├── record-health.mjs       ← One-shot recordHealth call
+│   ├── record-health-cron.mjs  ← Scheduled cron with rotating scenarios
+│   └── verify-contract.mjs     ← Sourcify contract verification
 ├── README.md
 └── CHAINLINK.md                ← All Chainlink touchpoints documented
 ```
