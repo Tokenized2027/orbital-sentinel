@@ -39,40 +39,22 @@ const registryAbi = [
   },
 ];
 
-// Realistic snapshot scenarios that rotate
+// 14 realistic scenarios — 2 full days of unique assessments at 7x/day
 const scenarios = [
-  {
-    risk: 'ok',
-    assessment: 'Protocol treasury is healthy. Community staking pool at 87.3% capacity. Reward vault runway ~109 days. Morpho utilization at 62%. No anomalies detected.',
-  },
-  {
-    risk: 'ok',
-    assessment: 'All systems nominal. Community pool fill at 86.8%, operator pool steady at 91.2%. Reward runway 107 days. Price feeds stable — LINK/USD $18.42, stLINK depeg <5bps.',
-  },
-  {
-    risk: 'ok',
-    assessment: 'Healthy state confirmed. Staking pools within normal ranges. Governance: 2 active proposals, none urgent. Token flows stable — no large movements detected across NOP wallets.',
-  },
-  {
-    risk: 'warning',
-    assessment: 'Elevated attention: Community pool fill rate approaching 95% threshold (currently 93.7%). Reward vault runway decreased to 45 days. Recommend monitoring top-up schedule.',
-  },
-  {
-    risk: 'ok',
-    assessment: 'Post-monitoring check clear. Community pool at 88.1%, operator pool at 90.5%. Morpho vault TVL $2.4M, utilization 58%. Queue depth nominal at 12,400 LINK.',
-  },
-  {
-    risk: 'ok',
-    assessment: 'Evening assessment: stable. Reward vault balance 847K LINK, runway ~106 days. No governance votes expiring within 24h. Whale tracker: no significant SDL movements.',
-  },
-  {
-    risk: 'warning',
-    assessment: 'Minor anomaly: stLINK/LINK depeg widened to 23bps (threshold: 25bps). Curve pool composition shifted to 67/33. Monitoring closely — likely temporary arbitrage pressure.',
-  },
-  {
-    risk: 'ok',
-    assessment: 'Morning scan complete. All 5 monitoring dimensions green. Pool utilization normal, reward runway stable, governance quiet, price feeds healthy, token flows unremarkable.',
-  },
+  { risk: 'ok', assessment: 'Protocol treasury healthy. Community staking pool at 87.3% capacity. Reward vault runway ~109 days. Morpho utilization at 62%. No anomalies detected.' },
+  { risk: 'ok', assessment: 'All systems nominal. Community pool fill 86.8%, operator pool steady at 91.2%. Reward runway 107 days. LINK/USD $18.42, stLINK depeg <5bps.' },
+  { risk: 'ok', assessment: 'Healthy state confirmed. Staking pools within normal ranges. Governance: 2 active proposals, none urgent. No large movements across NOP wallets.' },
+  { risk: 'warning', assessment: 'Elevated: Community pool approaching 95% threshold (93.7%). Reward vault runway decreased to 45 days. Recommend monitoring top-up schedule.' },
+  { risk: 'ok', assessment: 'Post-monitoring check clear. Community pool 88.1%, operator pool 90.5%. Morpho vault TVL $2.4M, utilization 58%. Queue depth nominal at 12,400 LINK.' },
+  { risk: 'ok', assessment: 'Evening assessment stable. Reward vault balance 847K LINK, runway ~106 days. No governance votes expiring within 24h. No significant SDL movements.' },
+  { risk: 'warning', assessment: 'Minor anomaly: stLINK/LINK depeg widened to 23bps (threshold: 25bps). Curve pool composition shifted 67/33. Likely temporary arbitrage pressure.' },
+  { risk: 'ok', assessment: 'Morning scan complete. All 5 monitoring dimensions green. Pool utilization normal, reward runway stable, governance quiet, price feeds healthy.' },
+  { risk: 'ok', assessment: 'Midday check: pools stable. Community 87.9%, operator 90.8%. Morpho utilization ticked down to 55%. CCIP lane health normal across all bridges.' },
+  { risk: 'ok', assessment: 'Afternoon update: reward vault topped up — runway extended to 112 days. SDL vesting unlock approaching in 14 days (2.1M SDL). No action needed yet.' },
+  { risk: 'warning', assessment: 'Whale alert: 450K LINK unstake detected from known sniper address 0x8a2e. Priority pool queue jumped to 28,700 LINK. Bot response within 3 blocks.' },
+  { risk: 'ok', assessment: 'Late check: unstake pressure resolved. Queue back to 14,200 LINK. Curve pool rebalanced to 58/42. stLINK depeg narrowed to 4bps. All clear.' },
+  { risk: 'ok', assessment: 'Night scan: low activity period. Pool levels unchanged. 1 governance proposal entered final 48h voting window (SLURP-63). Token flows flat.' },
+  { risk: 'warning', assessment: 'Attention: Morpho vault utilization spiked to 81% (threshold: 85%). Borrowing demand increased — monitoring for potential liquidity crunch.' },
 ];
 
 async function main() {
@@ -90,10 +72,11 @@ async function main() {
   const publicClient = createPublicClient({ chain: sepolia, transport: http(RPC_URL) });
   const walletClient = createWalletClient({ account, chain: sepolia, transport: http(RPC_URL) });
 
-  // Pick scenario based on day + hour (deterministic but varied)
+  // Pick scenario based on day + slot (7 calls/day, deterministic but varied)
   const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
   const hour = now.getUTCHours();
-  const idx = (dayOfYear * 2 + (hour >= 12 ? 1 : 0)) % scenarios.length;
+  const slot = Math.floor(hour / 3.5); // 0-6 for 7 daily slots
+  const idx = (dayOfYear * 7 + slot) % scenarios.length;
   const scenario = scenarios[idx];
 
   const timestampUnix = BigInt(Math.floor(now.getTime() / 1000));
