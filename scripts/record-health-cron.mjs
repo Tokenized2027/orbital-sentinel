@@ -17,7 +17,14 @@ import { sepolia } from 'viem/chains';
 
 const REGISTRY_ADDRESS = '0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334';
 const DEPLOYER_KEY = '0xbf893d437ec2ab1fae3f27d4e592307225bb45161eb3d966696a7d91728efe9b';
-const RPC_URL = 'https://sepolia.gateway.tenderly.co';
+
+// Fallback RPC array — Tenderly last (rate-limited since Feb 28)
+const RPC_URLS = [
+  'https://ethereum-sepolia-rpc.publicnode.com',
+  'https://rpc.sepolia.org',
+  'https://sepolia.drpc.org',
+  'https://sepolia.gateway.tenderly.co',
+];
 
 const registryAbi = [
   {
@@ -69,8 +76,6 @@ async function main() {
   }
 
   const account = privateKeyToAccount(DEPLOYER_KEY);
-  const publicClient = createPublicClient({ chain: sepolia, transport: http(RPC_URL) });
-  const walletClient = createWalletClient({ account, chain: sepolia, transport: http(RPC_URL) });
 
   // Pick scenario based on day + slot (7 calls/day, deterministic but varied)
   const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
@@ -92,29 +97,41 @@ async function main() {
   log(`Hash: ${snapshotHash}`);
   log(`Assessment: ${scenario.assessment.slice(0, 80)}...`);
 
-  try {
-    const txHash = await walletClient.writeContract({
-      address: REGISTRY_ADDRESS,
-      abi: registryAbi,
-      functionName: 'recordHealth',
-      args: [snapshotHash, scenario.risk],
-    });
+  // Try each RPC in order — break on first success
+  let lastErr = null;
+  for (const rpcUrl of RPC_URLS) {
+    log(`Trying RPC: ${rpcUrl}`);
+    const publicClient = createPublicClient({ chain: sepolia, transport: http(rpcUrl) });
+    const walletClient = createWalletClient({ account, chain: sepolia, transport: http(rpcUrl) });
 
-    log(`TX: ${txHash}`);
+    try {
+      const txHash = await walletClient.writeContract({
+        address: REGISTRY_ADDRESS,
+        abi: registryAbi,
+        functionName: 'recordHealth',
+        args: [snapshotHash, scenario.risk],
+      });
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-    log(`Confirmed block ${receipt.blockNumber} — status: ${receipt.status}`);
+      log(`TX: ${txHash}`);
 
-    const count = await publicClient.readContract({
-      address: REGISTRY_ADDRESS,
-      abi: registryAbi,
-      functionName: 'count',
-    });
-    log(`Total records on-chain: ${count}`);
-  } catch (err) {
-    log(`ERROR: ${err.message || err}`);
-    process.exit(1);
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      log(`Confirmed block ${receipt.blockNumber} — status: ${receipt.status}`);
+
+      const count = await publicClient.readContract({
+        address: REGISTRY_ADDRESS,
+        abi: registryAbi,
+        functionName: 'count',
+      });
+      log(`Total records on-chain: ${count}`);
+      process.exit(0);
+    } catch (err) {
+      lastErr = err;
+      log(`RPC failed (${rpcUrl}): ${err.message || err}`);
+    }
   }
+
+  log(`ERROR: All ${RPC_URLS.length} RPCs failed. Last error: ${lastErr?.message || lastErr}`);
+  process.exit(1);
 }
 
 main();
