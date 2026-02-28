@@ -15,7 +15,7 @@ import { cre, Runner, consensusIdenticalAggregation, getNetwork, encodeCallMsg }
 | File | SDK Usage |
 |------|-----------|
 | `workflows/treasury-risk/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.HTTPClient`, `cre.capabilities.CronCapability`, `consensusIdenticalAggregation`, `getNetwork`, `encodeCallMsg` |
-| `workflows/governance-monitor/my-workflow/main.ts` | `Runner`, `cre.capabilities.HTTPClient`, `cre.capabilities.CronCapability`, `consensusIdenticalAggregation` |
+| `workflows/governance-monitor/my-workflow/main.ts` | `Runner`, `cre.capabilities.HTTPClient`, `cre.capabilities.EVMClient`, `cre.capabilities.CronCapability`, `consensusIdenticalAggregation`, `getNetwork`, `encodeCallMsg` |
 | `workflows/price-feeds/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.HTTPClient`, `cre.capabilities.CronCapability`, `consensusIdenticalAggregation`, `getNetwork` |
 | `workflows/morpho-vault-health/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.CronCapability`, `getNetwork`, `encodeCallMsg` |
 | `workflows/token-flows/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.CronCapability`, `getNetwork`, `encodeCallMsg` |
@@ -166,10 +166,10 @@ const sepoliaNet = getNetwork({ chainFamily: 'evm', chainSelectorName: 'ethereum
 | Chainlink Component | Where Used |
 |---------------------|-----------|
 | `@chainlink/cre-sdk` Runner + handler | All 5 workflow `main.ts` files |
-| `EVMClient.callContract()` | treasury-risk, price-feeds, morpho-vault-health, token-flows |
+| `EVMClient.callContract()` | All 5 workflows (mainnet reads + Sepolia writes) |
 | Chainlink Data Feeds (LINK/USD, ETH/USD) | `workflows/price-feeds/my-workflow/main.ts` |
 | `HTTPClient` + `consensusIdenticalAggregation` | treasury-risk, governance-monitor, price-feeds |
 | `CronCapability` | All 5 workflows |
-| `getNetwork()` chain selector | treasury-risk, price-feeds, morpho-vault-health, token-flows |
+| `getNetwork()` chain selector | All 5 workflows (mainnet + Sepolia) |
 | `SentinelRegistry.sol` (on-chain write) | All 5 workflow `main.ts` files + `scripts/record-all-snapshots.mjs` |
-| `encodeCallMsg` | treasury-risk, morpho-vault-health, token-flows |
+| `encodeCallMsg` | All 5 workflows |

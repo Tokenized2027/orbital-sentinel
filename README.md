@@ -162,20 +162,24 @@ View on Sepolia Etherscan: `https://sepolia.etherscan.io/address/0xAFc081cde50fA
 
 ## Analytics Integration
 
-Sentinel on-chain records feed back into the SDL analytics dashboard, creating a closed intelligence loop:
+Sentinel on-chain records feed back into the standalone dashboard, creating a closed intelligence loop:
 
 ```
+CRE Snapshots (live data, updated every 10-30 min)
+  ↓
+record-all-snapshots.mjs (bridge, every 15 min via cron)
+  ↓ keccak256 proof hash per workflow
 SentinelRegistry (Sepolia)
   ↓ HealthRecorded events
 Sentinel Collector (cron, viem getLogs)
   ↓ sentinel_records table
-SDL Analytics API (/api/sentinel)
-  ↓ JSON + Etherscan links
-CRE Ops Console (/ops/cre)
-  → On-Chain Sentinel section with stats, risk breakdown, tx timeline
+Dashboard API (/api/sentinel)
+  ↓ JSON + per-workflow stats + Etherscan links
+Sentinel Dashboard (Next.js)
+  → Workflow grid with CRE tags, on-chain records with workflow column
 ```
 
-The collector reads `HealthRecorded` events from the registry contract, stores them in PostgreSQL via Drizzle ORM, and serves them through the analytics dashboard. Each record links back to its Sepolia Etherscan transaction for full auditability.
+The collector reads `HealthRecorded` events from the registry contract, stores them in PostgreSQL via Drizzle ORM, and serves them through the dashboard. Each record links back to its Sepolia Etherscan transaction for full auditability. The dashboard parses prefixed risk levels (`treasury:ok`) to show per-workflow proof statistics.
 
 ---
 
@@ -184,20 +188,26 @@ The collector reads `HealthRecorded` events from the registry contract, stores t
 ```
 orbital-sentinel/
 ├── workflows/
-│   ├── treasury-risk/          ← Main workflow: EVM reads + AI + on-chain write
-│   ├── governance-monitor/     ← DAO proposal monitoring
-│   ├── price-feeds/            ← Chainlink Data Feed reads
-│   ├── morpho-vault-health/    ← Lending market utilization
-│   └── token-flows/            ← Whale & holder tracking
+│   ├── treasury-risk/          ← EVM reads + AI analysis + on-chain write
+│   ├── governance-monitor/     ← DAO proposal monitoring + on-chain write
+│   ├── price-feeds/            ← Chainlink Data Feed reads + on-chain write
+│   ├── morpho-vault-health/    ← Lending market utilization + on-chain write
+│   └── token-flows/            ← Whale & holder tracking + on-chain write
 ├── contracts/
 │   └── SentinelRegistry.sol    ← On-chain risk proof registry (Sepolia)
+├── dashboard/                  ← Next.js standalone dashboard
+│   ├── app/components/         ← WorkflowGrid, SentinelRegistry, PegMonitor, etc.
+│   ├── app/api/                ← /api/sentinel, /api/cre-signals
+│   └── lib/db/                 ← Drizzle ORM schema + queries (PostgreSQL)
 ├── platform/
 │   └── cre_analyze_endpoint.py ← Flask AI analysis server (Claude Sonnet)
-├── dashboard/                    ← Next.js analytics dashboard (CRE ops console)
 ├── scripts/
-│   ├── record-all-snapshots.mjs ← Bridge: CRE snapshots → on-chain proofs (every 15 min)
+│   ├── record-all-snapshots.mjs ← Bridge: CRE snapshots → on-chain proofs (cron)
 │   ├── record-health.mjs       ← One-shot recordHealth call
 │   └── verify-contract.mjs     ← Sourcify contract verification
+├── docs/
+│   ├── submission.md           ← Hackathon submission copy-paste
+│   └── demo-video-script.md    ← Recording guide
 ├── README.md
 └── CHAINLINK.md                ← All Chainlink touchpoints documented
 ```

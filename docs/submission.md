@@ -5,7 +5,7 @@
 | Field | Value |
 |-------|-------|
 | Project Name | Orbital Sentinel |
-| Tagline | Autonomous AI agent platform monitoring DeFi protocol health via 5 CRE workflows with on-chain risk proofs |
+| Tagline | Autonomous AI agent platform monitoring DeFi protocol health via 5 CRE workflows with real on-chain risk proofs for all 6 data sources |
 | Team Size | 1 |
 | Prize Tracks | CRE & AI, DeFi & Tokenization, Autonomous Agents (Moltbook) |
 | GitHub | https://github.com/Tokenized2027/orbital-sentinel |
@@ -31,9 +31,9 @@ We built 5 production CRE workflows for stake.link (the largest Chainlink liquid
 
 5. **Token Flows** — tracks SDL + stLINK balances across 50+ classified addresses (NOPs, whales, DEX pools, vesting contracts). Detects large movements that may indicate protocol stress.
 
-Every treasury-risk run produces an immutable on-chain audit trail: a HealthRecorded event on the SentinelRegistry contract (Sepolia), containing the keccak256 hash of the full risk snapshot. The contract accumulates ~7 records per day from fully autonomous runs — projected 50+ by submission deadline, no manual triggering.
+Every workflow run produces an immutable on-chain audit trail: a HealthRecorded event on the SentinelRegistry contract (Sepolia), containing the keccak256 hash of workflow-specific metrics. Risk levels use a prefixed format (`treasury:ok`, `feeds:warning`, `morpho:critical`, etc.) so each proof is tagged with its source workflow. A bridge script (`record-all-snapshots.mjs`) reads live CRE snapshots every 15 minutes and writes proofs on-chain for all 6 data sources — fully autonomous, no manual triggering.
 
-The on-chain records also feed back into our analytics dashboard via a collector that reads HealthRecorded events, stores them in PostgreSQL, and surfaces them in a CRE Operations Console alongside live depeg monitoring, service health, and operator controls.
+The on-chain records feed back into a standalone Next.js dashboard via a collector that reads HealthRecorded events, stores them in PostgreSQL, and surfaces them with per-workflow statistics, CRE capability tags, and Sepolia Etherscan links.
 
 ---
 
@@ -55,7 +55,7 @@ The on-chain records also feed back into our analytics dashboard via a collector
 
 - Chaining EVM reads from mainnet contracts → HTTP AI call to Claude → EVM write to Sepolia within a single CRE workflow simulate run
 - Ensuring consensusIdenticalAggregation works correctly for AI analysis responses (non-deterministic output needs careful prompt engineering)
-- Managing wallet/gas on Sepolia for continuous autonomous writes (7x daily, gas estimation, nonce management)
+- Managing wallet/gas on Sepolia for continuous autonomous writes across 6 workflows (gas estimation, nonce management, staleness dedup)
 - Building the feedback loop: on-chain events back into the analytics dashboard required a custom collector using viem getLogs
 
 ---

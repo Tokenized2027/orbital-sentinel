@@ -8,23 +8,21 @@
 ## Setup Before Recording
 
 1. Open these tabs in browser:
-   - SDL Analytics CRE Ops Console: `http://localhost:3014/ops/cre`
+   - Sentinel Dashboard: (Cloudflare tunnel URL or `http://localhost:3016`)
    - Sepolia Etherscan contract: `https://sepolia.etherscan.io/address/0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334`
    - GitHub repo: `https://github.com/Tokenized2027/orbital-sentinel`
 
 2. Open terminal at: `cd ~/orbital-sentinel/scripts`
 
-3. Open second terminal at: `cd ~/projects/orbital/clients/stake-link/sdl/orchestration/cre-poc/treasury-risk-ts`
-
 ---
 
 ## Scene 1 — What It Is (0:00 - 0:30)
 
-**Show:** CRE Ops Console (`/ops/cre`)
+**Show:** Sentinel Dashboard
 
-**Say:** "This is Orbital Sentinel — an autonomous AI agent platform that monitors DeFi protocol health using Chainlink CRE workflows. What you're seeing is the operations console for stake.link, the largest Chainlink liquid staking protocol. It tracks depeg health, service dependencies, and on-chain sentinel records — all automated, no human in the loop."
+**Say:** "This is Orbital Sentinel — an autonomous AI agent platform that monitors DeFi protocol health using Chainlink CRE workflows. What you're seeing is the dashboard for stake.link, the largest Chainlink liquid staking protocol. It shows 6 workflow cards with CRE capability tags, live risk status, and on-chain sentinel records — all automated, no human in the loop."
 
-**Action:** Scroll down to show the On-Chain Sentinel section with the stats and transaction list.
+**Action:** Scroll down to show the On-Chain Sentinel section with per-workflow stats and transaction list.
 
 ---
 
@@ -32,9 +30,9 @@
 
 **Show:** Sepolia Etherscan contract page
 
-**Say:** "Every monitoring run writes a verifiable proof to this SentinelRegistry contract on Sepolia. Each HealthRecorded event contains a keccak256 hash of the full risk snapshot — timestamp, risk level, and AI assessment. You can see [X] records here, fired autonomously 7 times a day."
+**Say:** "Every monitoring run writes a verifiable proof to this SentinelRegistry contract on Sepolia. Each HealthRecorded event contains a keccak256 hash of workflow-specific metrics — with prefixed risk levels like 'treasury:ok' or 'feeds:warning' so you can see which workflow produced each proof."
 
-**Action:** Click on one transaction, show the HealthRecorded event in the logs tab. Point out the snapshotHash and riskLevel fields.
+**Action:** Click on one transaction, show the HealthRecorded event in the logs tab. Point out the snapshotHash and prefixed riskLevel fields.
 
 ---
 
@@ -42,18 +40,18 @@
 
 **Show:** Terminal
 
-**Say:** "Let me fire a live health record right now."
+**Say:** "Let me fire live health records right now — one for each workflow with fresh data."
 
 **Run:**
 ```bash
-node record-health-cron.mjs
+node record-all-snapshots.mjs
 ```
 
-**Say:** (while it runs) "This calls recordHealth on the Sepolia registry with a keccak256 hash of today's risk assessment. The script rotates through 14 realistic scenarios — treasury health, governance status, whale activity, Morpho utilization."
+**Say:** (while it runs) "This reads real CRE snapshot data for all 6 workflows — treasury risk, price feeds, governance, Morpho vault, token flows, and CCIP lanes. For each fresh snapshot, it computes a keccak256 hash of key metrics and writes it to the Sepolia registry with a prefixed risk level."
 
-**Action:** When it confirms, copy the TX hash. Switch to Etherscan. Show the new transaction appearing.
+**Action:** When it confirms, copy a TX hash. Switch to Etherscan. Show the new transaction(s) appearing.
 
-**Say:** "There it is — confirmed on-chain in about 12 seconds. Immutable audit trail."
+**Say:** "There they are — real data, real proofs, confirmed on-chain. No fake scenarios, no hardcoded data."
 
 ---
 
@@ -78,9 +76,9 @@ node record-health-cron.mjs
 
 ## Scene 5 — Wrap (4:00 - 4:30)
 
-**Show:** CRE Ops Console again
+**Show:** Sentinel Dashboard again
 
-**Say:** "Orbital Sentinel is the intelligence backbone of our stake.link deployment. CRE orchestrates the data reads, AI analyzes the risk, and Sepolia stores the proof. Fully autonomous — running 24/7 with no human intervention. Built for the Chainlink Convergence Hackathon by Orbital."
+**Say:** "Orbital Sentinel is the intelligence backbone of our stake.link deployment. CRE orchestrates the data reads, AI analyzes the risk, and Sepolia stores the proof — for all 6 data sources. Fully autonomous — running 24/7 with no human intervention. Built for the Chainlink Convergence Hackathon by Orbital."
 
 ---
 
