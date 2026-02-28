@@ -1,0 +1,12 @@
+{
+  "schedule": "0 */30 * * * *",
+  "snapshotGraphqlUrl": "https://hub.snapshot.org/graphql",
+  "snapshotSpaces": ["your-dao.eth", "your-council.eth"],
+  "forumBaseUrl": "https://your-protocol-forum.example.com",
+  "forumTopicCount": 10,
+  "webhook": {
+    "enabled": false,
+    "url": "",
+    "bearerToken": ""
+  }
+}

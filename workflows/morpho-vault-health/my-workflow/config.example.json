@@ -1,0 +1,8 @@
+{
+  "schedule": "0 */15 * * * *",
+  "chainName": "ethereum-mainnet",
+  "morphoAddress": "0xBBBBBBBBbb9cc5e90e3b3Af64bdAF62C37EEFFCb",
+  "marketId": "YOUR_MORPHO_MARKET_ID",
+  "vaultAddress": "YOUR_ERC4626_VAULT_ADDRESS",
+  "linkTokenAddress": "0x514910771AF9Ca656af840dff83E8264EcF986CA"
+}

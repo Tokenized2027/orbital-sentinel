@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.local
+config.staging.json
+config.production.json
+secrets.yaml
+__pycache__/
+*.pyc
+.DS_Store

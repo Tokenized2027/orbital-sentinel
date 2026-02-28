@@ -1,0 +1,23 @@
+{
+  "schedule": "0 */15 * * * *",
+  "chainName": "ethereum-mainnet",
+  "feeds": [
+    {
+      "name": "ETH/USD",
+      "address": "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419"
+    },
+    {
+      "name": "LINK/USD",
+      "address": "0x2c1d072e956affc0d435cb7ac38ef18d24d9127c"
+    }
+  ],
+  "internalData": {
+    "enabled": true,
+    "url": "https://YOUR_ORBITAL_SENTINEL_URL/api/defi"
+  },
+  "webhook": {
+    "enabled": false,
+    "url": "",
+    "bearerToken": ""
+  }
+}

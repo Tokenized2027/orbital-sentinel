@@ -1,0 +1,7 @@
+{
+  "schedule": "0 */30 * * * *",
+  "chainName": "ethereum-mainnet",
+  "tokenAddress": "YOUR_PROTOCOL_TOKEN_ADDRESS",
+  "stakedTokenAddress": "YOUR_STAKED_TOKEN_ADDRESS",
+  "rpcUrl": "https://YOUR_ETHEREUM_RPC_URL"
+}

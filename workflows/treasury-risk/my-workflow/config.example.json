@@ -1,0 +1,38 @@
+{
+  "schedule": "0 */15 * * * *",
+  "chainName": "ethereum-mainnet",
+  "contracts": {
+    "communityPool": "YOUR_COMMUNITY_STAKING_POOL_ADDRESS",
+    "operatorPool": "YOUR_OPERATOR_STAKING_POOL_ADDRESS",
+    "rewardVault": "YOUR_REWARD_VAULT_ADDRESS",
+    "linkToken": "0x514910771AF9Ca656af840dff83E8264EcF986CA"
+  },
+  "analyticsApi": {
+    "enabled": true,
+    "baseUrl": "https://YOUR_ORBITAL_SENTINEL_URL"
+  },
+  "aiAnalysis": {
+    "enabled": true,
+    "url": "https://YOUR_ORBITAL_SENTINEL_URL/api/cre/analyze",
+    "secret": ""
+  },
+  "registry": {
+    "address": "YOUR_SENTINEL_REGISTRY_SEPOLIA_ADDRESS",
+    "chainName": "ethereum-sepolia"
+  },
+  "thresholds": {
+    "communityPoolFillPctWarning": 95,
+    "communityPoolFillPctCritical": 99,
+    "morphoUtilizationWarning": 85,
+    "morphoUtilizationCritical": 95,
+    "rewardRunwayDaysWarning": 30,
+    "rewardRunwayDaysCritical": 7,
+    "queueLinkWarning": 50000,
+    "queueLinkCritical": 200000
+  },
+  "webhook": {
+    "enabled": false,
+    "url": "",
+    "bearerToken": ""
+  }
+}
