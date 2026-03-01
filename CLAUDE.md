@@ -13,7 +13,7 @@ Autonomous DeFi health monitoring platform built on Chainlink CRE for the Chainl
 
 **Deadline: March 8, 2026.**
 
-7 CRE workflows read Ethereum mainnet, run AI analysis (Claude Sonnet), and write keccak256 risk proofs to `SentinelRegistry` on Sepolia. A Next.js dashboard displays workflow status and on-chain proof history.
+7 CRE workflows read Ethereum mainnet, run AI analysis (Claude Haiku + GPT-5.3-Codex), and write keccak256 risk proofs to `SentinelRegistry` on Sepolia. A Next.js dashboard displays workflow status and on-chain proof history.
 
 ---
 
@@ -48,7 +48,7 @@ orbital-sentinel/
 ├── contracts/                    # Solidity (Foundry)
 │   ├── SentinelRegistry.sol      #   On-chain risk proof registry (owner-gated, dedup, validated)
 │   ├── SentinelRegistry.ts       #   TypeScript ABI export
-│   └── test/                     #   Foundry tests (24 total: 17 unit + 7 fuzz)
+│   └── test/                     #   Foundry tests (17 unit + 7 fuzz + DeepAudit.t.sol)
 ├── dashboard/                    # Next.js 15 standalone app (port 3016)
 │   ├── app/
 │   │   ├── api/sentinel/         #   GET — on-chain proof data
@@ -69,7 +69,8 @@ orbital-sentinel/
 │   ├── CRE-ECOSYSTEM-REFERENCE.md
 │   ├── submission.md
 │   ├── demo-video-script.md
-│   └── verification.md
+│   ├── verification.md
+│   └── how-it-works.md
 ├── foundry.toml                  # Foundry config (solc 0.8.19)
 ├── CHAINLINK.md                  # Every Chainlink touchpoint documented
 └── README.md
@@ -80,7 +81,7 @@ orbital-sentinel/
 ```
 CRE Workflows (cron, every 15-30 min)
   -> EVMClient reads from Ethereum mainnet contracts
-  -> HTTPClient POSTs to AI analysis endpoint (Claude Sonnet)
+  -> HTTPClient POSTs to AI analysis endpoint (Claude Haiku / GPT-5.3-Codex)
   -> Workflow computes keccak256 proof hash
   -> record-all-snapshots.mjs writes proof to SentinelRegistry on Sepolia
   -> Dashboard collector reads HealthRecorded events via viem getLogs
@@ -102,7 +103,7 @@ CRE Workflows (cron, every 15-30 min)
 | ORM | drizzle-orm | ^0.39 |
 | Database | PostgreSQL | existing sdl_analytics DB |
 | On-chain lib | viem | 2.34+ |
-| AI Analysis | Flask + anthropic (Python) | Claude Sonnet |
+| AI Analysis | Flask + anthropic + openai (Python) | Claude Haiku (treasury) / GPT-5.3-Codex (arb) |
 | Language | TypeScript | 5.7+ |
 | Schema validation | zod | 3.25 |
 | Formatter | Prettier | semi, singleQuote, trailingComma: all |
@@ -253,7 +254,7 @@ bun install
 - **SentinelRegistry:** deployed on Sepolia at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit). Access control, dedup, validation active on-chain.
 - **Dashboard:** running on port 3016, reads on-chain proofs + CRE signals
 - **Cron bridge:** `record-all-snapshots.mjs` writes proofs for all 7 workflows
-- **AI endpoint:** Flask server with Claude Sonnet analysis
+- **AI endpoint:** Flask server with Claude Haiku + GPT-5.3-Codex analysis
 - **Hackathon tracks:** CRE & AI, DeFi & Tokenization, Autonomous Agents (Moltbook)
 - **Demo video:** script at `docs/demo-video-script.md`, video not yet recorded
 - **Submission doc:** `docs/submission.md`
@@ -310,4 +311,6 @@ All 7 workflows run together in a unified cycle, 7 times per day (~3h 25min apar
 
 **Per cycle:** 7 CRE simulations (parallel) + 7 on-chain proof writes (sequential). Total: 49 on-chain proofs/day.
 
-**Workflows in each cycle:** treasury-risk, price-feeds, governance-monitor, morpho-vault-health, curve-pool, ccip-lane-health, stlink-arb-monitor.
+**Workflows in each cycle:** treasury-risk, price-feeds, governance-monitor, morpho-vault-health, curve-pool, ccip-lane-health, stlink-arb (cross-repo: `~/projects/orbital/clients/stake-link/arb-vault/workflows/stlink-arb-monitor`).
+
+> **Note:** `token-flows` is implemented but NOT wired into the unified cycle or `record-all-snapshots.mjs`. To add it, update both `sentinel-unified-cycle.sh` and `record-all-snapshots.mjs`.

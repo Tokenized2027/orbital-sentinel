@@ -8,7 +8,7 @@ See also: [CRE Ecosystem Reference](./docs/CRE-ECOSYSTEM-REFERENCE.md) for capab
 
 ## 1. `@chainlink/cre-sdk` — Workflow Runtime
 
-All 8 workflows import and use the CRE SDK as their execution runtime:
+All 7 workflows import and use the CRE SDK as their execution runtime:
 
 ```typescript
 import { cre, Runner, consensusIdenticalAggregation, getNetwork, encodeCallMsg } from '@chainlink/cre-sdk';
@@ -189,12 +189,14 @@ const sepoliaNet = getNetwork({ chainFamily: 'evm', chainSelectorName: 'ethereum
 
 | Chainlink Component | Where Used |
 |---------------------|-----------|
-| `@chainlink/cre-sdk` Runner + handler | All 8 workflow `main.ts` files |
-| `EVMClient.callContract()` | All 8 workflows (mainnet reads + Sepolia writes) |
+| `@chainlink/cre-sdk` Runner + handler | All 7 workflow `main.ts` files |
+| `EVMClient.callContract()` | All 7 workflows (mainnet reads + Sepolia writes) |
 | Chainlink Data Feeds (LINK/USD, ETH/USD) | `workflows/price-feeds/my-workflow/main.ts` |
 | CCIP Router + OnRamp + TokenPool | `workflows/ccip-lane-health/my-workflow/main.ts` |
 | `HTTPClient` + `consensusIdenticalAggregation` | treasury-risk, governance-monitor, price-feeds |
-| `CronCapability` | All 8 workflows |
-| `getNetwork()` chain selector | All 8 workflows (mainnet + Sepolia) |
-| `SentinelRegistry.sol` (on-chain write) | All 8 workflow `main.ts` files + `scripts/record-all-snapshots.mjs` |
-| `encodeCallMsg` | All 8 workflows |
+| `CronCapability` | All 7 workflows |
+| `getNetwork()` chain selector | All 7 workflows (mainnet + Sepolia) |
+| `SentinelRegistry.sol` (on-chain write) | All 7 workflow `main.ts` files + `scripts/record-all-snapshots.mjs` |
+| `encodeCallMsg` | All 7 workflows |
+
+> **Note:** The unified cron cycle (`scripts/sentinel-unified-cycle.sh`) also runs an 8th workflow (`stlink-arb`) from the Orbital repo at `~/projects/orbital/clients/stake-link/arb-vault/workflows/stlink-arb-monitor/`. That workflow is not part of this repository but its proofs are written to the same SentinelRegistry contract.

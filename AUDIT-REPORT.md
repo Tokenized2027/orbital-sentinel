@@ -11,14 +11,16 @@
 
 OrbitalSentinelRegistry is an append-only on-chain registry that stores protocol health proofs for the Orbital Sentinel monitoring platform. CRE workflows compute risk assessments off-chain, hash them via `keccak256(abi.encode(...))`, and write the proof to this contract on Sepolia. The contract has no token handling, no ETH handling, and no external contract calls — making it one of the simplest DeFi-adjacent contracts to audit.
 
-**Methodology:**
-- Manual line-by-line review of all 52 nSLOC
-- Slither v0.11.5 — 8 targeted detectors
-- Aderyn v0.6.8 — 88 detectors
-- 7 fuzz test functions at 10,000 iterations each
-- 17 unit tests verified passing
+**Methodology (Enhanced 9-Phase, 2026-03-01):**
+- Phase 0: Threat model + attack surface classification
+- Phases 1–2: Manual line-by-line review of all 52 nSLOC
+- Phase 3: Slither v0.11.5 (8 targeted detectors) + Aderyn v0.6.8 (88 detectors)
+- Phase 4: Fix findings + verify
+- Phase 5–6: Invariant + attack scenario assessment (enhanced #14–25: all N/A for this contract)
+- Phase 7: 7 fuzz test functions at 10,000 iterations each (70K total)
+- Phase 8: Full report with economic assessment, integration risk matrix, known exploit cross-reference, post-deployment recommendations
 
-**Result:** 4 findings fixed. 3 findings documented (Info-level, unfixable design tradeoffs). No Critical or High severity issues.
+**Result:** 4 findings fixed. 3 findings documented (Info-level, unfixable design tradeoffs). No Critical or High severity issues. Enhanced methodology adds threat model and production hardening roadmap — no new vulnerabilities found.
 
 ---
 
@@ -224,10 +226,156 @@ The centralization risk finding (L-1) is the intended result of fixing F-1 — h
 
 ---
 
+## Enhanced Methodology Additions (2026-03-01)
+
+The following sections were added as part of the enhanced 9-phase SC Auditor methodology upgrade. The original audit (above) covered Phases 1–8 of the legacy methodology. These additions provide Phase 0 (Threat Model), economic assessment, integration risk analysis, known exploit cross-referencing, and post-deployment recommendations.
+
+---
+
+### Phase 0: Threat Model
+
+**Protocol Classification:** Append-only data registry (no DeFi, no tokens, no funds)
+
+**Trust Assumptions:**
+
+| Trust Boundary | Assumption | Risk if Violated |
+|----------------|------------|-----------------|
+| Owner EOA | Private key held securely by deployer | Fake health proofs written to registry (no financial loss) |
+| CRE Workflows | Produce honest snapshot hashes | Registry stores dishonest proofs (garbage-in, garbage-out) |
+| Sepolia Network | Testnet availability sufficient | Proofs temporarily unwritable (no loss, retry on next cycle) |
+| Dashboard Readers | Treat registry as source of truth | Incorrect risk display if registry contains bad data |
+
+**Attack Surface:**
+
+| Vector | Applicable? | Notes |
+|--------|-------------|-------|
+| Fund extraction | NO | Contract holds no tokens, no ETH, no value |
+| Token manipulation | NO | No ERC-20/721/1155 interactions |
+| Flash loan attacks | NO | No borrowing, no collateral, no price dependency |
+| Oracle manipulation | NO | No oracle reads |
+| Governance attacks | NO | No voting, no proposals |
+| Reentrancy | NO | No external calls, no callbacks, no token transfers |
+| Cross-chain replay | NO | Single-chain deployment (Sepolia only) |
+| Proxy/upgrade attacks | NO | Non-upgradeable contract |
+| Inflation/first-depositor | NO | No shares, no deposits |
+| MEV/sandwich | NO | No swaps, no price-dependent operations |
+| DoS via gas | LOW | `recordHealth` is O(1) — fixed gas cost per call |
+| Data pollution | MITIGATED | Owner-gated access control (F-1) prevents unauthorized writes |
+
+**Primary Threat:** Owner key compromise. If the deployer's private key is leaked, an attacker can:
+1. Write arbitrary fake health proofs (data integrity loss)
+2. Transfer ownership to attacker-controlled address (permanent takeover)
+3. Renounce ownership to `address(0)` (permanently disable the registry)
+
+**Secondary Threat:** CRE workflow compromise. If a CRE workflow is compromised, it could feed incorrect data to `record-all-snapshots.mjs`, which would then write misleading proofs. The contract cannot distinguish honest from dishonest snapshot hashes — it only enforces uniqueness and non-empty risk levels.
+
+**Impact Assessment:** LOW. No funds at risk under any scenario. Worst case is data integrity loss requiring redeployment to a new address and re-pointing all downstream consumers.
+
+---
+
+### Economic Security Assessment
+
+**Not applicable.** This contract holds no economic value:
+- No token deposits or withdrawals
+- No ETH received or sent (no `receive()` or `fallback()`)
+- No fee collection or distribution
+- No collateral, no liquidations, no loans
+- No price-dependent operations
+
+**Cost to attack:** Gas fees on Sepolia (free via faucets). Even with owner key compromise, the maximum damage is data integrity loss — no financial extraction is possible.
+
+**MEV exposure:** None. `recordHealth` writes are not price-sensitive and cannot be front-run for profit.
+
+---
+
+### Integration Risk Matrix
+
+| Integration Point | Risk | Mitigation |
+|-------------------|------|------------|
+| `record-all-snapshots.mjs` → `recordHealth()` | Script uses owner's private key; key leak = unauthorized writes | Key stored in `.env` (gitignored), not committed to VCS |
+| Dashboard → `getLogs(HealthRecorded)` | Dashboard reads stale events if RPC is lagging | Dashboard polls with block range; UI shows last-update timestamp |
+| CRE Workflows → Snapshot files → Script | Corrupted/missing snapshot files → no proof written | Script handles missing files gracefully; cron retries next cycle |
+| Etherscan verification | Unverified contract reduces transparency | Contract verified via Sourcify (`scripts/verify-contract.mjs`) |
+
+---
+
+### Known Exploit Cross-Reference (Solodit)
+
+No known exploits match this contract's pattern. Searched categories:
+
+| Category | Relevance | Notes |
+|----------|-----------|-------|
+| ERC-4626 vault exploits | NONE | Not a vault |
+| MasterChef/accumulator rounding | NONE | No accumulators |
+| Access control bypass | NONE | Simple `onlyOwner` with custom error; no role hierarchy to exploit |
+| Unbounded array DoS | LOW | `records[]` grows unbounded (F-2) but all reads are O(1) via `count()` and `latest()`. No iteration over the array in any function. |
+| Ownership renounce griefing | ACKNOWLEDGED | `transferOwnership(address(0))` permanently disables the registry (F-7). This is intentional — renounce is a valid ownership operation. |
+
+---
+
+### Enhanced Attack Scenario Assessment (#14–25)
+
+None of the enhanced attack scenarios (#14–25) are meaningfully applicable to this contract:
+
+| # | Attack | Applicable? | Reason |
+|---|--------|-------------|--------|
+| 14 | Read-only reentrancy | NO | No external calls, no callbacks, no token transfers |
+| 15 | Flash loan governance | NO | No governance, no voting |
+| 16 | Oracle staleness | NO | No oracle reads |
+| 17 | Spot price manipulation | NO | No price-dependent logic |
+| 18 | Proxy init front-running | NO | Not upgradeable |
+| 19 | EIP-712 signature replay | NO | No signature verification |
+| 20 | Token approval front-running | NO | No token approvals |
+| 21 | Fee-on-transfer deposit | NO | No token deposits |
+| 22 | Rebasing token accounting | NO | No token accounting |
+| 23 | Cross-chain message replay | NO | Single chain |
+| 24 | Liquidation cascade | NO | No liquidations |
+| 25 | Inflation attack | NO | No shares/deposits |
+
+**No new test files required.** The existing 24 tests (17 unit + 7 fuzz at 10K iterations) provide comprehensive coverage for the contract's actual attack surface.
+
+---
+
+### Post-Deployment Recommendations
+
+#### For Production Mainnet Deployment
+
+1. **UUPS Proxy Pattern** — Wrap in OpenZeppelin's `UUPSUpgradeable` proxy. This addresses F-7 (no upgrade path) and allows bug fixes without redeploying and re-pointing all consumers. Initialize `owner` via `initializer` instead of constructor.
+
+2. **Multi-Sig Ownership** — Replace EOA owner with a Gnosis Safe (2-of-3 or 3-of-5). This mitigates the primary threat (single key compromise) and adds operational resilience.
+
+3. **Risk Level Enumeration** — Replace `string riskLevel` with `enum RiskLevel { OK, WARNING, CRITICAL }` plus a `bytes32 workflowId` field. This saves gas (~2,100 gas/write from shorter calldata) and prevents malformed risk levels.
+
+4. **Ring Buffer** — Replace unbounded `records[]` with a fixed-size ring buffer (e.g., 10,000 slots). This caps storage growth and provides O(1) access to the last N records. Older proofs remain verifiable via event logs.
+
+5. **Event-Based Verification** — For production, consider an emit-only pattern: remove the `records[]` array entirely, keep only `recorded` mapping for dedup, and rely on `HealthRecorded` events + off-chain indexing (The Graph or custom). This reduces storage costs by ~20,000 gas/write.
+
+6. **Access Control Upgrade** — Consider OpenZeppelin's `AccessControl` with separate roles:
+   - `RECORDER_ROLE` — for `record-all-snapshots.mjs` (can write proofs)
+   - `ADMIN_ROLE` — for ownership management (can grant/revoke roles)
+   This prevents a single key from having both write and admin capabilities.
+
+7. **Monitoring**
+   - Set up an alert for `OwnershipTransferred` events (detect unauthorized ownership changes)
+   - Monitor `recordHealth` call frequency — unexpected gaps or spikes indicate issues
+   - Track gas usage per `recordHealth` call — anomalous gas could indicate chain issues
+
+8. **Bug Bounty** — Not recommended for this contract in isolation (no funds at risk). If deployed as part of a larger system with financial components, include in the umbrella bug bounty program.
+
+9. **Re-Audit Schedule** — Re-audit only if:
+   - Upgrading to UUPS proxy pattern
+   - Adding token/ETH handling
+   - Moving to mainnet with financial dependencies
+   - Changing access control model
+
+---
+
 ## Conclusion
 
 Four findings were fixed during this audit: access control (F-1), duplicate prevention (F-3), pragma pinning (F-4), and input validation (F-5). The remaining findings are Info-level design tradeoffs acceptable for a hackathon demo on Sepolia.
 
 The contract is now significantly hardened — only the owner can write records, duplicates are rejected on-chain, and empty inputs are blocked. The audited version is deployed on Sepolia at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` with all fixes active.
+
+**Enhanced methodology assessment (2026-03-01):** No new vulnerabilities found. The contract's minimal attack surface (no tokens, no ETH, no external calls, no oracle reads) renders all 12 enhanced attack scenarios inapplicable. The primary risk remains owner key compromise, mitigable via multi-sig ownership for production.
 
 **24 tests passing (17 unit + 7 fuzz). 70,000 fuzz iterations. 0 failures.**

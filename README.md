@@ -12,7 +12,7 @@ Orbital Sentinel runs 7 production CRE workflows that continuously read live Eth
 Chainlink CRE Workflow
   ├── Read on-chain data (EVMClient → mainnet contracts)
   ├── Fetch off-chain signals (HTTPClient → price feeds, governance, lending)
-  ├── POST to AI analysis endpoint (Claude Sonnet → risk assessment)
+  ├── POST to AI analysis endpoint (Claude Haiku / GPT-5.3-Codex → risk assessment)
   └── Write proof on-chain (SentinelRegistry.sol → Sepolia)
 ```
 
@@ -23,7 +23,7 @@ All 7 workflows run together in a unified cycle 7 times per day. A master script
 ## The 7 Workflows
 
 ### 1. `treasury-risk` — Protocol Treasury Health
-Monitors staking pool utilization, reward vault runway, lending market exposure, and priority queue depth. Computes an overall risk score (`ok / warning / critical`) and calls Claude Sonnet for a structured assessment. Writes a `keccak256` snapshot hash to `SentinelRegistry` on Sepolia.
+Monitors staking pool utilization, reward vault runway, lending market exposure, and priority queue depth. Computes an overall risk score (`ok / warning / critical`) and calls Claude Haiku for a structured assessment. Writes a `keccak256` snapshot hash to `SentinelRegistry` on Sepolia.
 
 **Chainlink usage:** `EVMClient.callContract()` reads `getTotalPrincipal()`, `getMaxPoolSize()`, `getRewardBuckets()`, `balanceOf()` from deployed staking contracts on Ethereum mainnet.
 
@@ -82,7 +82,7 @@ Monitors Curve StableSwap pool balance composition for stLINK/LINK. Flags imbala
               ┌──────────────┼──────────────┐
               ▼              ▼              ▼
     ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-    │  Risk Output │  │ Claude Sonnet │  │ SentinelReg  │
+    │  Risk Output │  │ Claude Haiku  │  │ SentinelReg  │
     │  (JSON)      │  │ Assessment   │  │ (Sepolia tx) │
     └──────────────┘  └──────────────┘  └──────────────┘
 ```
@@ -235,7 +235,7 @@ orbital-sentinel/
 │   ├── app/api/                ← /api/sentinel, /api/cre-signals
 │   └── lib/db/                 ← Drizzle ORM schema + queries (PostgreSQL)
 ├── platform/
-│   └── cre_analyze_endpoint.py ← Flask AI analysis server (Claude Sonnet)
+│   └── cre_analyze_endpoint.py ← Flask AI analysis server (Claude Haiku + GPT-5.3-Codex)
 ├── scripts/
 │   ├── sentinel-unified-cycle.sh ← Master: runs all 7 CRE sims + on-chain proofs (7x/day)
 │   ├── record-all-snapshots.mjs  ← Bridge: CRE snapshots → on-chain proofs
