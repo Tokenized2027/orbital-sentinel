@@ -35,7 +35,7 @@ Polls Snapshot GraphQL for active proposals across multiple governance spaces. F
 ### 3. `price-feeds` — Chainlink Oracle Price Monitoring
 Reads LINK/USD, ETH/USD, and other asset prices directly from Chainlink Data Feed contracts. Computes depeg basis points for liquid staking derivatives.
 
-**Chainlink usage:** Reads `latestAnswer()` and `latestRoundData()` from Chainlink AggregatorV3 price feed contracts on Ethereum mainnet and Polygon.
+**Chainlink usage:** Reads `latestAnswer()` and `latestRoundData()` from Chainlink AggregatorV3 price feed contracts on Ethereum mainnet.
 
 ### 4. `morpho-vault-health` — Lending Market Risk
 Reads Morpho Blue market utilization rates and ERC4626 vault TVL. Flags high utilization (risk of liquidity crunch for borrowers).
@@ -159,30 +159,44 @@ Every workflow run writes a verifiable hash to `OrbitalSentinelRegistry` on Sepo
 ```solidity
 // Owner-only write with duplicate prevention and input validation
 function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external onlyOwner
+
+// Two-step ownership transfer (Ownable2Step pattern)
 function transferOwnership(address newOwner) external onlyOwner
+function acceptOwnership() external  // only callable by pendingOwner
 
 // Read functions
 function count() external view returns (uint256)
 function latest() external view returns (Record memory)
 function recorded(bytes32) external view returns (bool)
 function owner() external view returns (address)
+function pendingOwner() external view returns (address)
 
 // Events
 event HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 ts)
+event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner)
 event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+
+// Errors
+error NotOwner()
+error NotPendingOwner()
+error AlreadyRecorded()
+error EmptyRiskLevel()
+error RiskLevelTooLong()
 ```
 
 **Security features:**
 - Owner-only writes (prevents spam/pollution)
+- Two-step ownership transfer (Ownable2Step — prevents accidental ownership loss)
 - On-chain duplicate hash prevention (`AlreadyRecorded` revert)
 - Non-empty riskLevel validation (`EmptyRiskLevel` revert)
+- Maximum riskLevel length (256 bytes, `RiskLevelTooLong` revert)
 - Gas-efficient custom errors
 
 Risk levels use a prefixed format: `treasury:ok`, `feeds:warning`, `morpho:critical`, `governance:ok`, `flows:ok`, `ccip:ok`.
 
 `snapshotHash = keccak256(abi.encode(timestamp, workflowType, risk, metric1, metric2))`
 
-**Audit:** See [AUDIT-REPORT.md](./AUDIT-REPORT.md) — 4 findings fixed, 24 tests, 70,000 fuzz iterations, 0 failures. Enhanced 9-phase methodology (2026-03-01): threat model, economic assessment, post-deployment recommendations. No new vulnerabilities.
+**Audit:** See [AUDIT-REPORT.md](./AUDIT-REPORT.md) — 4 findings fixed, 31 tests (17 unit + 7 fuzz + 7 deep audit), 80,000 fuzz iterations, 0 failures. Enhanced 9-phase methodology (2026-03-01): threat model, economic assessment, post-deployment recommendations. No new vulnerabilities.
 
 Deployed address (v2, post-audit): `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`
 
@@ -229,7 +243,8 @@ orbital-sentinel/
 │   ├── SentinelRegistry.sol    ← On-chain risk proof registry (Sepolia, owner-gated)
 │   └── test/
 │       ├── SentinelRegistry.t.sol      ← 17 unit tests
-│       └── SentinelRegistry.Fuzz.t.sol ← 7 fuzz tests (10k iterations each)
+│       ├── SentinelRegistry.Fuzz.t.sol ← 7 fuzz tests (10k iterations each)
+│       └── DeepAudit.t.sol            ← 7 deep audit tests (Ownable2Step, gas, scale)
 ├── dashboard/                  ← Next.js standalone dashboard
 │   ├── app/components/         ← WorkflowGrid, SentinelRegistry, PegMonitor, etc.
 │   ├── app/api/                ← /api/sentinel, /api/cre-signals
@@ -342,7 +357,7 @@ Each workflow has a `run_snapshot.sh` that runs `cre simulate`:
 | File | Description |
 |------|-------------|
 | [`CHAINLINK.md`](./CHAINLINK.md) | Complete Chainlink touchpoint map (SDK, EVMClient, Data Feeds, CCIP, HTTPClient, CronCapability, getNetwork) |
-| [`AUDIT-REPORT.md`](./AUDIT-REPORT.md) | SentinelRegistry security audit — 4 findings fixed, 24 tests, 70k fuzz iterations |
+| [`AUDIT-REPORT.md`](./AUDIT-REPORT.md) | SentinelRegistry security audit — 4 findings fixed, 31 tests, 80k fuzz iterations |
 | [`docs/CRE-ECOSYSTEM-REFERENCE.md`](./docs/CRE-ECOSYSTEM-REFERENCE.md) | CRE capabilities, SDK patterns, runtime requirements |
 | [`docs/submission.md`](./docs/submission.md) | Hackathon submission details |
 

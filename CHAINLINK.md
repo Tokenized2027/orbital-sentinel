@@ -137,15 +137,17 @@ Schedules:
 
 ## 5. SentinelRegistry.sol — On-Chain Write (Sepolia)
 
-**All 7 CRE workflows** write verifiable proof hashes to `OrbitalSentinelRegistry` on Sepolia after each run. A bridge script (`scripts/record-all-snapshots.mjs`) reads live CRE snapshots and writes proofs on-chain every 15 minutes via cron.
+**All 7 CRE workflows** write verifiable proof hashes to `OrbitalSentinelRegistry` on Sepolia after each run. A bridge script (`scripts/record-all-snapshots.mjs`) reads live CRE snapshots and writes proofs on-chain 7 times per day via the unified cycle.
 
-**File:** `contracts/SentinelRegistry.sol` — [Security Audit](./AUDIT-REPORT.md) (4 findings fixed, 24 tests, 70k fuzz iterations)
+**File:** `contracts/SentinelRegistry.sol` — [Security Audit](./AUDIT-REPORT.md) (4 findings fixed, 31 tests, 80k fuzz iterations)
 
 ```solidity
 function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external onlyOwner
-function transferOwnership(address newOwner) external onlyOwner
+function transferOwnership(address newOwner) external onlyOwner  // Ownable2Step: sets pendingOwner
+function acceptOwnership() external  // only callable by pendingOwner
 function recorded(bytes32) external view returns (bool)  // duplicate prevention
 event HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 ts)
+event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner)
 event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 ```
 
@@ -180,7 +182,7 @@ Used to resolve Chainlink chain selectors for both mainnet reads and Sepolia wri
 
 ```typescript
 const net = getNetwork({ chainFamily: 'evm', chainSelectorName: 'ethereum-mainnet', isTestnet: false });
-const sepoliaNet = getNetwork({ chainFamily: 'evm', chainSelectorName: 'ethereum-sepolia', isTestnet: true });
+const sepoliaNet = getNetwork({ chainFamily: 'evm', chainSelectorName: 'ethereum-testnet-sepolia', isTestnet: true });
 ```
 
 ---

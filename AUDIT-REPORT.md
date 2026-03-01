@@ -46,15 +46,28 @@ OrbitalSentinelRegistry is an append-only on-chain registry that stores protocol
 
 **Description:** `recordHealth()` was fully permissionless. Any EOA or contract could write arbitrary records to the registry, polluting it with fake health proofs.
 
-**Fix:** Added `owner` state variable, `onlyOwner` modifier, and `transferOwnership()` function. The deployer is set as owner in the constructor. Only the owner can call `recordHealth()`. Custom error `NotOwner()` used for gas efficiency.
+**Fix:** Added `owner` state variable, `onlyOwner` modifier, and two-step ownership transfer (Ownable2Step pattern). The deployer is set as owner in the constructor. Only the owner can call `recordHealth()`. Custom error `NotOwner()` used for gas efficiency.
+
+Ownership transfer uses a two-step pattern to prevent accidental ownership loss: `transferOwnership(address)` sets a `pendingOwner`, and the new owner must call `acceptOwnership()` to complete the transfer. This eliminates the risk of transferring to an incorrect address or accidentally renouncing via `address(0)`.
 
 ```solidity
 address public owner;
+address public pendingOwner;
 modifier onlyOwner() {
     if (msg.sender != owner) revert NotOwner();
     _;
 }
 constructor() { owner = msg.sender; }
+function transferOwnership(address newOwner) external onlyOwner {
+    pendingOwner = newOwner;
+    emit OwnershipTransferStarted(owner, newOwner);
+}
+function acceptOwnership() external {
+    if (msg.sender != pendingOwner) revert NotPendingOwner();
+    emit OwnershipTransferred(owner, pendingOwner);
+    owner = pendingOwner;
+    pendingOwner = address(0);
+}
 function recordHealth(...) external onlyOwner { ... }
 ```
 
@@ -103,11 +116,14 @@ recorded[snapshotHash] = true;
 
 **Description:** The `riskLevel` parameter accepted any string, including empty strings. Since the actual format is prefixed (e.g., `treasury:ok`, `morpho:critical`), full enum validation would be impractical. A non-empty check prevents obviously invalid records.
 
-**Fix:** Added empty string check:
+**Fix:** Added empty string check and maximum length guard (256 bytes):
 
 ```solidity
 if (bytes(riskLevel).length == 0) revert EmptyRiskLevel();
+if (bytes(riskLevel).length > 256) revert RiskLevelTooLong();
 ```
+
+The 256-byte maximum prevents excessively long strings from inflating calldata costs and storage. Normal prefixed risk levels (e.g., `treasury:ok`) are well under this limit.
 
 ---
 
@@ -140,7 +156,7 @@ if (bytes(riskLevel).length == 0) revert EmptyRiskLevel();
 **Pre-fix result:** 0 High, 1 Low (unspecific pragma).
 **Post-fix result:** 0 High, 2 Low (centralization risk + address(0) in transferOwnership — both by-design).
 
-The centralization risk finding (L-1) is the intended result of fixing F-1 — having an owner is the whole point. The address(0) finding (L-2) is the intentional renounce ownership pattern.
+The centralization risk finding (L-1) is the intended result of fixing F-1 — having an owner is the whole point. The address(0) finding (L-2) is now mitigated by the Ownable2Step pattern: `transferOwnership(address(0))` only sets `pendingOwner` to `address(0)`, and since `address(0)` can never call `acceptOwnership()`, the transfer can never complete. This effectively prevents accidental renouncement.
 
 ---
 
@@ -157,6 +173,24 @@ The centralization risk finding (L-1) is the intended result of fixing F-1 — h
 | `testFuzz_transferOwnership` | 10,000 | PASS | Ownership transfer works correctly for any address |
 
 **Total:** 70,000 fuzz iterations. 0 failures.
+
+---
+
+## Deep Audit Tests (DeepAudit.t.sol)
+
+Added during the Ownable2Step + RiskLevelTooLong upgrade to verify the new security properties:
+
+| Test | Result | What It Verifies |
+|------|--------|------------------|
+| `test_transferOwnership_toZero_cannotComplete` | PASS | Ownable2Step blast radius — `transferOwnership(address(0))` cannot complete because `address(0)` cannot call `acceptOwnership()` |
+| `test_O1_accessAtScale` | PASS | O(1) read performance at 500 records (`count()` and `latest()` are constant-time) |
+| `test_riskLevel_gasWithShortString` | PASS | Gas ceiling for short riskLevel strings (typical: `treasury:ok`) |
+| `test_riskLevel_gasWithLongString` | PASS | Gas ceiling for 256-byte riskLevel strings (max allowed) |
+| `test_riskLevel_tooLongReverts` | PASS | `RiskLevelTooLong` revert for strings > 256 bytes |
+| `test_ownershipTransfer_newOwnerCanRecord` | PASS | Full two-step ownership transfer flow: transfer → accept → record |
+| `testFuzz_deepAudit_recordConsistency` | PASS (10,000 runs) | Fuzz: arbitrary hashes and risk levels store and retrieve consistently |
+
+**Total across all test files:** 31 tests (17 unit + 7 fuzz + 7 deep audit). 80,000 fuzz iterations. 0 failures.
 
 ---
 
@@ -192,11 +226,12 @@ The centralization risk finding (L-1) is the intended result of fixing F-1 — h
 1. **Simplicity** — 52 nSLOC leaves minimal surface for bugs.
 2. **Access control** — Only the owner can write records, preventing spam.
 3. **Duplicate prevention** — On-chain dedup guard prevents redundant writes.
-4. **Input validation** — Empty risk levels rejected.
+4. **Input validation** — Empty risk levels rejected, maximum length (256 bytes) enforced.
 5. **Correct event emission** — `HealthRecorded` indexed by `snapshotHash` + `OwnershipTransferred` for ownership changes.
 6. **Immutable proof chain** — once recorded, proofs cannot be modified or deleted.
 7. **No funds at risk** — no tokens, no ETH, eliminates most dangerous vulnerability classes.
-8. **Gas-efficient errors** — custom errors (`NotOwner`, `AlreadyRecorded`, `EmptyRiskLevel`) save gas vs `require` strings.
+8. **Gas-efficient errors** — custom errors (`NotOwner`, `NotPendingOwner`, `AlreadyRecorded`, `EmptyRiskLevel`, `RiskLevelTooLong`) save gas vs `require` strings.
+9. **Two-step ownership transfer** (Ownable2Step) — prevents accidental ownership loss by requiring the new owner to explicitly accept.
 
 ### Remaining Limitations
 1. **Unbounded storage** — `records[]` grows forever (F-2, acceptable for Sepolia).
@@ -210,7 +245,7 @@ The centralization risk finding (L-1) is the intended result of fixing F-1 — h
 1. ~~**Redeploy to Sepolia**~~ — **DONE.** Redeployed to `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` with all fixes active. All 30 downstream references updated (scripts, configs, dashboard, docs).
 
 ### For Production Hardening (Recommended)
-2. **Use an enum for risk levels** — Replace `string riskLevel` with `enum RiskLevel` to save gas.
+2. **Use an enum for risk levels** — Replace `string riskLevel` with `enum RiskLevel` to save gas. (Note: the 256-byte max length guard now bounds the string, reducing the urgency of this change.)
 3. **Consider emit-only pattern** — Remove `records[]` array, rely on event logs + off-chain indexing.
 4. **Add upgradeability** — UUPS proxy pattern for future bug fixes.
 
@@ -223,6 +258,7 @@ The centralization risk finding (L-1) is the intended result of fixing F-1 — h
 | `contracts/SentinelRegistry.sol` | Added owner + onlyOwner, duplicate prevention, riskLevel validation, pinned pragma |
 | `contracts/test/SentinelRegistry.t.sol` | Updated with 17 unit tests covering access control, dedup, validation |
 | `contracts/test/SentinelRegistry.Fuzz.t.sol` | Updated with 7 fuzz test functions covering all new guards |
+| `contracts/test/DeepAudit.t.sol` | 7 deep audit tests: Ownable2Step blast radius, O(1) access, gas ceilings, RiskLevelTooLong, ownership transfer flow, fuzz consistency |
 
 ---
 
@@ -264,8 +300,8 @@ The following sections were added as part of the enhanced 9-phase SC Auditor met
 
 **Primary Threat:** Owner key compromise. If the deployer's private key is leaked, an attacker can:
 1. Write arbitrary fake health proofs (data integrity loss)
-2. Transfer ownership to attacker-controlled address (permanent takeover)
-3. Renounce ownership to `address(0)` (permanently disable the registry)
+2. Initiate ownership transfer to attacker-controlled address — however, the Ownable2Step pattern means the attacker must also call `acceptOwnership()` from the new address, which limits automated exploit chains
+3. Renounce ownership is **no longer possible** via the Ownable2Step pattern — `transferOwnership(address(0))` cannot complete because `address(0)` cannot call `acceptOwnership()`
 
 **Secondary Threat:** CRE workflow compromise. If a CRE workflow is compromised, it could feed incorrect data to `record-all-snapshots.mjs`, which would then write misleading proofs. The contract cannot distinguish honest from dishonest snapshot hashes — it only enforces uniqueness and non-empty risk levels.
 
@@ -309,7 +345,7 @@ No known exploits match this contract's pattern. Searched categories:
 | MasterChef/accumulator rounding | NONE | No accumulators |
 | Access control bypass | NONE | Simple `onlyOwner` with custom error; no role hierarchy to exploit |
 | Unbounded array DoS | LOW | `records[]` grows unbounded (F-2) but all reads are O(1) via `count()` and `latest()`. No iteration over the array in any function. |
-| Ownership renounce griefing | ACKNOWLEDGED | `transferOwnership(address(0))` permanently disables the registry (F-7). This is intentional — renounce is a valid ownership operation. |
+| Ownership renounce griefing | MITIGATED | With Ownable2Step, `transferOwnership(address(0))` only sets `pendingOwner` — `address(0)` cannot call `acceptOwnership()`, so the transfer can never complete. Accidental renouncement is no longer possible. |
 
 ---
 
@@ -332,7 +368,7 @@ None of the enhanced attack scenarios (#14–25) are meaningfully applicable to 
 | 24 | Liquidation cascade | NO | No liquidations |
 | 25 | Inflation attack | NO | No shares/deposits |
 
-**No new test files required.** The existing 24 tests (17 unit + 7 fuzz at 10K iterations) provide comprehensive coverage for the contract's actual attack surface.
+**No new test files required for enhanced attack scenarios.** The existing 31 tests (17 unit + 7 fuzz + 7 deep audit) provide comprehensive coverage for the contract's actual attack surface.
 
 ---
 
@@ -378,4 +414,4 @@ The contract is now significantly hardened — only the owner can write records,
 
 **Enhanced methodology assessment (2026-03-01):** No new vulnerabilities found. The contract's minimal attack surface (no tokens, no ETH, no external calls, no oracle reads) renders all 12 enhanced attack scenarios inapplicable. The primary risk remains owner key compromise, mitigable via multi-sig ownership for production.
 
-**24 tests passing (17 unit + 7 fuzz). 70,000 fuzz iterations. 0 failures.**
+**31 tests passing (17 unit + 7 fuzz + 7 deep audit). 80,000 fuzz iterations. 0 failures.**

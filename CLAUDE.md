@@ -266,7 +266,7 @@ bun install
 Before any commit:
 
 1. `forge build` -- Solidity compiles
-2. `forge test` -- all 24 contract tests pass (17 unit + 7 fuzz)
+2. `forge test` -- all 31 contract tests pass (17 unit + 7 fuzz + 7 deep audit)
 3. `forge test --fuzz-runs 10000` -- fuzz tests pass at high iterations
 4. Workflow simulation succeeds (`./run_snapshot.sh staging-settings`) for any modified workflow
 5. Dashboard builds: `cd dashboard && npx next build`
@@ -285,12 +285,13 @@ Before any commit:
 | Address | `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit) |
 | Solidity | 0.8.19 |
 | Key function | `recordHealth(bytes32 snapshotHash, string riskLevel)` — **owner-only** |
-| Access control | `owner` + `onlyOwner` modifier + `transferOwnership(address)` |
+| Access control | `owner` + `onlyOwner` modifier + Ownable2Step (`transferOwnership` → `pendingOwner` → `acceptOwnership`) |
 | Duplicate prevention | `mapping(bytes32 => bool) recorded` — reverts `AlreadyRecorded` on duplicates |
-| Input validation | Reverts `EmptyRiskLevel` on empty `riskLevel` string |
-| Events | `HealthRecorded(bytes32 indexed, string, uint256)`, `OwnershipTransferred(address indexed, address indexed)` |
+| Input validation | Reverts `EmptyRiskLevel` on empty `riskLevel` string, `RiskLevelTooLong` on > 256 bytes |
+| Events | `HealthRecorded(bytes32 indexed, string, uint256)`, `OwnershipTransferStarted(address indexed, address indexed)`, `OwnershipTransferred(address indexed, address indexed)` |
+| Errors | `NotOwner`, `NotPendingOwner`, `AlreadyRecorded`, `EmptyRiskLevel`, `RiskLevelTooLong` |
 | Risk level format | Prefixed: `treasury:ok`, `feeds:warning`, `morpho:critical`, etc. |
-| Audit | `AUDIT-REPORT.md` — 4 findings fixed, 24 tests, 70k fuzz iterations. Enhanced methodology (2026-03-01): threat model, economic assessment, post-deployment recs |
+| Audit | `AUDIT-REPORT.md` — 4 findings fixed, 31 tests, 80k fuzz iterations. Enhanced methodology (2026-03-01): threat model, economic assessment, post-deployment recs |
 | Etherscan | `https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` |
 
 ---

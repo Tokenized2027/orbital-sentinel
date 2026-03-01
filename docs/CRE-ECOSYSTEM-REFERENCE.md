@@ -92,7 +92,7 @@ The SDK uses Protocol Buffers internally with two type representations:
 
 ### Canonical Workflow Pattern
 
-All 5 Sentinel workflows follow this structure:
+All 7 Sentinel workflows follow this structure:
 
 ```typescript
 // 1. Config schema (Zod validation)
@@ -178,7 +178,7 @@ CRE supersedes Chainlink Automation for new development. Mapping:
 | `checkUpkeep()` + `performUpkeep()` | `handler` + trigger | `onCron` handler |
 | Custom logic trigger | EVM Log / HTTP trigger | CronCapability (currently) |
 | Log trigger | EVM Log trigger capability | Not yet used |
-| Time-based trigger | `CronCapability` | All 5 workflows |
+| Time-based trigger | `CronCapability` | All 7 workflows |
 | `StreamsLookup` revert | `HTTPClient` + consensus | treasury-risk, governance |
 | Forwarder address | DON-managed execution | DON handles |
 
@@ -240,6 +240,8 @@ Per-workflow metric encoding:
 | governance | activeProposals | urgentProposals |
 | morpho | utilization * 1e6 | totalSupply |
 | flows | totalSdlTracked | addressCount |
+| ccip | okLanes | totalLanes |
+| curve | imbalancePct | tvlUsd |
 
 This creates an **immutable, verifiable audit trail**: every CRE workflow run produces one on-chain record.
 
