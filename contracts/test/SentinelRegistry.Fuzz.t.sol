@@ -95,22 +95,28 @@ contract SentinelRegistryFuzzTest is Test {
         registry.recordHealth(hash, "");
     }
 
-    /// @notice Ownership transfer works for any address.
+    /// @notice Two-step ownership transfer works for any non-zero address.
     function testFuzz_transferOwnership(address newOwner) public {
-        vm.assume(newOwner != address(this)); // skip self-transfer (no-op)
+        vm.assume(newOwner != address(this)); // skip self-transfer
+        vm.assume(newOwner != address(0));    // address(0) can't call acceptOwnership
 
+        // Step 1: initiate transfer — owner unchanged
         registry.transferOwnership(newOwner);
+        assertEq(registry.owner(), address(this));
+        assertEq(registry.pendingOwner(), newOwner);
+
+        // Step 2: new owner accepts
+        vm.prank(newOwner);
+        registry.acceptOwnership();
         assertEq(registry.owner(), newOwner);
 
         // Old owner (this) can no longer record
         vm.expectRevert(OrbitalSentinelRegistry.NotOwner.selector);
         registry.recordHealth(keccak256("after-transfer"), "ok");
 
-        // New owner can record (unless address(0))
-        if (newOwner != address(0)) {
-            vm.prank(newOwner);
-            registry.recordHealth(keccak256("new-owner"), "ok");
-            assertEq(registry.count(), 1);
-        }
+        // New owner can record
+        vm.prank(newOwner);
+        registry.recordHealth(keccak256("new-owner"), "ok");
+        assertEq(registry.count(), 1);
     }
 }

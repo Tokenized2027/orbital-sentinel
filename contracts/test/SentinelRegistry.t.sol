@@ -13,6 +13,7 @@ contract SentinelRegistryTest is Test {
         string riskLevel,
         uint256 ts
     );
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     function setUp() public {
@@ -26,13 +27,22 @@ contract SentinelRegistryTest is Test {
         assertEq(registry.owner(), address(this));
     }
 
-    /// @notice Owner can transfer ownership
+    /// @notice Owner can transfer ownership (2-step: transfer + accept)
     function test_transferOwnership() public {
         address newOwner = address(0xBEEF);
         vm.expectEmit(true, true, false, false);
-        emit OwnershipTransferred(address(this), newOwner);
+        emit OwnershipTransferStarted(address(this), newOwner);
         registry.transferOwnership(newOwner);
+
+        // Owner hasn't changed yet — still pending
+        assertEq(registry.owner(), address(this));
+        assertEq(registry.pendingOwner(), newOwner);
+
+        // New owner accepts
+        vm.prank(newOwner);
+        registry.acceptOwnership();
         assertEq(registry.owner(), newOwner);
+        assertEq(registry.pendingOwner(), address(0));
     }
 
     /// @notice Non-owner cannot transfer ownership
@@ -42,10 +52,24 @@ contract SentinelRegistryTest is Test {
         registry.transferOwnership(address(0xBEEF));
     }
 
-    /// @notice Owner can renounce ownership by transferring to address(0)
-    function test_renounceOwnership() public {
+    /// @notice Renouncing ownership requires 2-step: initiate + accept
+    /// @dev With 2-step ownership, transferOwnership(address(0)) sets pendingOwner to address(0).
+    ///      In real EVM, address(0) can never initiate a transaction, making accidental
+    ///      renouncement virtually impossible. In Foundry, vm.prank(address(0)) works,
+    ///      so we verify the full 2-step flow: owner does NOT change until accept is called.
+    function test_renounceOwnership_requiresTwoSteps() public {
         registry.transferOwnership(address(0));
-        assertEq(registry.owner(), address(0));
+        // Owner hasn't changed yet — still pending
+        assertEq(registry.owner(), address(this));
+        assertEq(registry.pendingOwner(), address(0));
+
+        // Random address cannot accept
+        vm.prank(address(0xDEAD));
+        vm.expectRevert(OrbitalSentinelRegistry.NotPendingOwner.selector);
+        registry.acceptOwnership();
+
+        // Owner unchanged after failed accept
+        assertEq(registry.owner(), address(this));
     }
 
     // ─── Access Control ────────────────────────────────────────────

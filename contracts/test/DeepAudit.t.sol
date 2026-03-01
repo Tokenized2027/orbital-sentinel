@@ -18,34 +18,37 @@ contract DeepAuditSentinelTest is Test {
     }
 
     // ═══════════ Check #26: transferOwnership(address(0)) blast radius ═══════════
+    // With 2-step ownership, transferring to address(0) is a no-op:
+    // address(0) can never call acceptOwnership(), so owner never changes.
+    // This eliminates the accidental renouncement blast radius entirely.
 
-    function test_transferOwnership_toZero_locksContract() public {
+    function test_transferOwnership_toZero_cannotComplete() public {
         // Record a health entry first
         vm.prank(owner);
         registry.recordHealth(keccak256("test1"), "treasury:ok");
         assertEq(registry.count(), 1);
 
-        // Transfer ownership to address(0) — renounce
+        // Initiate transfer to address(0) — sets pendingOwner but doesn't change owner
         vm.prank(owner);
         registry.transferOwnership(address(0));
 
-        // Owner is now zero — contract is permanently read-only
-        assertEq(registry.owner(), address(0));
+        // Owner is still the original — 2-step prevents accidental renouncement
+        assertEq(registry.owner(), owner);
+        assertEq(registry.pendingOwner(), address(0));
 
-        // Any future recordHealth should revert — old owner can't call
+        // Owner can still record — contract is NOT locked
         vm.prank(owner);
-        vm.expectRevert(OrbitalSentinelRegistry.NotOwner.selector);
         registry.recordHealth(keccak256("test2"), "feeds:warning");
+        assertEq(registry.count(), 2);
 
-        // No one can call — the contract is locked
-        address randomUser = makeAddr("randomUser");
-        vm.prank(randomUser);
-        vm.expectRevert(OrbitalSentinelRegistry.NotOwner.selector);
-        registry.recordHealth(keccak256("test3"), "feeds:warning");
+        // Owner can cancel by initiating a new transfer to themselves
+        vm.prank(owner);
+        registry.transferOwnership(owner);
+        assertEq(registry.pendingOwner(), owner);
 
         // Historical data still readable
         OrbitalSentinelRegistry.Record memory rec = registry.latest();
-        assertEq(rec.riskLevel, "treasury:ok");
+        assertEq(rec.riskLevel, "feeds:warning");
     }
 
     // ═══════════ Check #27: O(1) access patterns at scale ═══════════
@@ -87,7 +90,7 @@ contract DeepAuditSentinelTest is Test {
     }
 
     function test_riskLevel_gasWithLongString() public {
-        // 256-byte string — unrealistically long but should not break
+        // 256-byte string — max allowed length
         bytes memory longLevel = new bytes(256);
         for (uint256 i = 0; i < 256; i++) {
             longLevel[i] = "A";
@@ -103,13 +106,30 @@ contract DeepAuditSentinelTest is Test {
         assertEq(registry.count(), 1);
     }
 
+    function test_riskLevel_tooLongReverts() public {
+        // 257-byte string — exceeds max length
+        bytes memory tooLong = new bytes(257);
+        for (uint256 i = 0; i < 257; i++) {
+            tooLong[i] = "B";
+        }
+
+        vm.prank(owner);
+        vm.expectRevert(OrbitalSentinelRegistry.RiskLevelTooLong.selector);
+        registry.recordHealth(keccak256("toolong"), string(tooLong));
+    }
+
     // ═══════════ Ownership transfer then record — no stale owner ═══════════
 
     function test_ownershipTransfer_newOwnerCanRecord() public {
         address newOwner = makeAddr("newOwner");
 
+        // Step 1: initiate transfer
         vm.prank(owner);
         registry.transferOwnership(newOwner);
+
+        // Step 2: new owner accepts
+        vm.prank(newOwner);
+        registry.acceptOwnership();
 
         // New owner can record
         vm.prank(newOwner);
@@ -129,7 +149,7 @@ contract DeepAuditSentinelTest is Test {
         string calldata level
     ) public {
         vm.assume(bytes(level).length > 0);
-        vm.assume(bytes(level).length < 1024); // Reasonable upper bound
+        vm.assume(bytes(level).length <= 256); // Max allowed length
 
         vm.prank(owner);
         registry.recordHealth(hash, level);

@@ -16,6 +16,7 @@ contract OrbitalSentinelRegistry {
     }
 
     address public owner;
+    address public pendingOwner;
     Record[] public records;
     mapping(bytes32 => bool) public recorded;
 
@@ -25,11 +26,14 @@ contract OrbitalSentinelRegistry {
         uint256 ts
     );
 
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     error NotOwner();
+    error NotPendingOwner();
     error AlreadyRecorded();
     error EmptyRiskLevel();
+    error RiskLevelTooLong();
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -41,11 +45,20 @@ contract OrbitalSentinelRegistry {
         emit OwnershipTransferred(address(0), msg.sender);
     }
 
-    /// @notice Transfer ownership to a new address. Set to address(0) to renounce.
-    /// @param newOwner  The address of the new owner
+    /// @notice Initiate ownership transfer. New owner must call acceptOwnership().
+    /// @dev Two-step pattern prevents accidental ownership loss (e.g., typo in address).
+    /// @param newOwner The address of the proposed new owner
     function transferOwnership(address newOwner) external onlyOwner {
-        emit OwnershipTransferred(owner, newOwner);
-        owner = newOwner;
+        pendingOwner = newOwner;
+        emit OwnershipTransferStarted(owner, newOwner);
+    }
+
+    /// @notice Accept a pending ownership transfer. Only callable by the pending owner.
+    function acceptOwnership() external {
+        if (msg.sender != pendingOwner) revert NotPendingOwner();
+        emit OwnershipTransferred(owner, pendingOwner);
+        owner = pendingOwner;
+        pendingOwner = address(0);
     }
 
     /// @notice Record a new protocol health snapshot on-chain.
@@ -54,6 +67,7 @@ contract OrbitalSentinelRegistry {
     function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external onlyOwner {
         if (recorded[snapshotHash]) revert AlreadyRecorded();
         if (bytes(riskLevel).length == 0) revert EmptyRiskLevel();
+        if (bytes(riskLevel).length > 256) revert RiskLevelTooLong();
 
         recorded[snapshotHash] = true;
         records.push(Record({
