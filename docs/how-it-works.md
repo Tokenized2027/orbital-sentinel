@@ -4,7 +4,7 @@
 
 ## The One-Liner
 
-Orbital Sentinel reads live DeFi protocol data directly from smart contracts, compresses the key numbers into a fingerprint (hash), and writes that fingerprint on-chain every 15 minutes. Anyone can verify the data is real by re-running the same workflow and checking that their hash matches.
+Orbital Sentinel reads live DeFi protocol data directly from smart contracts, compresses the key numbers into a fingerprint (hash), and writes that fingerprint on-chain 7 times per day. Anyone can verify the data is real by re-running the same workflow and checking that their hash matches.
 
 ---
 
@@ -16,9 +16,9 @@ Orbital Sentinel flips this: every metric displayed on the dashboard has a corre
 
 ---
 
-## The Seven Workflows
+## The Eight Workflows
 
-Sentinel monitors seven aspects of the stake.link protocol. Each one is an independent program (called a "workflow") that reads on-chain data and produces a health snapshot.
+Sentinel monitors eight aspects of the stake.link protocol. Each one is an independent program (called a "workflow") that reads on-chain data and produces a health snapshot.
 
 ### 1. Staking Pools (Treasury)
 
@@ -130,9 +130,23 @@ The 7 most recent SLURPs are compressed into 4 numbers using bit-packing:
 
 ---
 
-### 7. stLINK Arbitrage Signal
+### 7. Token Flows
 
-**What it reads:** Whether an arbitrage opportunity exists between the Curve pool price and the protocol's redemption rate.
+**What it reads:** ERC20 balances of 50+ classified addresses (whales, operators, vesting contracts, team wallets) to track large LINK and stLINK movements.
+
+**What the hash encodes:**
+| Field | Example Value | What It Means |
+|-------|--------------|---------------|
+| Total Tracked | 12,450,000 LINK | Sum across all monitored addresses |
+| Address Count | 54 | Number of addresses monitored |
+
+**Why it matters:** Large holder movements can signal upcoming sell pressure or protocol changes. Tracking balances over time creates an early warning system for whale activity.
+
+---
+
+### 8. LINK AI Arbitrage (LAA)
+
+**What it reads:** Whether an arbitrage opportunity exists between the Curve pool price and the protocol's redemption rate. Uses GPT-5.3-Codex AI analysis for signal evaluation.
 
 **What the hash encodes:**
 | Field | Example Value | What It Means |
@@ -184,7 +198,7 @@ CRE stands for **Compute Runtime Environment**. It's Chainlink's framework for r
 
 1. **EVMClient** — CRE's built-in capability to read any smart contract on any EVM chain. The workflow calls `EVMClient.callContract()` with ABI-encoded function data, and CRE routes it through configured RPCs. This is how all 8 workflows read on-chain state.
 
-2. **CronCapability** — Schedules workflows to run on a timer (every 15 minutes in our case).
+2. **CronCapability** — Schedules workflows to run on a timer (7 times per day in our unified cycle).
 
 3. **Chain-agnostic networking** — The same workflow can read from Ethereum mainnet (for protocol data) and write to Sepolia (for proof hashes) in a single execution. CRE manages the RPC connections for both.
 

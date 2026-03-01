@@ -47,7 +47,7 @@
 node record-all-snapshots.mjs
 ```
 
-**Say:** (while it runs) "This reads real CRE snapshot data for all 8 workflows — treasury risk, price feeds, governance, Morpho vault, CCIP lanes, Curve pool, and the cross-repo arb monitor. For each fresh snapshot, it computes a keccak256 hash of key metrics and writes it to the Sepolia registry with a prefixed risk level."
+**Say:** (while it runs) "This reads real CRE snapshot data for all 8 workflows — treasury risk, price feeds, governance, Morpho vault, CCIP lanes, Curve pool, and the LINK AI Arbitrage (LAA) monitor. For each fresh snapshot, it computes a keccak256 hash of key metrics and writes it to the Sepolia registry with a prefixed risk level."
 
 **Action:** When it confirms, copy a TX hash. Switch to Etherscan. Show the new transaction(s) appearing.
 

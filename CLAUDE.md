@@ -311,7 +311,7 @@ All 8 workflows run together in a unified cycle, 7 times per day (~3h 25min apar
 | 6 | 17:05 | `5 17 * * *` |
 | 7 | 20:30 | `30 20 * * *` |
 
-**Per cycle:** 8 CRE simulations (parallel) + 8 on-chain proof writes (sequential). Total: 56 on-chain proofs/day.
+**Per cycle:** 7 CRE simulations (parallel) + 7 on-chain proof writes (sequential). Total: 49 on-chain proofs/day.
 
 **Workflows in each cycle:** treasury-risk, price-feeds, governance-monitor, morpho-vault-health, curve-pool, ccip-lane-health, link-ai-arbitrage (LAA).
 

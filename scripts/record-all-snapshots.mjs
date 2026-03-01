@@ -2,7 +2,7 @@
 /**
  * Orbital Sentinel — Real CRE snapshot → on-chain proof bridge.
  *
- * Reads the 8 CRE snapshot JSON files produced by the Orbital orchestration
+ * Reads the 7 CRE snapshot JSON files produced by the Orbital orchestration
  * and writes keccak256 proof hashes to SentinelRegistry on Sepolia.
  *
  * Only writes when a snapshot has changed (compares generated_at_utc).

@@ -2,7 +2,7 @@
 # ──────────────────────────────────────────────────────────────────────
 # Orbital Sentinel — Unified CRE Cycle
 #
-# Runs ALL 8 CRE workflow simulations in parallel, then writes
+# Runs ALL 7 CRE workflow simulations in parallel, then writes
 # all on-chain proofs in one batch via record-all-snapshots.mjs.
 #
 # Designed to run 7 times/day at even intervals (~3h25m apart).
@@ -19,7 +19,7 @@ log() { echo "${LOG_PREFIX} $1"; }
 
 log "=== Sentinel Unified Cycle START ==="
 
-# ── Phase 1: Run all 8 CRE snapshot generators in parallel ──────────
+# ── Phase 1: Run all 7 CRE snapshot generators in parallel ──────────
 
 mkdir -p "${DATA_DIR}"
 

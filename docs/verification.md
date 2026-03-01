@@ -38,8 +38,12 @@ ABI-encode(
 | **Morpho** | timestamp, workflow, risk, utilization (×10⁶), totalSupply |
 | **Curve** | timestamp, workflow, risk, imbalancePct (×100), tvlUsd |
 | **CCIP** | timestamp, workflow, risk, okLanes, totalLanes |
+| **LAA** | timestamp, workflow, risk, premiumBps, linkBalance |
+| **Token Flows** | timestamp, workflow, risk, totalSdlTracked, addressCount |
 
 All multipliers are used to preserve decimal precision in `uint256` (Solidity has no floats).
+
+> **Note:** Token Flows is implemented but not yet wired into the unified cycle or `record-all-snapshots.mjs`, so it does not currently produce on-chain proofs.
 
 ## How to Verify a Record
 
@@ -145,7 +149,6 @@ The value of CRE isn't just the hashing (you could hash data without CRE). CRE p
 
 The bridge script (`record-all-snapshots.mjs`) enforces:
 
-- **45-minute staleness threshold** — Snapshots older than 45 minutes are skipped
-- **Deduplication** — The `generated_at_utc` of each snapshot is tracked; unchanged snapshots are not re-committed
+- **Deduplication** — The `generated_at_utc` of each snapshot is tracked in `.last-write-state.json`; unchanged snapshots are not re-committed
 - **Multi-RPC fallback** — Cycles through 4 Sepolia RPCs if any single one fails
 - **Non-zero exit only on total failure** — Partial success (some workflows written, some skipped) exits cleanly

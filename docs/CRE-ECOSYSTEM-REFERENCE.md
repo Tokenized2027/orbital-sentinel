@@ -217,7 +217,7 @@ Sentinel's `StLINKArbVault` (in Orbital repo) uses traditional Automation `check
 ### SentinelRegistry.sol (Sepolia)
 
 ```solidity
-function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external
+function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external onlyOwner
 event HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 ts)
 ```
 

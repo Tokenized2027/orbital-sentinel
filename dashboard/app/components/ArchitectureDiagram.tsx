@@ -2,14 +2,14 @@
 
 export default function ArchitectureDiagram() {
   const nodes = [
-    { title: 'CRE Runtime', desc: '7 Chainlink workflows' },
+    { title: 'CRE Runtime', desc: '8 Chainlink workflows' },
     { title: 'EVMClient', desc: 'On-chain data reads' },
     { title: 'AI Analysis', desc: 'Risk assessment engine' },
     { title: 'SentinelRegistry', desc: 'Sepolia proof hashes' },
   ];
 
   const subNodes = [
-    { title: '7 Workflow Snapshots', desc: 'JSON state files' },
+    { title: '8 Workflow Snapshots', desc: 'JSON state files' },
     { title: 'Risk Assessment', desc: 'Treasury · Peg · CCIP · Gov' },
     { title: 'This Dashboard', desc: 'Real-time monitoring UI' },
   ];

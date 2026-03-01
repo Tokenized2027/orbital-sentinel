@@ -3,7 +3,7 @@
 # ==========================================================================
 staging-settings:
   user-workflow:
-    workflow-name: "stlink-arb-monitor-staging"
+    workflow-name: "link-ai-arbitrage-staging"
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.json"
@@ -12,7 +12,7 @@ staging-settings:
 # ==========================================================================
 production-settings:
   user-workflow:
-    workflow-name: "stlink-arb-monitor-production"
+    workflow-name: "link-ai-arbitrage-production"
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.json"
