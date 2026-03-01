@@ -20,47 +20,60 @@ All 8 workflows run together in a unified cycle 7 times per day. A master script
 
 ---
 
+## Builder Fee
+
+Orbital Sentinel charges a **0.1% builder fee** (10 bps) on protocol-integrated actions. The fee is configurable by the protocol multisig and can be adjusted or set to zero at any time. The builder fee recipient address will be specified in the deployment configuration.
+
+| Parameter | Value |
+|-----------|-------|
+| Default fee | 0.1% (10 bps) |
+| Configured by | Protocol multisig |
+| Adjustable | Yes — multisig can update at any time |
+| Recipient address | TBD — will be set at deployment |
+
+---
+
 ## The 8 Workflows
 
-### 1. `treasury-risk` — Protocol Treasury Health
+### 1. `link-ai-arbitrage` — LINK AI Arbitrage (LAA)
+Monitors stLINK/LINK arbitrage opportunities via the Curve StableSwap pool. Reads pool balances, premium quotes at multiple swap sizes, Priority Pool queue status, and optional Arb Vault state. Computes an execution signal (execute/wait/unprofitable/pool_closed/no_stlink) and calls GPT-5.3-Codex for AI analysis of optimal swap timing. This is the flagship workflow — the only one that produces a direct, actionable trading signal.
+
+**Chainlink usage:** `EVMClient.callContract()` reads Curve StableSwap pool (get_dy, balances), Priority Pool (poolStatus, totalQueued), and optional Arb Vault contracts on Ethereum mainnet. `HTTPClient` + `consensusIdenticalAggregation` for AI analysis endpoint.
+
+### 2. `treasury-risk` — Protocol Treasury Health
 Monitors staking pool utilization, reward vault runway, lending market exposure, and priority queue depth. Computes an overall risk score (`ok / warning / critical`) and calls Claude Haiku for a structured assessment. Writes a `keccak256` snapshot hash to `SentinelRegistry` on Sepolia.
 
 **Chainlink usage:** `EVMClient.callContract()` reads `getTotalPrincipal()`, `getMaxPoolSize()`, `getRewardBuckets()`, `balanceOf()` from deployed staking contracts on Ethereum mainnet.
 
-### 2. `governance-monitor` — DAO Governance Lifecycle
+### 3. `governance-monitor` — DAO Governance Lifecycle
 Polls Snapshot GraphQL for active proposals across multiple governance spaces. Flags urgent votes (<24h remaining). Fetches forum topics for community signal. Outputs proposal urgency ranking.
 
 **Chainlink usage:** `HTTPClient.sendRequest()` with `consensusIdenticalAggregation` for deterministic multi-source data fetching.
 
-### 3. `price-feeds` — Chainlink Oracle Price Monitoring
+### 4. `price-feeds` — Chainlink Oracle Price Monitoring
 Reads LINK/USD, ETH/USD, and other asset prices directly from Chainlink Data Feed contracts. Computes depeg basis points for liquid staking derivatives.
 
 **Chainlink usage:** Reads `latestAnswer()` and `latestRoundData()` from Chainlink AggregatorV3 price feed contracts on Ethereum mainnet.
 
-### 4. `morpho-vault-health` — Lending Market Risk
+### 5. `morpho-vault-health` — Lending Market Risk
 Reads Morpho Blue market utilization rates and ERC4626 vault TVL. Flags high utilization (risk of liquidity crunch for borrowers).
 
 **Chainlink usage:** `EVMClient.callContract()` reads Morpho Blue market structs and vault share prices from Ethereum mainnet.
 
-### 5. `token-flows` — Whale & Holder Intelligence
+### 6. `token-flows` — Whale & Holder Intelligence
 Tracks token and staked-token balances across classified address categories (validators, whales, DEX pools, vesting schedules). Detects large movements that may indicate protocol stress.
 
 **Chainlink usage:** `EVMClient.callContract()` reads `balanceOf()` and vesting `releasable()` across 50+ classified addresses.
 
-### 6. `ccip-lane-health` — CCIP Lane Availability
+### 7. `ccip-lane-health` — CCIP Lane Availability
 Monitors Chainlink CCIP lane health by reading the Router's `getOnRamp()`, OnRamp `paused()` state, and `LockReleaseTokenPool` rate limiter buckets per destination chain. Detects paused lanes, unconfigured routes, and rate limiter depletion.
 
 **Chainlink usage:** `EVMClient.callContract()` reads CCIP Router, OnRamp, and LockReleaseTokenPool contracts on Ethereum mainnet.
 
-### 7. `curve-pool` — Curve Pool Balance Monitoring
+### 8. `curve-pool` — Curve Pool Balance Monitoring
 Monitors Curve StableSwap pool balance composition for stLINK/LINK. Flags imbalanced reserves that may indicate liquidity stress or arbitrage opportunities.
 
 **Chainlink usage:** `EVMClient.callContract()` reads Curve pool balances and Chainlink LINK/USD price feed on Ethereum mainnet.
-
-### 8. `link-ai-arbitrage` — LINK AI Arbitrage (LAA)
-Monitors stLINK/LINK arbitrage opportunities via the Curve StableSwap pool. Reads pool balances, premium quotes at multiple swap sizes, Priority Pool queue status, and optional Arb Vault state. Computes an execution signal (execute/wait/unprofitable/pool_closed/no_stlink) and calls GPT-5.3-Codex for AI analysis of optimal swap timing.
-
-**Chainlink usage:** `EVMClient.callContract()` reads Curve StableSwap pool (get_dy, balances), Priority Pool (poolStatus, totalQueued), and optional Arb Vault contracts on Ethereum mainnet. `HTTPClient` + `consensusIdenticalAggregation` for AI analysis endpoint.
 
 ---
 
@@ -237,14 +250,14 @@ The collector reads `HealthRecorded` events from the registry contract, stores t
 ```
 orbital-sentinel/
 ├── workflows/
+│   ├── link-ai-arbitrage/     ← LINK AI Arbitrage (LAA) — flagship: Curve arb signal generation
 │   ├── treasury-risk/          ← EVM reads + AI analysis + on-chain write
 │   ├── governance-monitor/     ← DAO proposal monitoring + on-chain write
 │   ├── price-feeds/            ← Chainlink Data Feed reads + on-chain write
 │   ├── morpho-vault-health/    ← Lending market utilization + on-chain write
 │   ├── token-flows/            ← Whale & holder tracking + on-chain write
 │   ├── ccip-lane-health/       ← CCIP lane availability + rate limiter monitoring
-│   ├── curve-pool/             ← Curve pool balance composition monitoring
-│   └── link-ai-arbitrage/     ← LINK AI Arbitrage (LAA) — Curve arb opportunity detection
+│   └── curve-pool/             ← Curve pool balance composition monitoring
 ├── contracts/
 │   ├── SentinelRegistry.sol    ← On-chain risk proof registry (Sepolia, owner-gated)
 │   └── test/
@@ -282,14 +295,14 @@ All 8 workflows import `Runner`, `handler`, `CronCapability`, `EVMClient`, `getN
 
 | # | Workflow | File | Chainlink Features |
 |---|----------|------|--------------------|
-| 1 | Treasury Risk | [`workflows/treasury-risk/my-workflow/main.ts`](./workflows/treasury-risk/my-workflow/main.ts) | EVMClient (4 mainnet reads), HTTPClient (AI analysis), CronCapability, SentinelRegistry write |
-| 2 | Governance Monitor | [`workflows/governance-monitor/my-workflow/main.ts`](./workflows/governance-monitor/my-workflow/main.ts) | HTTPClient + consensusIdenticalAggregation (Snapshot + Discourse), CronCapability, SentinelRegistry write |
-| 3 | Price Feeds | [`workflows/price-feeds/my-workflow/main.ts`](./workflows/price-feeds/my-workflow/main.ts) | EVMClient reads Chainlink Data Feeds (LINK/USD, ETH/USD), CronCapability, SentinelRegistry write |
-| 4 | Morpho Vault Health | [`workflows/morpho-vault-health/my-workflow/main.ts`](./workflows/morpho-vault-health/my-workflow/main.ts) | EVMClient (Morpho Blue + ERC4626), CronCapability, SentinelRegistry write |
-| 5 | Token Flows | [`workflows/token-flows/my-workflow/main.ts`](./workflows/token-flows/my-workflow/main.ts) | EVMClient (50+ ERC20 balanceOf reads), CronCapability, SentinelRegistry write |
-| 6 | CCIP Lane Health | [`workflows/ccip-lane-health/my-workflow/main.ts`](./workflows/ccip-lane-health/my-workflow/main.ts) | EVMClient (CCIP Router + OnRamp + TokenPool), CronCapability, SentinelRegistry write |
-| 7 | Curve Pool | [`workflows/curve-pool/my-workflow/main.ts`](./workflows/curve-pool/my-workflow/main.ts) | EVMClient (Curve pool + LINK/USD Data Feed), CronCapability, SentinelRegistry write |
-| 8 | LINK AI Arbitrage (LAA) | [`workflows/link-ai-arbitrage/my-workflow/main.ts`](./workflows/link-ai-arbitrage/my-workflow/main.ts) | EVMClient (Curve pool + Priority Pool + Arb Vault), HTTPClient (AI analysis), CronCapability, SentinelRegistry write |
+| 1 | LINK AI Arbitrage (LAA) | [`workflows/link-ai-arbitrage/my-workflow/main.ts`](./workflows/link-ai-arbitrage/my-workflow/main.ts) | EVMClient (Curve pool + Priority Pool + Arb Vault), HTTPClient (AI analysis), CronCapability, SentinelRegistry write |
+| 2 | Treasury Risk | [`workflows/treasury-risk/my-workflow/main.ts`](./workflows/treasury-risk/my-workflow/main.ts) | EVMClient (4 mainnet reads), HTTPClient (AI analysis), CronCapability, SentinelRegistry write |
+| 3 | Governance Monitor | [`workflows/governance-monitor/my-workflow/main.ts`](./workflows/governance-monitor/my-workflow/main.ts) | HTTPClient + consensusIdenticalAggregation (Snapshot + Discourse), CronCapability, SentinelRegistry write |
+| 4 | Price Feeds | [`workflows/price-feeds/my-workflow/main.ts`](./workflows/price-feeds/my-workflow/main.ts) | EVMClient reads Chainlink Data Feeds (LINK/USD, ETH/USD), CronCapability, SentinelRegistry write |
+| 5 | Morpho Vault Health | [`workflows/morpho-vault-health/my-workflow/main.ts`](./workflows/morpho-vault-health/my-workflow/main.ts) | EVMClient (Morpho Blue + ERC4626), CronCapability, SentinelRegistry write |
+| 6 | Token Flows | [`workflows/token-flows/my-workflow/main.ts`](./workflows/token-flows/my-workflow/main.ts) | EVMClient (50+ ERC20 balanceOf reads), CronCapability, SentinelRegistry write |
+| 7 | CCIP Lane Health | [`workflows/ccip-lane-health/my-workflow/main.ts`](./workflows/ccip-lane-health/my-workflow/main.ts) | EVMClient (CCIP Router + OnRamp + TokenPool), CronCapability, SentinelRegistry write |
+| 8 | Curve Pool | [`workflows/curve-pool/my-workflow/main.ts`](./workflows/curve-pool/my-workflow/main.ts) | EVMClient (Curve pool + LINK/USD Data Feed), CronCapability, SentinelRegistry write |
 
 ### On-Chain Contract (Sepolia)
 
