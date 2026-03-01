@@ -19,7 +19,8 @@ export default function PegMonitor({ workflow }: { workflow: Workflow | null }) 
   const linkUsd = Number(monitor?.linkUsd);
   const ethUsd = Number(monitor?.ethUsd);
 
-  // stLINK > 1 LINK = premium (healthy/bullish), < 1 LINK = discount (depeg concern)
+  // stLINK >= 1 LINK = premium (normal healthy state for a yield-bearing LST)
+  // stLINK < 1 LINK = discount (arb opportunity; only a depeg concern at extreme levels)
   const isPremium = Number.isFinite(ratio) && ratio >= 1.0;
   const deviationBps = Number.isFinite(rawBps) ? rawBps : 0;
 
@@ -31,14 +32,14 @@ export default function PegMonitor({ workflow }: { workflow: Workflow | null }) 
   } else if (isPremium) {
     statusLabel = `Premium (+${deviationBps.toFixed(1)} bps)`;
     statusRisk = 'ok';
-  } else if (deviationBps <= 50) {
-    statusLabel = 'Healthy Peg';
+  } else if (deviationBps <= 100) {
+    statusLabel = 'Near Parity';
     statusRisk = 'ok';
-  } else if (deviationBps <= 150) {
-    statusLabel = 'Minor Discount';
+  } else if (deviationBps <= 300) {
+    statusLabel = `Discount (${deviationBps.toFixed(0)} bps)`;
     statusRisk = 'warning';
   } else {
-    statusLabel = `Discount (${deviationBps.toFixed(0)} bps)`;
+    statusLabel = `Deep Discount (${deviationBps.toFixed(0)} bps)`;
     statusRisk = 'critical';
   }
 
@@ -50,7 +51,7 @@ export default function PegMonitor({ workflow }: { workflow: Workflow | null }) 
 
   return (
     <div className="card card-neon">
-      <SectionHeader title="Peg Monitor" right={<Badge risk={statusRisk}>{statusRisk === 'ok' ? (isPremium ? 'premium' : 'healthy') : statusRisk}</Badge>} />
+      <SectionHeader title="stLINK Peg Monitor" right={<Badge risk={statusRisk}>{isPremium ? 'premium' : statusRisk === 'ok' ? 'near parity' : statusRisk === 'warning' ? 'discount' : 'deep discount'}</Badge>} />
 
       <div style={{ textAlign: 'center', padding: '12px 0 20px' }}>
         {/* Main ratio */}
@@ -85,18 +86,25 @@ export default function PegMonitor({ workflow }: { workflow: Workflow | null }) 
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: isPremium ? 'var(--green)' : deviationBps > 150 ? 'var(--red)' : deviationBps > 50 ? 'var(--amber)' : 'var(--green)',
-              boxShadow: `0 0 8px ${isPremium ? 'rgba(34,197,94,0.5)' : deviationBps > 50 ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.5)'}`,
+              background: isPremium ? 'var(--green)' : deviationBps > 300 ? 'var(--red)' : deviationBps > 100 ? 'var(--amber)' : 'var(--green)',
+              boxShadow: `0 0 8px ${isPremium ? 'rgba(34,197,94,0.5)' : deviationBps > 100 ? 'rgba(245,158,11,0.5)' : 'rgba(34,197,94,0.5)'}`,
             }} />
           </div>
         </div>
       </div>
 
       {/* Context note */}
-      {!isPremium && deviationBps > 50 && (
+      {isPremium && (
         <div style={{ fontSize: 14, color: 'var(--t2)', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
-          stLINK should trade at or above 1:1 with LINK (staked LINK + rewards).
-          A discount indicates selling pressure or low secondary market liquidity.
+          stLINK is a yield-bearing token — trading above 1:1 with LINK is the normal, healthy state
+          as it reflects accrued staking rewards.
+        </div>
+      )}
+      {!isPremium && deviationBps > 100 && (
+        <div style={{ fontSize: 14, color: 'var(--t2)', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
+          stLINK is trading below parity. This typically reflects temporary selling pressure
+          or low Curve pool liquidity — and represents an arbitrage opportunity for buyers.
+          {deviationBps > 300 && ' A discount this deep may signal broader market stress.'}
         </div>
       )}
 

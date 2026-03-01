@@ -282,8 +282,9 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 	const feedsByName = new Map(results.map((r) => [r.name, toNumberOrUndefined(r.scaled)]));
 	const ratio = internalData.stlinkLinkPriceRatio;
 	const depegBps = ratio != null ? Math.abs(ratio - 1) * 10000 : undefined;
+	// Thresholds: OK up to 100 bps, warning 100-300, critical only for genuine depeg (>300 bps)
 	const depegStatus: MonitorResult['depegStatus'] =
-		depegBps == null ? 'unknown' : depegBps <= 50 ? 'healthy' : depegBps <= 150 ? 'warning' : 'critical';
+		depegBps == null ? 'unknown' : depegBps <= 100 ? 'healthy' : depegBps <= 300 ? 'warning' : 'critical';
 
 	const outputPayload: OutputPayload = {
 		timestamp: new Date().toISOString(),

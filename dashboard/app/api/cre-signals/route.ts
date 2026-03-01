@@ -5,7 +5,7 @@ import path from "path";
 export const revalidate = 60;
 export const dynamic = 'force-dynamic';
 
-type WorkflowKey = "feed" | "treasury" | "ccip" | "governance" | "morpho" | "sdlFlows";
+type WorkflowKey = "feed" | "treasury" | "ccip" | "governance" | "morpho" | "curvePool";
 
 type WorkflowSignal = {
   status: string;
@@ -23,7 +23,7 @@ const WORKFLOW_FILES: Record<WorkflowKey, { file: string; label: string }> = {
   ccip:       { file: "cre_ccip_snapshot.json",       label: "CCIP Lanes" },
   governance: { file: "cre_governance_snapshot.json",  label: "Governance" },
   morpho:     { file: "cre_morpho_snapshot.json",      label: "Morpho Vault" },
-  sdlFlows:   { file: "cre_sdl_flows_snapshot.json",   label: "SDL Flows" },
+  curvePool:  { file: "cre_curve_pool_snapshot.json",  label: "Curve Pool" },
 };
 
 const DEFAULT_DATA_DIR = process.env.CRE_DATA_DIR
@@ -47,10 +47,11 @@ function extractRisk(data: Record<string, unknown>, key: WorkflowKey): string {
     const ratio = Number(monitor?.stlinkLinkPriceRatio);
     const depegBps = Number(monitor?.depegBps);
     if (!Number.isFinite(depegBps)) return "unknown";
-    // stLINK > 1 LINK = premium (healthy), only discount is concerning
+    // stLINK >= 1 LINK = premium (normal healthy state)
     if (Number.isFinite(ratio) && ratio >= 1.0) return "ok";
-    if (depegBps <= 50) return "ok";
-    if (depegBps <= 150) return "warning";
+    // Discount thresholds: only flag critical for genuine depeg risk
+    if (depegBps <= 100) return "ok";
+    if (depegBps <= 300) return "warning";
     return "critical";
   }
   if (key === "treasury") {
@@ -76,7 +77,15 @@ function extractRisk(data: Record<string, unknown>, key: WorkflowKey): string {
     if (util > 0.85) return "warning";
     return "ok";
   }
-  if (key === "sdlFlows") return "ok";
+  if (key === "curvePool") {
+    const pool = data.pool as Record<string, unknown> | undefined;
+    const imbalancePct = Number(pool?.imbalancePct);
+    if (!Number.isFinite(imbalancePct)) return (data.overallRisk as string) ?? "unknown";
+    // Imbalance: how far the pool deviates from 50/50
+    if (imbalancePct > 30) return "critical";
+    if (imbalancePct > 15) return "warning";
+    return "ok";
+  }
   return "unknown";
 }
 
@@ -97,9 +106,13 @@ function extractAlerts(data: Record<string, unknown>, key: WorkflowKey): string[
   }
   if (key === "feed") {
     const monitor = data.monitor as Record<string, unknown> | undefined;
+    const ratio = Number(monitor?.stlinkLinkPriceRatio);
     const depegBps = Number(monitor?.depegBps);
-    if (Number.isFinite(depegBps) && depegBps > 50) {
-      return [`Depeg at ${depegBps.toFixed(1)} bps`];
+    if (Number.isFinite(ratio) && ratio >= 1.0 && Number.isFinite(depegBps)) {
+      return [`Premium: +${depegBps.toFixed(1)} bps above parity`];
+    }
+    if (Number.isFinite(depegBps) && depegBps > 100) {
+      return [`Discount: ${depegBps.toFixed(1)} bps below parity`];
     }
   }
   if (key === "morpho") {
@@ -107,6 +120,13 @@ function extractAlerts(data: Record<string, unknown>, key: WorkflowKey): string[
     const util = Number(market?.utilization);
     if (Number.isFinite(util) && util > 0.85) {
       return [`Morpho utilization at ${(util * 100).toFixed(1)}%`];
+    }
+  }
+  if (key === "curvePool") {
+    const pool = data.pool as Record<string, unknown> | undefined;
+    const imbalancePct = Number(pool?.imbalancePct);
+    if (Number.isFinite(imbalancePct) && imbalancePct > 15) {
+      return [`Pool imbalance: ${imbalancePct.toFixed(1)}% off balanced`];
     }
   }
   return [];
@@ -145,16 +165,16 @@ function extractKeyMetric(data: Record<string, unknown>, key: WorkflowKey): { la
     const util = Number(market?.utilization);
     return { label: "Utilization", value: Number.isFinite(util) ? `${(util * 100).toFixed(1)}%` : "\u2014" };
   }
-  if (key === "sdlFlows") {
-    const balances = data.balances as Array<Record<string, string>> | undefined;
-    if (balances?.length) {
-      const totalSdl = balances.reduce((s, b) => s + (Number(b.sdlBalance || '0') / 1e18), 0);
-      if (totalSdl >= 1e6) return { label: "SDL Tracked", value: `${(totalSdl / 1e6).toFixed(1)}M` };
-      if (totalSdl >= 1e3) return { label: "SDL Tracked", value: `${(totalSdl / 1e3).toFixed(0)}K` };
-      return { label: "SDL Tracked", value: totalSdl.toFixed(0) };
+  if (key === "curvePool") {
+    const pool = data.pool as Record<string, unknown> | undefined;
+    const tvl = Number(pool?.tvlUsd);
+    if (Number.isFinite(tvl) && tvl > 0) {
+      if (tvl >= 1e6) return { label: "Pool TVL", value: `$${(tvl / 1e6).toFixed(1)}M` };
+      if (tvl >= 1e3) return { label: "Pool TVL", value: `$${(tvl / 1e3).toFixed(0)}K` };
+      return { label: "Pool TVL", value: `$${tvl.toFixed(0)}` };
     }
-    const meta = data.metadata as Record<string, number> | undefined;
-    return { label: "Addresses", value: meta?.addressCount ?? 0 };
+    const composition = pool?.compositionPct as string | undefined;
+    return { label: "Balance", value: composition ?? "\u2014" };
   }
   return { label: "Status", value: "\u2014" };
 }

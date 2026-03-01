@@ -1,0 +1,23 @@
+# ==========================================================================
+# CRE WORKFLOW SETTINGS FILE
+# ==========================================================================
+# Curve Pool Health Monitor — tracks stLINK/LINK Curve pool TVL,
+# balance composition, and imbalance risk.
+
+# ==========================================================================
+staging-settings:
+  user-workflow:
+    workflow-name: "curve-pool-staging"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.staging.json"
+    secrets-path: ""
+
+# ==========================================================================
+production-settings:
+  user-workflow:
+    workflow-name: "curve-pool-production"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.production.json"
+    secrets-path: ""

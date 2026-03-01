@@ -2,7 +2,7 @@
 
 import { StatusDot } from './ui';
 import { timeAgoShort } from '@/lib/helpers';
-import { BarChart3, Shield, Link, Vote, Landmark, Droplets, ChevronDown } from 'lucide-react';
+import { BarChart3, Shield, Link, Vote, Landmark, Waves, ChevronDown } from 'lucide-react';
 
 type Workflow = {
   status: string;
@@ -27,7 +27,7 @@ const ICONS: Record<string, React.ReactNode> = {
   ccip:       <Link size={16} />,
   governance: <Vote size={16} />,
   morpho:     <Landmark size={16} />,
-  sdlFlows:   <Droplets size={16} />,
+  curvePool:  <Waves size={16} />,
 };
 
 const CRE_CAPS: Record<string, string[]> = {
@@ -36,7 +36,7 @@ const CRE_CAPS: Record<string, string[]> = {
   ccip:       ['EVMClient'],
   governance: ['HTTPClient', 'Consensus'],
   morpho:     ['EVMClient'],
-  sdlFlows:   ['EVMClient'],
+  curvePool:  ['EVMClient'],
 };
 
 export default function WorkflowGrid({ workflows, labels, selected, onSelect }: Props) {
@@ -94,7 +94,7 @@ export default function WorkflowGrid({ workflows, labels, selected, onSelect }: 
                   <span
                     key={cap}
                     style={{
-                      fontSize: 11,
+                      fontSize: 14,
                       padding: '1px 5px',
                       borderRadius: 3,
                       color: 'var(--t3)',

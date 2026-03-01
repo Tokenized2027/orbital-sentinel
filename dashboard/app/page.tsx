@@ -7,8 +7,10 @@ import TreasuryDetail from './components/TreasuryDetail';
 import PegMonitor from './components/PegMonitor';
 import CcipLanes from './components/CcipLanes';
 import GovernancePanel from './components/GovernancePanel';
+import CurvePoolDetail from './components/CurvePoolDetail';
 import GenericDetail from './components/GenericDetail';
 import SentinelRegistry from './components/SentinelRegistry';
+import Glossary from './components/Glossary';
 import ArchitectureDiagram from './components/ArchitectureDiagram';
 
 type CREData = {
@@ -43,6 +45,8 @@ function WorkflowDetail({ workflowKey, workflow, label }: {
       return <CcipLanes workflow={workflow} />;
     case 'governance':
       return <GovernancePanel workflow={workflow} />;
+    case 'curvePool':
+      return <CurvePoolDetail workflow={workflow} />;
     default:
       return <GenericDetail workflow={workflow} label={label} />;
   }
@@ -98,6 +102,8 @@ export default function Page() {
           label={labels[selected] ?? selected}
         />
       )}
+
+      <Glossary />
 
       <SentinelRegistry />
 

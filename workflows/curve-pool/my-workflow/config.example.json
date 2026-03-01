@@ -1,0 +1,21 @@
+{
+  "schedule": "0 */15 * * * *",
+  "chainName": "ethereum-mainnet",
+  "contracts": {
+    "curvePool": "0x7E13876B92F1a62C599C231f783f682E96B91761",
+    "linkUsdFeed": "0x2c1d072e956affc0d435cb7ac38ef18d24d9127c"
+  },
+  "thresholds": {
+    "imbalancePctWarning": 15,
+    "imbalancePctCritical": 30
+  },
+  "registry": {
+    "address": "0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334",
+    "chainName": "ethereum-testnet-sepolia"
+  },
+  "webhook": {
+    "enabled": false,
+    "url": "",
+    "bearerToken": ""
+  }
+}
