@@ -9,6 +9,13 @@ type Workflow = {
   data: Record<string, unknown>;
 };
 
+type GaugeReward = {
+  token: string;
+  ratePerSecond: string;
+  periodFinish: number;
+  isActive: boolean;
+};
+
 export default function CurvePoolDetail({ workflow }: { workflow: Workflow | null }) {
   if (!workflow) return <div className="card empty-state">Curve Pool data unavailable</div>;
 
@@ -24,6 +31,10 @@ export default function CurvePoolDetail({ workflow }: { workflow: Workflow | nul
   const amplification = Number(pool?.amplificationFactor);
 
   const totalTokens = (Number.isFinite(linkBalance) ? linkBalance : 0) + (Number.isFinite(stlinkBalance) ? stlinkBalance : 0);
+
+  // Gauge data
+  const gauge = data.gauge as { totalStaked: string; rewardCount: number; rewards: GaugeReward[]; inflationRate: string } | undefined;
+  const gaugeStaked = gauge ? Number(gauge.totalStaked) / 1e18 : 0;
 
   let healthLabel: string;
   let healthRisk: string;
@@ -120,6 +131,44 @@ export default function CurvePoolDetail({ workflow }: { workflow: Workflow | nul
             ? 'Pool is tilted toward stLINK, indicating some selling pressure. Larger swaps may experience higher slippage.'
             : 'Pool is heavily imbalanced. This typically precedes a discount widening and creates a stronger arb opportunity.'}
       </div>
+
+      {/* Gauge incentives */}
+      {gauge && (
+        <div style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(79,212,229,0.06)', borderRadius: 8, border: '1px solid rgba(79,212,229,0.15)' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--t1)', marginBottom: 8 }}>Gauge Incentives</div>
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+            <div>
+              <div className="metric-label">LP Staked in Gauge</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--t1)' }}>
+                {gaugeStaked > 0 ? `${(gaugeStaked / 1e3).toFixed(1)}K` : '\u2014'}
+              </div>
+            </div>
+            <div>
+              <div className="metric-label">Reward Tokens</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--t1)' }}>
+                {gauge.rewardCount}
+              </div>
+            </div>
+            {(gauge.rewards as GaugeReward[])?.map((r: GaugeReward, i: number) => {
+              const rate = Number(r.ratePerSecond) / 1e18;
+              const daily = rate * 86400;
+              return (
+                <div key={i}>
+                  <div className="metric-label">
+                    {r.isActive ? 'Active' : 'Ended'} #{i + 1}
+                  </div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 14, color: r.isActive ? '#4FD4E5' : 'var(--t3)' }}>
+                    {daily < 1 ? daily.toFixed(4) : daily.toFixed(1)}/day
+                  </div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--t3)' }}>
+                    {r.token.slice(0, 8)}...
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Secondary metrics */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 32, borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 16 }}>

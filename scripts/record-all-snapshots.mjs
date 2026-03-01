@@ -203,9 +203,12 @@ const WORKFLOWS = [
       const sharePrice = BigInt(Math.round((d.vault?.sharePrice ?? 0) * 1e6));
       // Vault total assets (whole tokens)
       const vaultTotalAssets = BigInt(d.vault?.totalAssets ?? '0') / (10n ** 18n);
+      // APY from IRM (basis points, 1 bp = 0.01%)
+      const borrowApyBps = BigInt(Math.round((d.apy?.borrowApy ?? 0) * 100));
+      const supplyApyBps = BigInt(Math.round((d.apy?.supplyApy ?? 0) * 100));
       return encodeAbiParameters(
-        parseAbiParameters('uint256 ts, string wf, string risk, uint256 util, uint256 totalSupply, uint256 totalBorrow, uint256 sharePrice, uint256 vaultAssets'),
-        [ts, 'morpho', risk, util, totalSupplyAssets, totalBorrowAssets, sharePrice, vaultTotalAssets],
+        parseAbiParameters('uint256 ts, string wf, string risk, uint256 util, uint256 totalSupply, uint256 totalBorrow, uint256 sharePrice, uint256 vaultAssets, uint256 borrowApyBps, uint256 supplyApyBps'),
+        [ts, 'morpho', risk, util, totalSupplyAssets, totalBorrowAssets, sharePrice, vaultTotalAssets, borrowApyBps, supplyApyBps],
       );
     },
   },
@@ -230,9 +233,16 @@ const WORKFLOWS = [
       const tvlUsd = BigInt(Math.round(d.pool?.tvlUsd ?? 0));
       // LINK price from oracle (8 decimals)
       const linkUsd = BigInt(Math.round((d.prices?.linkUsd ?? 0) * 1e8));
+      // Gauge incentives
+      const gaugeStaked = BigInt(d.gauge?.totalStaked ?? '0') / (10n ** 18n);
+      const gaugeRewardCount = BigInt(d.gauge?.rewardCount ?? 0);
+      // Sum all active reward rates (tokens/sec in wei)
+      const totalRewardRate = BigInt(
+        (d.gauge?.rewards ?? []).reduce((sum, r) => sum + BigInt(r.ratePerSecond || '0'), 0n)
+      );
       return encodeAbiParameters(
-        parseAbiParameters('uint256 ts, string wf, string risk, uint256 linkBalance, uint256 stlinkBalance, uint256 imbalancePct, uint256 virtualPrice, uint256 tvlUsd, uint256 linkUsd'),
-        [ts, 'curve', risk, linkBalance, stlinkBalance, imbalancePct, virtualPrice, tvlUsd, linkUsd],
+        parseAbiParameters('uint256 ts, string wf, string risk, uint256 linkBalance, uint256 stlinkBalance, uint256 imbalancePct, uint256 virtualPrice, uint256 tvlUsd, uint256 linkUsd, uint256 gaugeStaked, uint256 gaugeRewardCount, uint256 totalRewardRate'),
+        [ts, 'curve', risk, linkBalance, stlinkBalance, imbalancePct, virtualPrice, tvlUsd, linkUsd, gaugeStaked, gaugeRewardCount, totalRewardRate],
       );
     },
   },

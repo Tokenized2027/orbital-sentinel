@@ -25,6 +25,7 @@ export const CurveGauge = [
 		stateMutability: 'view',
 		inputs: [{ name: 'token', type: 'address' }],
 		outputs: [
+			{ name: 'token', type: 'address' },
 			{ name: 'distributor', type: 'address' },
 			{ name: 'period_finish', type: 'uint256' },
 			{ name: 'rate', type: 'uint256' },

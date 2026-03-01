@@ -170,9 +170,9 @@ function readGauge(
 		}).result();
 		const rewardData = decodeFunctionResult({
 			abi: CurveGauge, functionName: 'reward_data', data: bytesToHex(rdResp.data),
-		}) as readonly [string, bigint, bigint, bigint, bigint];
+		}) as readonly [string, string, bigint, bigint, bigint, bigint];
 
-		const [_distributor, periodFinishBig, rateBig, _lastUpdate, _integral] = rewardData;
+		const [_token, _distributor, periodFinishBig, rateBig, _lastUpdate, _integral] = rewardData;
 		const periodFinish = Number(periodFinishBig);
 		const isActive = periodFinish > now && rateBig > 0n;
 

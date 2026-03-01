@@ -37,12 +37,15 @@ export default function GenericDetail({ workflow, label }: { workflow: Workflow;
     const market = data.morphoMarket as Record<string, unknown>;
     const vault = data.vault as Record<string, unknown> | undefined;
     const meta = data.metadata as Record<string, unknown> | undefined;
+    const apyData = data.apy as Record<string, unknown> | undefined;
     const util = N(market.utilization);
     const supplied = wei(market.totalSupplyAssets as string);
     const borrowed = wei(market.totalBorrowAssets as string);
     const available = supplied - borrowed;
     const sharePrice = Number(vault?.sharePrice);
     const utilRisk = util > 0.95 ? 'critical' : util > 0.85 ? 'warning' : 'ok';
+    const borrowApy = Number(apyData?.borrowApy ?? 0);
+    const supplyApy = Number(apyData?.supplyApy ?? 0);
 
     return (
       <div className="card card-neon">
@@ -68,6 +71,23 @@ export default function GenericDetail({ workflow, label }: { workflow: Workflow;
           )}
         </div>
 
+        {/* APY from on-chain IRM */}
+        {(borrowApy > 0 || supplyApy > 0) && (
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', marginBottom: 16, padding: '12px 16px', background: 'rgba(79,212,229,0.06)', borderRadius: 8, border: '1px solid rgba(79,212,229,0.15)' }}>
+            <div>
+              <div className="metric-label">Supply APY</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: '#4FD4E5' }}>{supplyApy.toFixed(2)}%</div>
+            </div>
+            <div>
+              <div className="metric-label">Borrow APY</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--t1)' }}>{borrowApy.toFixed(2)}%</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', fontSize: 12, color: 'var(--t3)' }}>
+              From on-chain IRM
+            </div>
+          </div>
+        )}
+
         {/* Utilization bar */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -83,6 +103,12 @@ export default function GenericDetail({ workflow, label }: { workflow: Workflow;
             Morpho: <span style={{ fontFamily: 'var(--mono)', fontSize: 14 }}>{String(meta.morphoAddress ?? '').slice(0, 10)}...</span>
             {' · '}
             Vault: <span style={{ fontFamily: 'var(--mono)', fontSize: 14 }}>{String(meta.vaultAddress ?? '').slice(0, 10)}...</span>
+            {apyData?.irmAddress ? (
+              <>
+                {' · '}
+                IRM: <span style={{ fontFamily: 'var(--mono)', fontSize: 14 }}>{String(apyData.irmAddress).slice(0, 10)}...</span>
+              </>
+            ) : null}
           </div>
         )}
       </div>
