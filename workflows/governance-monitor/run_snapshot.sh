@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SNAPSHOT_PATH="${ROOT_DIR}/../../intelligence/data/sentinel_governance_snapshot.json"
+SNAPSHOT_PATH="${SNAPSHOT_PATH:-${ROOT_DIR}/../../intelligence/data/sentinel_governance_snapshot.json}"
 CRE_BIN="${CRE_BIN:-${HOME}/.local/bin/cre}"
 
 if [ -x "${HOME}/.bun/bin/bun" ]; then

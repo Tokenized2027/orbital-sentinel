@@ -5,7 +5,7 @@ import { createQueries } from '@/lib/db/queries';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const REGISTRY_ADDRESS = '0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334';
+const REGISTRY_ADDRESS = '0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40';
 const EXPLORER_BASE = 'https://sepolia.etherscan.io';
 
 export async function GET() {

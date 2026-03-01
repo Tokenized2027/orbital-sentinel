@@ -2,7 +2,7 @@
 
 ## What the On-Chain Proofs Prove
 
-Every CRE workflow run produces a **keccak256 hash** that is written to the [SentinelRegistry contract on Sepolia](https://sepolia.etherscan.io/address/0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334).
+Every CRE workflow run produces a **keccak256 hash** that is written to the [SentinelRegistry contract on Sepolia](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40).
 
 Each record proves:
 
@@ -74,7 +74,7 @@ Query the `HealthRecorded` events on the SentinelRegistry contract:
 
 ```javascript
 const logs = await publicClient.getLogs({
-  address: '0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334',
+  address: '0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40',
   event: {
     type: 'event',
     name: 'HealthRecorded',
@@ -133,9 +133,9 @@ The value of CRE isn't just the hashing (you could hash data without CRE). CRE p
 | Field | Value |
 |-------|-------|
 | Contract | `SentinelRegistry` |
-| Address | `0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334` |
+| Address | `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` |
 | Network | Sepolia Testnet |
-| Verified | [Sourcify](https://repo.sourcify.dev/contracts/full_match/11155111/0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334/) |
+| Verified | [Sourcify](https://repo.sourcify.dev/contracts/full_match/11155111/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40/) |
 | Key Function | `recordHealth(bytes32 snapshotHash, string riskLevel)` |
 | Event | `HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 timestamp)` |
 | View | `count() → uint256` (total records) |

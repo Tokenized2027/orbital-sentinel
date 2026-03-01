@@ -20,7 +20,7 @@ Autonomous DeFi health monitoring platform built on Chainlink CRE for the Chainl
 ## Critical Rules
 
 1. **Never hardcode private keys.** Always from env (`PRIVATE_KEY`). The `.env` is gitignored.
-2. **Never deploy contracts without explicit approval.** SentinelRegistry is already deployed at `0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334` on Sepolia. Redeployment changes all downstream references.
+2. **Never deploy contracts without explicit approval.** SentinelRegistry is already deployed at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` on Sepolia. Redeployment changes all downstream references.
 3. **Mainnet reads only.** All EVM reads target Ethereum mainnet. No write operations to mainnet ever.
 4. **All writes go to Sepolia only.** On-chain proofs, test transactions, everything.
 5. **Run `forge test` before any Solidity changes.** Foundry config at `foundry.toml`, solc 0.8.19.
@@ -46,8 +46,9 @@ orbital-sentinel/
 │   ├── ccip-lane-health/         #   CCIP Router + OnRamp + TokenPool monitoring
 │   └── curve-pool/               #   Curve StableSwap balance composition
 ├── contracts/                    # Solidity (Foundry)
-│   ├── SentinelRegistry.sol      #   On-chain risk proof registry
-│   └── SentinelRegistry.ts       #   TypeScript ABI export
+│   ├── SentinelRegistry.sol      #   On-chain risk proof registry (owner-gated, dedup, validated)
+│   ├── SentinelRegistry.ts       #   TypeScript ABI export
+│   └── test/                     #   Foundry tests (24 total: 17 unit + 7 fuzz)
 ├── dashboard/                    # Next.js 15 standalone app (port 3016)
 │   ├── app/
 │   │   ├── api/sentinel/         #   GET — on-chain proof data
@@ -119,12 +120,15 @@ CRE Workflows (cron, every 15-30 min)
 | Workflow simulation script | `workflows/<name>/run_snapshot.sh` |
 | ABI files per workflow | `workflows/<name>/contracts/abi/*.ts` |
 | Contract source | `contracts/SentinelRegistry.sol` |
+| Security audit | `AUDIT-REPORT.md` |
+| Contract tests | `contracts/test/SentinelRegistry.t.sol`, `contracts/test/SentinelRegistry.Fuzz.t.sol` |
 | Dashboard app | `dashboard/app/page.tsx` |
 | Dashboard DB schema | `dashboard/lib/db/schema.ts` |
 | Dashboard DB queries | `dashboard/lib/db/queries.ts` |
 | Dashboard API: sentinel | `dashboard/app/api/sentinel/route.ts` |
 | Dashboard API: CRE signals | `dashboard/app/api/cre-signals/route.ts` |
 | AI endpoint | `platform/cre_analyze_endpoint.py` |
+| Unified cycle script | `scripts/sentinel-unified-cycle.sh` |
 | Cron bridge script | `scripts/record-all-snapshots.mjs` |
 | CRE ecosystem docs | `docs/CRE-ECOSYSTEM-REFERENCE.md` |
 | Hackathon submission | `docs/submission.md` |
@@ -236,7 +240,7 @@ bun install
 | Running `forge create` without explicit approval | SentinelRegistry is already deployed. Redeployment breaks all references |
 | Adding a workflow and forgetting CHAINLINK.md | Every Chainlink touchpoint must be documented in CHAINLINK.md for hackathon |
 | Sharing state between workflows | Each workflow is isolated. No shared runtime state |
-| Modifying `record-all-snapshots.mjs` without checking `.last-write-state.json` | The script tracks last-write state to avoid duplicate proofs |
+| Modifying `record-all-snapshots.mjs` without understanding dedup | On-chain `AlreadyRecorded` revert prevents duplicates; script handles gracefully |
 | Running dashboard without DATABASE_URL | Needs the sdl_analytics PostgreSQL database connection |
 | Calling AI endpoint in a loop during testing | Each call costs Anthropic API credits |
 
@@ -245,7 +249,7 @@ bun install
 ## Current State
 
 - **All 7 workflows:** implemented and simulating successfully
-- **SentinelRegistry:** deployed on Sepolia at `0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334`
+- **SentinelRegistry:** deployed on Sepolia at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit). Access control, dedup, validation active on-chain.
 - **Dashboard:** running on port 3016, reads on-chain proofs + CRE signals
 - **Cron bridge:** `record-all-snapshots.mjs` writes proofs for all 7 workflows
 - **AI endpoint:** Flask server with Claude Sonnet analysis
@@ -260,12 +264,13 @@ bun install
 Before any commit:
 
 1. `forge build` -- Solidity compiles
-2. `forge test` -- all contract tests pass
-3. Workflow simulation succeeds (`./run_snapshot.sh staging-settings`) for any modified workflow
-4. Dashboard builds: `cd dashboard && npx next build`
-5. No secrets in committed files (check `.gitignore` covers `.env`, `config.staging.json`, `secrets.yaml`)
-6. `CHAINLINK.md` updated if any Chainlink touchpoint changed
-7. `README.md` updated if project structure or workflow list changed
+2. `forge test` -- all 24 contract tests pass (17 unit + 7 fuzz)
+3. `forge test --fuzz-runs 10000` -- fuzz tests pass at high iterations
+4. Workflow simulation succeeds (`./run_snapshot.sh staging-settings`) for any modified workflow
+5. Dashboard builds: `cd dashboard && npx next build`
+6. No secrets in committed files (check `.gitignore` covers `.env`, `config.staging.json`, `secrets.yaml`)
+7. `CHAINLINK.md` updated if any Chainlink touchpoint changed
+8. `README.md` updated if project structure or workflow list changed
 
 ---
 
@@ -275,23 +280,33 @@ Before any commit:
 |-------|-------|
 | Contract | `OrbitalSentinelRegistry` |
 | Network | Ethereum Sepolia |
-| Address | `0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334` |
+| Address | `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit) |
 | Solidity | 0.8.19 |
-| Key function | `recordHealth(bytes32 snapshotHash, string riskLevel)` |
-| Event | `HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 ts)` |
+| Key function | `recordHealth(bytes32 snapshotHash, string riskLevel)` — **owner-only** |
+| Access control | `owner` + `onlyOwner` modifier + `transferOwnership(address)` |
+| Duplicate prevention | `mapping(bytes32 => bool) recorded` — reverts `AlreadyRecorded` on duplicates |
+| Input validation | Reverts `EmptyRiskLevel` on empty `riskLevel` string |
+| Events | `HealthRecorded(bytes32 indexed, string, uint256)`, `OwnershipTransferred(address indexed, address indexed)` |
 | Risk level format | Prefixed: `treasury:ok`, `feeds:warning`, `morpho:critical`, etc. |
-| Etherscan | `https://sepolia.etherscan.io/address/0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334` |
+| Audit | `AUDIT-REPORT.md` — 4 findings fixed, 24 tests, 70k fuzz iterations |
+| Etherscan | `https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` |
 
 ---
 
-## Workflow Schedule Reference
+## Unified CRE Cycle Schedule
 
-| Workflow | Cron | Frequency |
-|----------|------|-----------|
-| treasury-risk | `0 */15 * * * *` | Every 15 min |
-| governance-monitor | `0 */30 * * * *` | Every 30 min |
-| price-feeds | `0 */15 * * * *` | Every 15 min |
-| morpho-vault-health | `0 */15 * * * *` | Every 15 min |
-| token-flows | `0 */30 * * * *` | Every 30 min |
-| ccip-lane-health | `0 */30 * * * *` | Every 30 min |
-| curve-pool | `0 */15 * * * *` | Every 15 min |
+All 7 workflows run together in a unified cycle, 7 times per day (~3h 25min apart). The master script `scripts/sentinel-unified-cycle.sh` runs all CRE simulations in parallel, then writes all on-chain proofs in one batch via `record-all-snapshots.mjs`.
+
+| Cycle | UTC Time | Cron |
+|-------|----------|------|
+| 1 | 00:00 | `0 0 * * *` |
+| 2 | 03:25 | `25 3 * * *` |
+| 3 | 06:50 | `50 6 * * *` |
+| 4 | 10:15 | `15 10 * * *` |
+| 5 | 13:40 | `40 13 * * *` |
+| 6 | 17:05 | `5 17 * * *` |
+| 7 | 20:30 | `30 20 * * *` |
+
+**Per cycle:** 7 CRE simulations (parallel) + 7 on-chain proof writes (sequential). Total: 49 on-chain proofs/day.
+
+**Workflows in each cycle:** treasury-risk, price-feeds, governance-monitor, morpho-vault-health, curve-pool, ccip-lane-health, stlink-arb-monitor.

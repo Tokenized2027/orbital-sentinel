@@ -139,11 +139,14 @@ Schedules:
 
 **All 7 CRE workflows** write verifiable proof hashes to `OrbitalSentinelRegistry` on Sepolia after each run. A bridge script (`scripts/record-all-snapshots.mjs`) reads live CRE snapshots and writes proofs on-chain every 15 minutes via cron.
 
-**File:** `contracts/SentinelRegistry.sol`
+**File:** `contracts/SentinelRegistry.sol` — [Security Audit](./AUDIT-REPORT.md) (4 findings fixed, 24 tests, 70k fuzz iterations)
 
 ```solidity
-function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external
+function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external onlyOwner
+function transferOwnership(address newOwner) external onlyOwner
+function recorded(bytes32) external view returns (bool)  // duplicate prevention
 event HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 ts)
+event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 ```
 
 Risk levels use a prefixed format: `treasury:ok`, `feeds:warning`, `morpho:critical`, `governance:ok`, `flows:ok`, `ccip:ok`.

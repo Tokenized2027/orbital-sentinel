@@ -9,7 +9,7 @@
 
 1. Open these tabs in browser:
    - Sentinel Dashboard: (Cloudflare tunnel URL or `http://localhost:3016`)
-   - Sepolia Etherscan contract: `https://sepolia.etherscan.io/address/0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334`
+   - Sepolia Etherscan contract: `https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`
    - GitHub repo: `https://github.com/Tokenized2027/orbital-sentinel`
 
 2. Open terminal at: `cd ~/orbital-sentinel/scripts`

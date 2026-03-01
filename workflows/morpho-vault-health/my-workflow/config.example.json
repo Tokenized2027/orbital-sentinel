@@ -6,7 +6,7 @@
   "vaultAddress": "YOUR_ERC4626_VAULT_ADDRESS",
   "linkTokenAddress": "0x514910771AF9Ca656af840dff83E8264EcF986CA",
   "registry": {
-    "address": "0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334",
+    "address": "0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40",
     "chainName": "ethereum-testnet-sepolia"
   }
 }

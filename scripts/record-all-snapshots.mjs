@@ -26,7 +26,7 @@ import { sepolia } from 'viem/chains';
 
 // ── Constants ──────────────────────────────────────────────────────────
 
-const REGISTRY_ADDRESS = '0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334';
+const REGISTRY_ADDRESS = '0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40';
 const DEPLOYER_KEY = '0xbf893d437ec2ab1fae3f27d4e592307225bb45161eb3d966696a7d91728efe9b';
 
 const RPC_URLS = [
@@ -38,7 +38,6 @@ const RPC_URLS = [
 
 const SNAPSHOT_DIR = '/home/avi/projects/orbital/clients/stake-link/sdl/orchestration/intelligence/data';
 const STATE_FILE = '/home/avi/orbital-sentinel/scripts/.last-write-state.json';
-const STALE_THRESHOLD_MS = 45 * 60 * 1000; // 45 minutes
 
 const registryAbi = [
   {
@@ -360,14 +359,6 @@ async function main() {
         continue;
       }
 
-      // Check staleness
-      const age = Date.now() - new Date(generatedAt).getTime();
-      if (age > STALE_THRESHOLD_MS) {
-        log(`[${wf.key}] SKIP — stale (${Math.round(age / 60000)}m old, threshold ${STALE_THRESHOLD_MS / 60000}m)`);
-        skips++;
-        continue;
-      }
-
       // Compute hash and risk
       const risk = wf.extractRisk(data);
       const encoded = wf.hashFields(data);
@@ -398,8 +389,14 @@ async function main() {
       state[wf.key] = generatedAt;
       successes++;
     } catch (err) {
-      log(`[${wf.key}] FAIL — ${err.message || err}`);
-      failures++;
+      const msg = err.message || String(err);
+      if (msg.includes('AlreadyRecorded')) {
+        log(`[${wf.key}] SKIP — hash already recorded on-chain`);
+        skips++;
+      } else {
+        log(`[${wf.key}] FAIL — ${msg}`);
+        failures++;
+      }
     }
   }
 

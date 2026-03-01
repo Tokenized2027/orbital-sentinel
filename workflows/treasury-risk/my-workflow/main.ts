@@ -48,14 +48,14 @@ const configSchema = z.object({
 	}).optional(),
 	// risk thresholds
 	thresholds: z.object({
-		communityPoolFillPctWarning: z.number().default(95),
-		communityPoolFillPctCritical: z.number().default(99),
+		communityPoolFillPctWarning: z.number().default(80),
+		communityPoolFillPctCritical: z.number().default(50),
 		morphoUtilizationWarning: z.number().default(85),
 		morphoUtilizationCritical: z.number().default(95),
 		rewardRunwayDaysWarning: z.number().default(30),
 		rewardRunwayDaysCritical: z.number().default(7),
-		queueLinkWarning: z.number().default(50000),
-		queueLinkCritical: z.number().default(200000),
+		queueLinkWarning: z.number().default(100000),
+		queueLinkCritical: z.number().default(50000),
 	}),
 	// optional webhook
 	webhook: z.object({
@@ -208,10 +208,12 @@ function readPoolMetrics(
 		: 0;
 
 	const isCommunity = poolName.toLowerCase().includes('community');
-	const risk = classifyRisk(
+	// Low fill = risk (demand dropping). High fill = healthy (high demand).
+	// Operator pool naturally has lower fill (limited to node operators) — use relaxed thresholds.
+	const risk = classifyRiskBelow(
 		fillPct,
-		isCommunity ? thresholds.communityPoolFillPctWarning : 95,
-		isCommunity ? thresholds.communityPoolFillPctCritical : 99,
+		isCommunity ? thresholds.communityPoolFillPctWarning : 20,
+		isCommunity ? thresholds.communityPoolFillPctCritical : 10,
 	);
 
 	runtime.log(
@@ -435,10 +437,10 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 	const community = readPoolMetrics(runtime, evmClient, contracts.communityPool, 'Community Pool', thresholds);
 	const operator = readPoolMetrics(runtime, evmClient, contracts.operatorPool, 'Operator Pool', thresholds);
 
-	if (community.risk === 'warning') alerts.push(`Community pool fill at ${community.fillPct.toFixed(1)}% (warning threshold: ${thresholds.communityPoolFillPctWarning}%)`);
-	if (community.risk === 'critical') alerts.push(`Community pool fill at ${community.fillPct.toFixed(1)}% (CRITICAL threshold: ${thresholds.communityPoolFillPctCritical}%)`);
-	if (operator.risk === 'warning') alerts.push(`Operator pool fill at ${operator.fillPct.toFixed(1)}% (warning)`);
-	if (operator.risk === 'critical') alerts.push(`Operator pool fill at ${operator.fillPct.toFixed(1)}% (CRITICAL)`);
+	if (community.risk === 'warning') alerts.push(`Community pool fill LOW at ${community.fillPct.toFixed(1)}% (warning below: ${thresholds.communityPoolFillPctWarning}%)`);
+	if (community.risk === 'critical') alerts.push(`Community pool fill CRITICALLY LOW at ${community.fillPct.toFixed(1)}% (critical below: ${thresholds.communityPoolFillPctCritical}%)`);
+	if (operator.risk === 'warning') alerts.push(`Operator pool fill LOW at ${operator.fillPct.toFixed(1)}% (warning)`);
+	if (operator.risk === 'critical') alerts.push(`Operator pool fill CRITICALLY LOW at ${operator.fillPct.toFixed(1)}% (CRITICAL)`);
 
 	// --- On-chain: reward vault ---
 	const rewards = readRewardMetrics(runtime, evmClient, contracts, thresholds);
@@ -496,9 +498,10 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 			queueLink = onchainResult.queueLink;
 
 			if (queueLink != null) {
-				queueRisk = classifyRisk(queueLink, thresholds.queueLinkWarning, thresholds.queueLinkCritical);
-				if (queueRisk === 'warning') alerts.push(`Priority pool queue at ${queueLink.toLocaleString()} LINK (warning threshold: ${thresholds.queueLinkWarning.toLocaleString()})`);
-				if (queueRisk === 'critical') alerts.push(`Priority pool queue at ${queueLink.toLocaleString()} LINK (CRITICAL threshold: ${thresholds.queueLinkCritical.toLocaleString()})`);
+				// Low queue = risk (demand dropping). High queue = healthy (people want to stake).
+				queueRisk = classifyRiskBelow(queueLink, thresholds.queueLinkWarning, thresholds.queueLinkCritical);
+				if (queueRisk === 'warning') alerts.push(`Priority pool queue LOW at ${queueLink.toLocaleString()} LINK (warning below: ${thresholds.queueLinkWarning.toLocaleString()})`);
+				if (queueRisk === 'critical') alerts.push(`Priority pool queue CRITICALLY LOW at ${queueLink.toLocaleString()} LINK (critical below: ${thresholds.queueLinkCritical.toLocaleString()})`);
 			}
 
 			runtime.log(`Onchain API read | queueLink=${queueLink} risk=${queueRisk}`);
@@ -511,6 +514,7 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 	}
 
 	// --- Compute overall risk ---
+	// Pool fill and queue use inverted thresholds: LOW = risk (demand dropping), HIGH = healthy.
 	const overallRisk = worstRisk(community.risk, operator.risk, rewards.risk, morphoRisk, queueRisk);
 
 	const outputPayload: TreasuryOutputPayload = {

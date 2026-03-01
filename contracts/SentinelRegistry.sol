@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 /// @title OrbitalSentinelRegistry
 /// @notice On-chain registry for Orbital Sentinel protocol health proofs.
@@ -10,12 +10,14 @@ pragma solidity ^0.8.19;
 contract OrbitalSentinelRegistry {
     struct Record {
         bytes32 snapshotHash; // keccak256(abi.encode(timestamp, riskLevel, assessmentSnippet))
-        string riskLevel;     // "ok" | "warning" | "critical"
+        string riskLevel;     // "ok" | "warning" | "critical" (may be prefixed, e.g. "treasury:ok")
         uint256 ts;           // block.timestamp at time of recording
         address recorder;     // EOA or contract that submitted the record
     }
 
+    address public owner;
     Record[] public records;
+    mapping(bytes32 => bool) public recorded;
 
     event HealthRecorded(
         bytes32 indexed snapshotHash,
@@ -23,10 +25,37 @@ contract OrbitalSentinelRegistry {
         uint256 ts
     );
 
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    error NotOwner();
+    error AlreadyRecorded();
+    error EmptyRiskLevel();
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert NotOwner();
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+        emit OwnershipTransferred(address(0), msg.sender);
+    }
+
+    /// @notice Transfer ownership to a new address. Set to address(0) to renounce.
+    /// @param newOwner  The address of the new owner
+    function transferOwnership(address newOwner) external onlyOwner {
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+
     /// @notice Record a new protocol health snapshot on-chain.
     /// @param snapshotHash  keccak256 hash of the snapshot content (timestamp + risk + assessment)
     /// @param riskLevel     Human-readable risk level: "ok", "warning", or "critical"
-    function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external {
+    function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external onlyOwner {
+        if (recorded[snapshotHash]) revert AlreadyRecorded();
+        if (bytes(riskLevel).length == 0) revert EmptyRiskLevel();
+
+        recorded[snapshotHash] = true;
         records.push(Record({
             snapshotHash: snapshotHash,
             riskLevel: riskLevel,

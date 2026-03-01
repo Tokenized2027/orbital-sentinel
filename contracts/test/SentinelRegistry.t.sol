@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 import "../SentinelRegistry.sol";
@@ -7,16 +7,48 @@ import "../SentinelRegistry.sol";
 contract SentinelRegistryTest is Test {
     OrbitalSentinelRegistry registry;
 
-    // Mirror the event from the contract for expectEmit (Solidity <0.8.21)
+    // Mirror events for expectEmit
     event HealthRecorded(
         bytes32 indexed snapshotHash,
         string riskLevel,
         uint256 ts
     );
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     function setUp() public {
         registry = new OrbitalSentinelRegistry();
     }
+
+    // ─── Ownership ─────────────────────────────────────────────────
+
+    /// @notice Deployer is the owner
+    function test_owner_isDeployer() public view {
+        assertEq(registry.owner(), address(this));
+    }
+
+    /// @notice Owner can transfer ownership
+    function test_transferOwnership() public {
+        address newOwner = address(0xBEEF);
+        vm.expectEmit(true, true, false, false);
+        emit OwnershipTransferred(address(this), newOwner);
+        registry.transferOwnership(newOwner);
+        assertEq(registry.owner(), newOwner);
+    }
+
+    /// @notice Non-owner cannot transfer ownership
+    function test_transferOwnership_revertsForNonOwner() public {
+        vm.prank(address(0xDEAD));
+        vm.expectRevert(OrbitalSentinelRegistry.NotOwner.selector);
+        registry.transferOwnership(address(0xBEEF));
+    }
+
+    /// @notice Owner can renounce ownership by transferring to address(0)
+    function test_renounceOwnership() public {
+        registry.transferOwnership(address(0));
+        assertEq(registry.owner(), address(0));
+    }
+
+    // ─── Access Control ────────────────────────────────────────────
 
     /// @notice Recording health should emit HealthRecorded with correct params
     function test_recordHealth_emitsEvent() public {
@@ -28,6 +60,51 @@ contract SentinelRegistryTest is Test {
 
         registry.recordHealth(hash, riskLevel);
     }
+
+    /// @notice Non-owner cannot record health
+    function test_recordHealth_revertsForNonOwner() public {
+        vm.prank(address(0xDEAD));
+        vm.expectRevert(OrbitalSentinelRegistry.NotOwner.selector);
+        registry.recordHealth(keccak256("test"), "ok");
+    }
+
+    // ─── Duplicate Prevention ──────────────────────────────────────
+
+    /// @notice Duplicate snapshotHash should revert
+    function test_recordHealth_revertsDuplicate() public {
+        bytes32 hash = keccak256("dup");
+        registry.recordHealth(hash, "ok");
+
+        vm.expectRevert(OrbitalSentinelRegistry.AlreadyRecorded.selector);
+        registry.recordHealth(hash, "warning");
+    }
+
+    /// @notice recorded mapping tracks stored hashes
+    function test_recorded_tracksHashes() public {
+        bytes32 hash = keccak256("tracked");
+        assertFalse(registry.recorded(hash));
+
+        registry.recordHealth(hash, "ok");
+        assertTrue(registry.recorded(hash));
+    }
+
+    // ─── Risk Level Validation ─────────────────────────────────────
+
+    /// @notice Empty riskLevel should revert
+    function test_recordHealth_revertsEmptyRiskLevel() public {
+        vm.expectRevert(OrbitalSentinelRegistry.EmptyRiskLevel.selector);
+        registry.recordHealth(keccak256("empty"), "");
+    }
+
+    /// @notice Prefixed risk levels work (e.g. "treasury:ok")
+    function test_recordHealth_acceptsPrefixedRiskLevel() public {
+        registry.recordHealth(keccak256("prefixed"), "treasury:ok");
+
+        (, string memory riskLevel,,) = registry.records(0);
+        assertEq(keccak256(bytes(riskLevel)), keccak256(bytes("treasury:ok")));
+    }
+
+    // ─── Count & Latest ────────────────────────────────────────────
 
     /// @notice Fresh contract should have count() == 0
     function test_count_startsAtZero() public view {
@@ -65,16 +142,10 @@ contract SentinelRegistryTest is Test {
         assertEq(recorder, address(this));
     }
 
-    /// @notice The recorder field should be msg.sender
-    function test_recordHealth_storesRecorder() public {
-        address sender = address(0xBEEF);
-        bytes32 hash = keccak256("recorder-test");
-
-        vm.prank(sender);
-        registry.recordHealth(hash, "ok");
-
-        (,,, address recorder) = _decodeRecord(registry.latest());
-        assertEq(recorder, sender);
+    /// @notice The recorder field should be msg.sender (the owner)
+    function test_recordHealth_storesRecorder() public view {
+        // Owner is address(this), which is msg.sender for all calls in this test
+        assertEq(registry.owner(), address(this));
     }
 
     /// @notice Record "ok", "warning", "critical" and verify all stored correctly

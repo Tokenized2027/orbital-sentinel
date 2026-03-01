@@ -271,7 +271,7 @@ Both `orbital-sentinel` and `orbital` repos follow these conventions:
 3. **Dependencies**: viem ^2.34.0, zod ^3.25.76
 4. **Config validation**: Zod schemas for all workflow configs
 5. **Risk level format**: `<workflow>:<level>`
-6. **On-chain proofs**: keccak256 → SentinelRegistry (Sepolia `0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334`)
+6. **On-chain proofs**: keccak256 → SentinelRegistry (Sepolia `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`)
 7. **Error handling**: Graceful degradation — workflow continues if optional capabilities fail
 8. **Consensus**: `consensusIdenticalAggregation` for HTTP fetches
 9. **Chain selectors**: `getNetwork()` with `chainSelectorName` strings

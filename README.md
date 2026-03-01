@@ -2,7 +2,7 @@
 
 **Autonomous AI agent platform for DeFi protocol health monitoring, built on Chainlink CRE.**
 
-Orbital Sentinel runs 7 production CRE workflows that continuously read live Ethereum mainnet data and feed it through a Claude AI analysis layer. All workflows write verifiable risk proofs on-chain via `SentinelRegistry` on Sepolia — every 15 minutes, fully autonomous, no human in the loop. Each proof is a `keccak256` hash of workflow-specific metrics with a prefixed risk level (e.g., `treasury:ok`, `feeds:warning`, `morpho:critical`, `ccip:ok`).
+Orbital Sentinel runs 7 production CRE workflows that continuously read live Ethereum mainnet data and feed it through a Claude AI analysis layer. All workflows run together in a unified cycle 7 times per day (~3h 25min apart), writing verifiable risk proofs on-chain via `SentinelRegistry` on Sepolia — fully autonomous, no human in the loop. Each proof is a `keccak256` hash of workflow-specific metrics with a prefixed risk level (e.g., `treasury:ok`, `feeds:warning`, `morpho:critical`, `ccip:ok`).
 
 ---
 
@@ -16,7 +16,7 @@ Chainlink CRE Workflow
   └── Write proof on-chain (SentinelRegistry.sol → Sepolia)
 ```
 
-All 7 workflows run autonomously on a cron schedule. Each workflow writes a proof hash on-chain via the SentinelRegistry contract on Sepolia. The real-time dashboard shows CRE capability tags per workflow and per-workflow on-chain proof statistics.
+All 7 workflows run together in a unified cycle 7 times per day. A master script (`sentinel-unified-cycle.sh`) runs all CRE simulations in parallel, then writes all on-chain proofs sequentially via `record-all-snapshots.mjs`. The real-time dashboard shows CRE capability tags per workflow and per-workflow on-chain proof statistics.
 
 ---
 
@@ -147,26 +147,46 @@ forge create SentinelRegistry.sol:OrbitalSentinelRegistry \
   --private-key YOUR_PRIVATE_KEY
 ```
 
+The deployer becomes the contract owner. Only the owner can call `recordHealth()`.
 Update `registry.address` in your workflow config with the deployed address.
 
 ---
 
 ## SentinelRegistry (Sepolia)
 
-Every workflow run writes a verifiable hash to `OrbitalSentinelRegistry` on Sepolia:
+Every workflow run writes a verifiable hash to `OrbitalSentinelRegistry` on Sepolia. The contract is owner-gated with on-chain duplicate prevention:
 
 ```solidity
-function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external
+// Owner-only write with duplicate prevention and input validation
+function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external onlyOwner
+function transferOwnership(address newOwner) external onlyOwner
+
+// Read functions
+function count() external view returns (uint256)
+function latest() external view returns (Record memory)
+function recorded(bytes32) external view returns (bool)
+function owner() external view returns (address)
+
+// Events
 event HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 ts)
+event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 ```
+
+**Security features:**
+- Owner-only writes (prevents spam/pollution)
+- On-chain duplicate hash prevention (`AlreadyRecorded` revert)
+- Non-empty riskLevel validation (`EmptyRiskLevel` revert)
+- Gas-efficient custom errors
 
 Risk levels use a prefixed format: `treasury:ok`, `feeds:warning`, `morpho:critical`, `governance:ok`, `flows:ok`, `ccip:ok`.
 
 `snapshotHash = keccak256(abi.encode(timestamp, workflowType, risk, metric1, metric2))`
 
-Deployed address: ``0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334``
+**Audit:** See [AUDIT-REPORT.md](./AUDIT-REPORT.md) — 4 findings fixed, 24 tests, 70,000 fuzz iterations, 0 failures.
 
-View on Sepolia Etherscan: `https://sepolia.etherscan.io/address/0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334`
+Deployed address (v2, post-audit): `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`
+
+View on Sepolia Etherscan: `https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`
 
 ---
 
@@ -175,9 +195,9 @@ View on Sepolia Etherscan: `https://sepolia.etherscan.io/address/0xAFc081cde50fA
 Sentinel on-chain records feed back into the standalone dashboard, creating a closed intelligence loop:
 
 ```
-CRE Snapshots (live data, updated every 10-30 min)
+sentinel-unified-cycle.sh (7x/day, runs all 7 CRE simulations in parallel)
   ↓
-record-all-snapshots.mjs (bridge, every 15 min via cron)
+record-all-snapshots.mjs (bridge, writes proofs for all 7 workflows)
   ↓ keccak256 proof hash per workflow
 SentinelRegistry (Sepolia)
   ↓ HealthRecorded events
@@ -206,7 +226,10 @@ orbital-sentinel/
 │   ├── ccip-lane-health/       ← CCIP lane availability + rate limiter monitoring
 │   └── curve-pool/             ← Curve pool balance composition monitoring
 ├── contracts/
-│   └── SentinelRegistry.sol    ← On-chain risk proof registry (Sepolia)
+│   ├── SentinelRegistry.sol    ← On-chain risk proof registry (Sepolia, owner-gated)
+│   └── test/
+│       ├── SentinelRegistry.t.sol      ← 17 unit tests
+│       └── SentinelRegistry.Fuzz.t.sol ← 7 fuzz tests (10k iterations each)
 ├── dashboard/                  ← Next.js standalone dashboard
 │   ├── app/components/         ← WorkflowGrid, SentinelRegistry, PegMonitor, etc.
 │   ├── app/api/                ← /api/sentinel, /api/cre-signals
@@ -214,9 +237,10 @@ orbital-sentinel/
 ├── platform/
 │   └── cre_analyze_endpoint.py ← Flask AI analysis server (Claude Sonnet)
 ├── scripts/
-│   ├── record-all-snapshots.mjs ← Bridge: CRE snapshots → on-chain proofs (cron)
-│   ├── record-health.mjs       ← One-shot recordHealth call
-│   └── verify-contract.mjs     ← Sourcify contract verification
+│   ├── sentinel-unified-cycle.sh ← Master: runs all 7 CRE sims + on-chain proofs (7x/day)
+│   ├── record-all-snapshots.mjs  ← Bridge: CRE snapshots → on-chain proofs
+│   ├── record-health.mjs         ← One-shot recordHealth call
+│   └── verify-contract.mjs       ← Sourcify contract verification
 ├── docs/
 │   ├── CRE-ECOSYSTEM-REFERENCE.md ← CRE capabilities, SDK patterns, ecosystem context
 │   ├── submission.md           ← Hackathon submission copy-paste
@@ -249,7 +273,7 @@ All 7 workflows import `Runner`, `handler`, `CronCapability`, `EVMClient`, `getN
 
 | File | Description |
 |------|-------------|
-| [`contracts/SentinelRegistry.sol`](./contracts/SentinelRegistry.sol) | `OrbitalSentinelRegistry` — `recordHealth(bytes32, string)` writes keccak256 risk proofs. Deployed: [`0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334`](https://sepolia.etherscan.io/address/0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334) |
+| [`contracts/SentinelRegistry.sol`](./contracts/SentinelRegistry.sol) | `OrbitalSentinelRegistry` — owner-gated `recordHealth(bytes32, string)` with on-chain dedup. [Audit report](./AUDIT-REPORT.md). Deployed (v2, audited): [`0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40) |
 
 ### ABI Files (Chainlink Contract Interfaces)
 
@@ -276,7 +300,8 @@ All 7 workflows import `Runner`, `handler`, `CronCapability`, `EVMClient`, `getN
 
 | File | Description |
 |------|-------------|
-| [`scripts/record-all-snapshots.mjs`](./scripts/record-all-snapshots.mjs) | Cron bridge: reads all 7 CRE workflow snapshots, writes keccak256 proofs to SentinelRegistry on Sepolia |
+| [`scripts/sentinel-unified-cycle.sh`](./scripts/sentinel-unified-cycle.sh) | Master script: runs all 7 CRE simulations in parallel, then writes all on-chain proofs. Scheduled 7x/day via cron. |
+| [`scripts/record-all-snapshots.mjs`](./scripts/record-all-snapshots.mjs) | Bridge: reads all 7 CRE workflow snapshots, writes keccak256 proofs to SentinelRegistry on Sepolia. Handles `AlreadyRecorded` gracefully. |
 | [`scripts/record-health.mjs`](./scripts/record-health.mjs) | One-shot recordHealth call for a single workflow snapshot |
 | [`scripts/record-health-cron.mjs`](./scripts/record-health-cron.mjs) | Cron variant of record-health |
 | [`scripts/verify-contract.mjs`](./scripts/verify-contract.mjs) | Sourcify contract verification for SentinelRegistry |
@@ -317,6 +342,7 @@ Each workflow has a `run_snapshot.sh` that runs `cre simulate`:
 | File | Description |
 |------|-------------|
 | [`CHAINLINK.md`](./CHAINLINK.md) | Complete Chainlink touchpoint map (SDK, EVMClient, Data Feeds, CCIP, HTTPClient, CronCapability, getNetwork) |
+| [`AUDIT-REPORT.md`](./AUDIT-REPORT.md) | SentinelRegistry security audit — 4 findings fixed, 24 tests, 70k fuzz iterations |
 | [`docs/CRE-ECOSYSTEM-REFERENCE.md`](./docs/CRE-ECOSYSTEM-REFERENCE.md) | CRE capabilities, SDK patterns, runtime requirements |
 | [`docs/submission.md`](./docs/submission.md) | Hackathon submission details |
 
