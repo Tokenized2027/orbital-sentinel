@@ -49,7 +49,16 @@ export default function WorkflowGrid({ workflows, labels, selected, onSelect }: 
           <div
             key={key}
             className="card"
+            role="button"
+            tabIndex={0}
+            aria-label={`${labels[key] ?? key} workflow — ${wf.risk} risk`}
             onClick={() => onSelect(isSelected ? null : key)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelect(isSelected ? null : key);
+              }
+            }}
             style={{
               padding: 16,
               cursor: 'pointer',
@@ -64,7 +73,7 @@ export default function WorkflowGrid({ workflows, labels, selected, onSelect }: 
                 {labels[key] ?? key}
               </span>
               <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <StatusDot risk={wf.risk} pulse={!wf.stale && wf.status === 'healthy'} />
+                <StatusDot risk={wf.risk} pulse={!wf.stale && wf.status === 'healthy'} aria-label={`Risk level: ${wf.risk}`} />
                 <ChevronDown
                   size={14}
                   style={{

@@ -2,7 +2,7 @@
 
 export default function ArchitectureDiagram() {
   const nodes = [
-    { title: 'CRE Runtime', desc: '5 Chainlink workflows' },
+    { title: 'CRE Runtime', desc: '7 Chainlink workflows' },
     { title: 'EVMClient', desc: 'On-chain data reads' },
     { title: 'AI Analysis', desc: 'Risk assessment engine' },
     { title: 'SentinelRegistry', desc: 'Sepolia proof hashes' },

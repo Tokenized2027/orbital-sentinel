@@ -71,6 +71,11 @@ body {
   background-attachment: fixed;
 }
 
+:focus-visible {
+  outline: 2px solid rgba(79, 212, 229, 0.5);
+  outline-offset: 2px;
+}
+
 a {
   color: var(--cl-blue);
   text-decoration: none;
@@ -222,6 +227,11 @@ a:hover {
 .status-dot.ok.pulse      { animation: pulse-green 2s ease-in-out infinite; }
 .status-dot.warning.pulse  { animation: pulse-amber 2s ease-in-out infinite; }
 .status-dot.critical.pulse { animation: pulse-red 2s ease-in-out infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
 
 @keyframes pulse-green {
   0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }

@@ -121,7 +121,7 @@ export default function GovernancePanel({ workflow }: { workflow: Workflow | nul
                   {p.hoursRemaining != null && (
                     <>
                       <span style={{ color: 'var(--t3)' }}>·</span>
-                      <span style={{ color: p.hoursRemaining < 24 ? 'var(--yellow)' : 'var(--t2)' }}>
+                      <span style={{ color: p.hoursRemaining < 24 ? 'var(--amber)' : 'var(--t2)' }}>
                         {p.hoursRemaining < 24
                           ? `${p.hoursRemaining.toFixed(0)}h remaining`
                           : `${Math.floor(p.hoursRemaining / 24)}d ${Math.round(p.hoursRemaining % 24)}h remaining`}
@@ -181,7 +181,7 @@ export default function GovernancePanel({ workflow }: { workflow: Workflow | nul
                   borderBottom: '1px solid var(--border)',
                   fontSize: 13,
                 }}>
-                  <span style={{ color: 'var(--cl-blue)', fontWeight: 700, minWidth: 28, fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ color: 'var(--cl-blue)', fontWeight: 700, minWidth: 28, fontFamily: 'var(--mono)' }}>
                     {slurpNum}
                   </span>
                   <span style={{

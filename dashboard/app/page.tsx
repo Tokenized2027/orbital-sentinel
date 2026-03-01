@@ -56,12 +56,14 @@ function WorkflowDetail({ workflowKey, workflow, label }: {
 export default function Page() {
   const [data, setData] = useState<CREData | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   const load = useCallback(() => {
+    setError(false);
     fetch('/api/cre-signals')
       .then(r => r.json())
       .then(setData)
-      .catch(() => {});
+      .catch(() => { setError(true); });
   }, []);
 
   useEffect(() => {
@@ -88,12 +90,66 @@ export default function Page() {
         loading={loading}
       />
 
-      <WorkflowGrid
-        workflows={workflows}
-        labels={labels}
-        selected={selected}
-        onSelect={setSelected}
-      />
+      {error && (
+        <div className="mx-auto max-w-7xl px-4 py-3">
+          <div style={{
+            borderRadius: 'var(--r-md)',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            padding: 16,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <p style={{ color: 'var(--red)', margin: 0 }}>Failed to load workflow data. Please try again.</p>
+            <button
+              onClick={() => { setError(false); load(); }}
+              style={{
+                padding: '8px 16px',
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: 'none',
+                borderRadius: 'var(--r-sm)',
+                color: 'var(--red)',
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)')}
+              onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)')}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading && !error ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{
+            height: 32,
+            background: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: 'var(--r-md)',
+            width: '33%',
+            animation: 'pulse 1.5s ease-in-out infinite',
+          }} />
+          <div className="workflow-grid">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} style={{
+                height: 192,
+                background: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: 'var(--r-md)',
+                animation: 'pulse 1.5s ease-in-out infinite',
+              }} />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <WorkflowGrid
+          workflows={workflows}
+          labels={labels}
+          selected={selected}
+          onSelect={setSelected}
+        />
+      )}
 
       {/* Expanded detail panel for selected workflow */}
       {selected && workflows[selected] && (

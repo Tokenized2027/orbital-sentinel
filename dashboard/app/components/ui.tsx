@@ -2,9 +2,9 @@
 
 import { riskColor } from '@/lib/helpers';
 
-export function StatusDot({ risk, pulse = false }: { risk: string; pulse?: boolean }) {
+export function StatusDot({ risk, pulse = false, 'aria-label': ariaLabel }: { risk: string; pulse?: boolean; 'aria-label'?: string }) {
   const cls = riskColor(risk);
-  return <span className={`status-dot ${cls}${pulse ? ' pulse' : ''}`} />;
+  return <span className={`status-dot ${cls}${pulse ? ' pulse' : ''}`} role={ariaLabel ? 'img' : undefined} aria-label={ariaLabel} />;
 }
 
 export function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {

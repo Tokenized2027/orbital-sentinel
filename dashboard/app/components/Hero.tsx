@@ -38,7 +38,13 @@ export default function Hero({ overallStatus, healthyCount, totalCount, totalAle
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
         {loading ? (
           <div className="status-ring">
-            <span style={{ fontSize: 14, color: 'var(--t3)' }}>Loading...</span>
+            <div style={{
+              width: 120,
+              height: 16,
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: 'var(--r-sm)',
+              animation: 'pulse 1.5s ease-in-out infinite',
+            }} />
           </div>
         ) : (
           <div className="status-ring">
@@ -62,6 +68,10 @@ export default function Hero({ overallStatus, healthyCount, totalCount, totalAle
           Built on Chainlink CRE
         </span>
       </div>
+
+      <p style={{ marginTop: 16, fontSize: 14, color: 'var(--t3)', fontStyle: 'italic' }}>
+        Select a workflow below to explore real-time metrics and on-chain proofs
+      </p>
     </div>
   );
 }
