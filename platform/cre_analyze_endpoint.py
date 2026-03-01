@@ -1,19 +1,22 @@
 """Orbital Sentinel — CRE AI Analysis Endpoint
 
-Standalone Flask server that receives treasury-risk CRE workflow snapshots
-and returns Claude Haiku risk assessments.
+Standalone Flask server that receives CRE workflow snapshots
+and returns AI risk assessments.
+
+Supports two AI providers:
+  - OpenAI (GPT-5.3 Codex) — primary, used for arb analysis
+  - Anthropic (Claude Haiku) — used for treasury analysis
 
 Usage:
-    pip install flask anthropic
-    export ANTHROPIC_API_KEY=your_key
+    pip install flask openai anthropic
+    export OPENAI_API_KEY=your_key        # Required for arb analysis
+    export ANTHROPIC_API_KEY=your_key     # Required for treasury analysis
     export CRE_ANALYZE_SECRET=optional_shared_secret
     python cre_analyze_endpoint.py
 
-Endpoint:
-    POST /api/cre/analyze
-    Headers: X-CRE-Secret: <secret>  (if CRE_ANALYZE_SECRET is set)
-    Body: TreasuryOutputPayload JSON
-    Returns: { assessment, risk_label, atom_status, action_items, confidence }
+Endpoints:
+    POST /api/cre/analyze      — Treasury risk assessment (Anthropic)
+    POST /api/cre/analyze-arb  — Arb vault market analysis (OpenAI)
 """
 
 import json
@@ -178,6 +181,142 @@ def analyze():
         return jsonify({"error": "parse error", "detail": str(e)}), 500
     except Exception as e:
         logger.exception("analyze failed")
+        return jsonify({"error": str(e)}), 500
+
+
+_ARB_SYSTEM_PROMPT = """\
+You are Orbital Sentinel, an autonomous AI analyst for the stLINK Arb Vault — a DeFi vault that captures the stLINK premium on Curve's stLINK/LINK StableSwap pool.
+
+The vault works by: selling stLINK → LINK on Curve (when stLINK trades at a premium), then depositing LINK to the Priority Pool at 1:1 to get new stLINK, pocketing the premium.
+
+## YOUR TASK
+
+Analyze the current market conditions and recommend an action.
+
+## INPUT DATA
+
+You will receive:
+- **Pool state**: Curve pool LINK and stLINK balances, imbalance ratio
+- **Premium quotes**: Simulated swap outputs at different sizes (100, 500, 1000, 5000 stLINK)
+- **Priority Pool**: Status (OPEN/DRAINING/CLOSED) and queued LINK
+- **Vault state**: stLINK held, LINK queued, cycle count, capital assets (if vault deployed)
+- **Signal**: Deterministic signal from math (execute/wait/unprofitable/pool_closed/no_stlink)
+
+## ANALYSIS FRAMEWORK
+
+1. **Premium quality**: Are premiums consistent across swap sizes? Larger swaps with lower premium = pool will move fast. Assess slippage risk.
+2. **Timing**: Is the pool imbalance growing or stable? High LINK/stLINK ratio = more premium potential.
+3. **Size recommendation**: Based on premium decay across quote sizes, what's the optimal swap amount?
+4. **Priority Pool health**: If queue is very large, claimed stLINK may take longer to convert back.
+5. **Risk factors**: Any red flags? (e.g., pool nearly balanced = premium could vanish, PP closed, very low premium)
+
+## OUTPUT FORMAT
+
+Respond ONLY with valid JSON (no markdown, no extra keys):
+{
+  "recommendation": "<execute|wait|skip>",
+  "assessment": "<2-3 sentence analysis of current conditions>",
+  "optimal_swap_size": "<recommended stLINK amount to swap, e.g. '1000'>",
+  "risk_factors": ["<risk 1>", "<risk 2>"],
+  "confidence": <0.0-1.0 float>,
+  "reasoning": "<1 sentence explaining the recommendation>"
+}
+
+Rules:
+- recommendation must agree with the math signal unless you have strong reason to override
+- If signal is "execute" but premium is very thin (<5 bps), recommend "wait"
+- If signal is "wait" but pool conditions suggest premium is growing, note that
+- confidence: 0.9+ when data is complete and clear, 0.5-0.7 when conditions are ambiguous
+"""
+
+
+def _format_arb_prompt(data: dict) -> str:
+    signal = data.get("signal", "unknown")
+    pool = data.get("poolState", {})
+    quotes = data.get("premiumQuotes", [])
+    pp_status = data.get("priorityPoolStatus", -1)
+    pp_queued = data.get("priorityPoolQueued", "0")
+    vault = data.get("vaultState")
+
+    pp_status_str = {0: "OPEN", 1: "DRAINING", 2: "CLOSED"}.get(pp_status, f"UNKNOWN({pp_status})")
+
+    lines = [
+        f"Deterministic signal: {signal.upper()}",
+        "",
+        "## Curve Pool State",
+        f"LINK balance: {pool.get('linkBalanceFormatted', '?')}",
+        f"stLINK balance: {pool.get('stLINKBalanceFormatted', '?')}",
+        f"Imbalance ratio (LINK/stLINK): {pool.get('imbalanceRatio', 0):.4f}",
+        "",
+        "## Premium Quotes (stLINK → LINK)",
+    ]
+
+    for q in quotes:
+        lines.append(f"  {q.get('amountInFormatted', '?')} stLINK → {q.get('amountOutFormatted', '?')} LINK ({q.get('premiumBps', 0)} bps)")
+
+    lines.extend([
+        "",
+        "## Priority Pool",
+        f"Status: {pp_status_str}",
+        f"Queued: {formatUnits_py(pp_queued)} LINK",
+    ])
+
+    if vault:
+        lines.extend([
+            "",
+            "## Vault State",
+            f"stLINK held: {formatUnits_py(vault.get('totalStLINKHeld', '0'))}",
+            f"LINK queued: {formatUnits_py(vault.get('totalLINKQueued', '0'))}",
+            f"Cycle count: {vault.get('cycleCount', '0')}",
+            f"Capital assets: {formatUnits_py(vault.get('totalCapitalAssets', '0'))} LINK",
+            f"Min profit threshold: {vault.get('minProfitBps', '?')} bps",
+        ])
+
+    return "\n".join(lines)
+
+
+def formatUnits_py(value_str: str, decimals: int = 18) -> str:
+    try:
+        val = int(value_str)
+        whole = val // (10 ** decimals)
+        frac = val % (10 ** decimals)
+        return f"{whole:,}.{str(frac).zfill(decimals)[:2]}"
+    except (ValueError, TypeError):
+        return str(value_str)
+
+
+@cre_bp.route("/api/cre/analyze-arb", methods=["POST"])
+def analyze_arb():
+    if _CRE_SECRET:
+        if request.headers.get("X-CRE-Secret", "") != _CRE_SECRET:
+            return jsonify({"error": "unauthorized"}), 401
+
+    data = request.get_json(force=True, silent=True) or {}
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        return jsonify({"error": "OPENAI_API_KEY not set"}), 503
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        response = client.responses.create(
+            model="gpt-5.3-codex",
+            instructions=_ARB_SYSTEM_PROMPT,
+            input=_format_arb_prompt(data),
+        )
+        text = response.output_text.strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+            text = text.strip()
+        result = json.loads(text)
+        logger.info("Arb AI assess | rec=%s confidence=%.2f", result.get("recommendation"), result.get("confidence", 0))
+        return jsonify(result), 200
+    except json.JSONDecodeError as e:
+        return jsonify({"error": "parse error", "detail": str(e)}), 500
+    except Exception as e:
+        logger.exception("arb analyze failed")
         return jsonify({"error": str(e)}), 500
 
 

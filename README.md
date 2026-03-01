@@ -182,7 +182,7 @@ Risk levels use a prefixed format: `treasury:ok`, `feeds:warning`, `morpho:criti
 
 `snapshotHash = keccak256(abi.encode(timestamp, workflowType, risk, metric1, metric2))`
 
-**Audit:** See [AUDIT-REPORT.md](./AUDIT-REPORT.md) — 4 findings fixed, 24 tests, 70,000 fuzz iterations, 0 failures.
+**Audit:** See [AUDIT-REPORT.md](./AUDIT-REPORT.md) — 4 findings fixed, 24 tests, 70,000 fuzz iterations, 0 failures. Enhanced 9-phase methodology (2026-03-01): threat model, economic assessment, post-deployment recommendations. No new vulnerabilities.
 
 Deployed address (v2, post-audit): `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`
 
