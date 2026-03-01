@@ -2,7 +2,7 @@
 /**
  * Orbital Sentinel — Real CRE snapshot → on-chain proof bridge.
  *
- * Reads the 7 CRE snapshot JSON files produced by the Orbital orchestration
+ * Reads the 8 CRE snapshot JSON files produced by the Orbital orchestration
  * and writes keccak256 proof hashes to SentinelRegistry on Sepolia.
  *
  * Only writes when a snapshot has changed (compares generated_at_utc).
@@ -63,8 +63,8 @@ const registryAbi = [
 
 const WORKFLOWS = [
   {
-    key: 'stlink-arb',
-    file: 'cre_stlink_arb_snapshot.json',
+    key: 'laa',
+    file: 'cre_laa_snapshot.json',
     extractRisk: (d) => {
       const signal = d.signal ?? 'wait';
       if (signal === 'execute') return 'ok';
@@ -79,7 +79,7 @@ const WORKFLOWS = [
       const risk = signal === 'execute' ? 'ok' : signal === 'wait' ? 'ok' : 'warning';
       return encodeAbiParameters(
         parseAbiParameters('uint256 ts, string wf, string signal, uint256 premium, uint256 linkBal'),
-        [ts, 'stlink-arb', risk, premium, linkBal],
+        [ts, 'laa', risk, premium, linkBal],
       );
     },
   },

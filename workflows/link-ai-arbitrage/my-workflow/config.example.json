@@ -1,0 +1,18 @@
+{
+  "schedule": "0 */5 * * * *",
+  "chainName": "ethereum-mainnet",
+  "curvePoolAddress": "0x7E13876B92F1a62C599C231f783f682E96B91761",
+  "priorityPoolAddress": "0xDdC796a66E8b83d0BcCD97dF33A6CcFBA8fd60eA",
+  "arbVaultAddress": "YOUR_VAULT_ADDRESS_AFTER_DEPLOYMENT",
+  "stLINKIndex": 1,
+  "linkIndex": 0,
+  "swapAmounts": ["100", "500", "1000", "5000"],
+  "aiAnalysis": {
+    "enabled": true,
+    "url": "http://localhost:5001/api/cre/analyze-arb"
+  },
+  "registry": {
+    "address": "0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40",
+    "chainName": "ethereum-testnet-sepolia"
+  }
+}

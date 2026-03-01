@@ -2,7 +2,7 @@
 # ──────────────────────────────────────────────────────────────────────
 # Orbital Sentinel — Unified CRE Cycle
 #
-# Runs ALL 7 CRE workflow simulations in parallel, then writes
+# Runs ALL 8 CRE workflow simulations in parallel, then writes
 # all on-chain proofs in one batch via record-all-snapshots.mjs.
 #
 # Designed to run 7 times/day at even intervals (~3h25m apart).
@@ -19,7 +19,7 @@ log() { echo "${LOG_PREFIX} $1"; }
 
 log "=== Sentinel Unified Cycle START ==="
 
-# ── Phase 1: Run all 7 CRE snapshot generators in parallel ──────────
+# ── Phase 1: Run all 8 CRE snapshot generators in parallel ──────────
 
 mkdir -p "${DATA_DIR}"
 
@@ -40,7 +40,7 @@ run_workflow() {
   NAMES+=("${name}")
 }
 
-# Sentinel CRE workflows (6)
+# Sentinel CRE workflows (7)
 run_workflow "treasury"   "${SENTINEL_ROOT}/workflows/treasury-risk"      "cre_treasury_snapshot.json"
 run_workflow "feeds"       "${SENTINEL_ROOT}/workflows/price-feeds"        "cre_feed_snapshot.json"
 run_workflow "governance" "${SENTINEL_ROOT}/workflows/governance-monitor"  "cre_governance_snapshot.json"
@@ -48,8 +48,8 @@ run_workflow "morpho"     "${SENTINEL_ROOT}/workflows/morpho-vault-health" "cre_
 run_workflow "curve"      "${SENTINEL_ROOT}/workflows/curve-pool"          "cre_curve_pool_snapshot.json"
 run_workflow "ccip"       "${SENTINEL_ROOT}/workflows/ccip-lane-health"    "cre_ccip_snapshot.json"
 
-# Orbital arb-vault CRE workflow (1)
-run_workflow "stlink-arb" "/home/avi/projects/orbital/clients/stake-link/arb-vault/workflows/stlink-arb-monitor" "cre_stlink_arb_snapshot.json"
+# LINK AI Arbitrage (LAA) — was cross-repo, now local
+run_workflow "laa" "${SENTINEL_ROOT}/workflows/link-ai-arbitrage" "cre_laa_snapshot.json"
 
 # ── Wait for all to finish ──────────────────────────────────────────
 

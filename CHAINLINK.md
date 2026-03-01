@@ -8,7 +8,7 @@ See also: [CRE Ecosystem Reference](./docs/CRE-ECOSYSTEM-REFERENCE.md) for capab
 
 ## 1. `@chainlink/cre-sdk` — Workflow Runtime
 
-All 7 workflows import and use the CRE SDK as their execution runtime:
+All 8 workflows import and use the CRE SDK as their execution runtime:
 
 ```typescript
 import { cre, Runner, consensusIdenticalAggregation, getNetwork, encodeCallMsg } from '@chainlink/cre-sdk';
@@ -23,6 +23,7 @@ import { cre, Runner, consensusIdenticalAggregation, getNetwork, encodeCallMsg }
 | `workflows/token-flows/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.CronCapability`, `getNetwork`, `encodeCallMsg` |
 | `workflows/ccip-lane-health/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.CronCapability`, `getNetwork`, `encodeCallMsg` |
 | `workflows/curve-pool/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.CronCapability`, `getNetwork`, `encodeCallMsg` |
+| `workflows/link-ai-arbitrage/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.HTTPClient`, `cre.capabilities.CronCapability`, `consensusIdenticalAggregation`, `getNetwork`, `encodeCallMsg` |
 
 ---
 
@@ -132,12 +133,13 @@ Schedules:
 - `token-flows`: every 30 minutes
 - `ccip-lane-health`: every 30 minutes
 - `curve-pool`: every 15 minutes
+- `link-ai-arbitrage`: every 15 minutes
 
 ---
 
 ## 5. SentinelRegistry.sol — On-Chain Write (Sepolia)
 
-**All 7 CRE workflows** write verifiable proof hashes to `OrbitalSentinelRegistry` on Sepolia after each run. A bridge script (`scripts/record-all-snapshots.mjs`) reads live CRE snapshots and writes proofs on-chain 7 times per day via the unified cycle.
+**All 8 CRE workflows** write verifiable proof hashes to `OrbitalSentinelRegistry` on Sepolia after each run. A bridge script (`scripts/record-all-snapshots.mjs`) reads live CRE snapshots and writes proofs on-chain 7 times per day via the unified cycle.
 
 **File:** `contracts/SentinelRegistry.sol` — [Security Audit](./AUDIT-REPORT.md) (4 findings fixed, 31 tests, 80k fuzz iterations)
 
@@ -151,7 +153,7 @@ event OwnershipTransferStarted(address indexed previousOwner, address indexed ne
 event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 ```
 
-Risk levels use a prefixed format: `treasury:ok`, `feeds:warning`, `morpho:critical`, `governance:ok`, `flows:ok`, `ccip:ok`.
+Risk levels use a prefixed format: `treasury:ok`, `feeds:warning`, `morpho:critical`, `governance:ok`, `flows:ok`, `ccip:ok`, `laa:ok`.
 
 The hash is computed in TypeScript using `viem`'s `keccak256` + `encodeAbiParameters` — identical encoding to Solidity's `abi.encode()`:
 
@@ -171,6 +173,7 @@ Each workflow encodes domain-specific metrics:
 - **morpho**: `utilization × 1e6`, `totalSupply`
 - **flows**: `totalSdlTracked`, `addressCount`
 - **ccip**: `okLanes`, `totalLanes`
+- **laa**: `premiumBps`, `linkBalance`
 
 This creates an immutable, verifiable audit trail: every CRE workflow run → one on-chain record per workflow type.
 
@@ -191,14 +194,14 @@ const sepoliaNet = getNetwork({ chainFamily: 'evm', chainSelectorName: 'ethereum
 
 | Chainlink Component | Where Used |
 |---------------------|-----------|
-| `@chainlink/cre-sdk` Runner + handler | All 7 workflow `main.ts` files |
-| `EVMClient.callContract()` | All 7 workflows (mainnet reads + Sepolia writes) |
+| `@chainlink/cre-sdk` Runner + handler | All 8 workflow `main.ts` files |
+| `EVMClient.callContract()` | All 8 workflows (mainnet reads + Sepolia writes) |
 | Chainlink Data Feeds (LINK/USD, ETH/USD) | `workflows/price-feeds/my-workflow/main.ts` |
 | CCIP Router + OnRamp + TokenPool | `workflows/ccip-lane-health/my-workflow/main.ts` |
 | `HTTPClient` + `consensusIdenticalAggregation` | treasury-risk, governance-monitor, price-feeds |
-| `CronCapability` | All 7 workflows |
-| `getNetwork()` chain selector | All 7 workflows (mainnet + Sepolia) |
-| `SentinelRegistry.sol` (on-chain write) | All 7 workflow `main.ts` files + `scripts/record-all-snapshots.mjs` |
-| `encodeCallMsg` | All 7 workflows |
+| `CronCapability` | All 8 workflows |
+| `getNetwork()` chain selector | All 8 workflows (mainnet + Sepolia) |
+| `SentinelRegistry.sol` (on-chain write) | All 8 workflow `main.ts` files + `scripts/record-all-snapshots.mjs` |
+| `encodeCallMsg` | All 8 workflows |
 
-> **Note:** The unified cron cycle (`scripts/sentinel-unified-cycle.sh`) also runs an 8th workflow (`stlink-arb`) from the Orbital repo at `~/projects/orbital/clients/stake-link/arb-vault/workflows/stlink-arb-monitor/`. That workflow is not part of this repository but its proofs are written to the same SentinelRegistry contract.
+> **Note:** The LINK AI Arbitrage (LAA) workflow was previously a cross-repo reference to the Orbital repo. It is now included directly in this repository at `workflows/link-ai-arbitrage/`.

@@ -13,7 +13,7 @@ Autonomous DeFi health monitoring platform built on Chainlink CRE for the Chainl
 
 **Deadline: March 8, 2026.**
 
-7 CRE workflows read Ethereum mainnet, run AI analysis (Claude Haiku + GPT-5.3-Codex), and write keccak256 risk proofs to `SentinelRegistry` on Sepolia. A Next.js dashboard displays workflow status and on-chain proof history.
+8 CRE workflows read Ethereum mainnet, run AI analysis (Claude Haiku + GPT-5.3-Codex), and write keccak256 risk proofs to `SentinelRegistry` on Sepolia. A Next.js dashboard displays workflow status and on-chain proof history.
 
 ---
 
@@ -37,14 +37,15 @@ Autonomous DeFi health monitoring platform built on Chainlink CRE for the Chainl
 
 ```
 orbital-sentinel/
-├── workflows/                    # 7 CRE workflow projects (Bun + CRE SDK)
+├── workflows/                    # 8 CRE workflow projects (Bun + CRE SDK)
 │   ├── treasury-risk/            #   Staking pool health + reward runway
 │   ├── governance-monitor/       #   DAO proposal tracking (Snapshot + Discourse)
 │   ├── price-feeds/              #   Chainlink Data Feed reads (LINK/USD, ETH/USD)
 │   ├── morpho-vault-health/      #   Morpho Blue utilization + ERC4626 TVL
 │   ├── token-flows/              #   Whale/holder balance tracking (50+ addresses)
 │   ├── ccip-lane-health/         #   CCIP Router + OnRamp + TokenPool monitoring
-│   └── curve-pool/               #   Curve StableSwap balance composition
+│   ├── curve-pool/               #   Curve StableSwap balance composition
+│   └── link-ai-arbitrage/       #   LINK AI Arbitrage (LAA) — Curve arb opportunity detection
 ├── contracts/                    # Solidity (Foundry)
 │   ├── SentinelRegistry.sol      #   On-chain risk proof registry (owner-gated, dedup, validated)
 │   ├── SentinelRegistry.ts       #   TypeScript ABI export
@@ -207,7 +208,7 @@ cd /home/avi/orbital-sentinel/scripts
 node record-health.mjs
 ```
 
-Or the cron bridge that reads all 7 snapshots:
+Or the cron bridge that reads all 8 snapshots:
 
 ```bash
 node record-all-snapshots.mjs
@@ -250,10 +251,10 @@ bun install
 
 ## Current State
 
-- **All 7 workflows:** implemented and simulating successfully
+- **All 8 workflows:** implemented and simulating successfully
 - **SentinelRegistry:** deployed on Sepolia at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit). Access control, dedup, validation active on-chain.
 - **Dashboard:** running on port 3016, reads on-chain proofs + CRE signals
-- **Cron bridge:** `record-all-snapshots.mjs` writes proofs for all 7 workflows
+- **Cron bridge:** `record-all-snapshots.mjs` writes proofs for all 8 workflows
 - **AI endpoint:** Flask server with Claude Haiku + GPT-5.3-Codex analysis
 - **Hackathon tracks:** CRE & AI, DeFi & Tokenization, Autonomous Agents (Moltbook)
 - **Demo video:** script at `docs/demo-video-script.md`, video not yet recorded
@@ -298,7 +299,7 @@ Before any commit:
 
 ## Unified CRE Cycle Schedule
 
-All 7 workflows run together in a unified cycle, 7 times per day (~3h 25min apart). The master script `scripts/sentinel-unified-cycle.sh` runs all CRE simulations in parallel, then writes all on-chain proofs in one batch via `record-all-snapshots.mjs`.
+All 8 workflows run together in a unified cycle, 7 times per day (~3h 25min apart). The master script `scripts/sentinel-unified-cycle.sh` runs all CRE simulations in parallel, then writes all on-chain proofs in one batch via `record-all-snapshots.mjs`.
 
 | Cycle | UTC Time | Cron |
 |-------|----------|------|
@@ -310,8 +311,8 @@ All 7 workflows run together in a unified cycle, 7 times per day (~3h 25min apar
 | 6 | 17:05 | `5 17 * * *` |
 | 7 | 20:30 | `30 20 * * *` |
 
-**Per cycle:** 7 CRE simulations (parallel) + 7 on-chain proof writes (sequential). Total: 49 on-chain proofs/day.
+**Per cycle:** 8 CRE simulations (parallel) + 8 on-chain proof writes (sequential). Total: 56 on-chain proofs/day.
 
-**Workflows in each cycle:** treasury-risk, price-feeds, governance-monitor, morpho-vault-health, curve-pool, ccip-lane-health, stlink-arb (cross-repo: `~/projects/orbital/clients/stake-link/arb-vault/workflows/stlink-arb-monitor`).
+**Workflows in each cycle:** treasury-risk, price-feeds, governance-monitor, morpho-vault-health, curve-pool, ccip-lane-health, link-ai-arbitrage (LAA).
 
 > **Note:** `token-flows` is implemented but NOT wired into the unified cycle or `record-all-snapshots.mjs`. To add it, update both `sentinel-unified-cycle.sh` and `record-all-snapshots.mjs`.

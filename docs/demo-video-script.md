@@ -20,7 +20,7 @@
 
 **Show:** Sentinel Dashboard
 
-**Say:** "This is Orbital Sentinel — an autonomous AI agent platform that monitors DeFi protocol health using Chainlink CRE workflows. What you're seeing is the dashboard for stake.link, the largest Chainlink liquid staking protocol. It shows 7 workflow cards with CRE capability tags, live risk status, and on-chain sentinel records — all automated, no human in the loop."
+**Say:** "This is Orbital Sentinel — an autonomous AI agent platform that monitors DeFi protocol health using Chainlink CRE workflows. What you're seeing is the dashboard for stake.link, the largest Chainlink liquid staking protocol. It shows 8 workflow cards with CRE capability tags, live risk status, and on-chain sentinel records — all automated, no human in the loop."
 
 **Action:** Scroll down to show the On-Chain Sentinel section with per-workflow stats and transaction list.
 
@@ -47,7 +47,7 @@
 node record-all-snapshots.mjs
 ```
 
-**Say:** (while it runs) "This reads real CRE snapshot data for all 7 workflows — treasury risk, price feeds, governance, Morpho vault, CCIP lanes, Curve pool, and the cross-repo arb monitor. For each fresh snapshot, it computes a keccak256 hash of key metrics and writes it to the Sepolia registry with a prefixed risk level."
+**Say:** (while it runs) "This reads real CRE snapshot data for all 8 workflows — treasury risk, price feeds, governance, Morpho vault, CCIP lanes, Curve pool, and the cross-repo arb monitor. For each fresh snapshot, it computes a keccak256 hash of key metrics and writes it to the Sepolia registry with a prefixed risk level."
 
 **Action:** When it confirms, copy a TX hash. Switch to Etherscan. Show the new transaction(s) appearing.
 
@@ -55,11 +55,11 @@ node record-all-snapshots.mjs
 
 ---
 
-## Scene 4 — The 7 Workflows (3:00 - 4:00)
+## Scene 4 — The 8 Workflows (3:00 - 4:00)
 
 **Show:** GitHub repo
 
-**Say:** "Orbital Sentinel runs 7 CRE workflows, all using @chainlink/cre-sdk."
+**Say:** "Orbital Sentinel runs 8 CRE workflows, all using @chainlink/cre-sdk."
 
 **Action:** Click through the workflows/ directory. For each, briefly show main.ts.
 
@@ -71,6 +71,7 @@ node record-all-snapshots.mjs
 - "Token Flows tracks 50 classified addresses for whale movements."
 - "CCIP Lane Health monitors Chainlink CCIP Router, OnRamp paused state, and rate limiter buckets."
 - "Curve Pool reads the stLINK/LINK StableSwap pool balances and computes imbalance using the LINK/USD Chainlink feed."
+- "LINK AI Arbitrage — or LAA — monitors Curve pool premium quotes and Priority Pool status to find optimal arb timing, with GPT-5.3-Codex AI analysis."
 
 **Action:** Open CHAINLINK.md briefly. "Every Chainlink touchpoint is documented here."
 
@@ -80,7 +81,7 @@ node record-all-snapshots.mjs
 
 **Show:** Sentinel Dashboard again
 
-**Say:** "Orbital Sentinel is the intelligence backbone of our stake.link deployment. CRE orchestrates the data reads, AI analyzes the risk, and Sepolia stores the proof — for all 7 workflows. Fully autonomous — running 24/7 with no human intervention. Built for the Chainlink Convergence Hackathon by Orbital."
+**Say:** "Orbital Sentinel is the intelligence backbone of our stake.link deployment. CRE orchestrates the data reads, AI analyzes the risk, and Sepolia stores the proof — for all 8 workflows. Fully autonomous — running 24/7 with no human intervention. Built for the Chainlink Convergence Hackathon by Orbital."
 
 ---
 

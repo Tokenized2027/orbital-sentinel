@@ -2,7 +2,7 @@
 
 **Autonomous AI agent platform for DeFi protocol health monitoring, built on Chainlink CRE.**
 
-Orbital Sentinel runs 7 production CRE workflows that continuously read live Ethereum mainnet data and feed it through a Claude AI analysis layer. All workflows run together in a unified cycle 7 times per day (~3h 25min apart), writing verifiable risk proofs on-chain via `SentinelRegistry` on Sepolia — fully autonomous, no human in the loop. Each proof is a `keccak256` hash of workflow-specific metrics with a prefixed risk level (e.g., `treasury:ok`, `feeds:warning`, `morpho:critical`, `ccip:ok`).
+Orbital Sentinel runs 8 production CRE workflows that continuously read live Ethereum mainnet data and feed it through a Claude AI analysis layer. All workflows run together in a unified cycle 7 times per day (~3h 25min apart), writing verifiable risk proofs on-chain via `SentinelRegistry` on Sepolia — fully autonomous, no human in the loop. Each proof is a `keccak256` hash of workflow-specific metrics with a prefixed risk level (e.g., `treasury:ok`, `feeds:warning`, `morpho:critical`, `ccip:ok`).
 
 ---
 
@@ -16,11 +16,11 @@ Chainlink CRE Workflow
   └── Write proof on-chain (SentinelRegistry.sol → Sepolia)
 ```
 
-All 7 workflows run together in a unified cycle 7 times per day. A master script (`sentinel-unified-cycle.sh`) runs all CRE simulations in parallel, then writes all on-chain proofs sequentially via `record-all-snapshots.mjs`. The real-time dashboard shows CRE capability tags per workflow and per-workflow on-chain proof statistics.
+All 8 workflows run together in a unified cycle 7 times per day. A master script (`sentinel-unified-cycle.sh`) runs all CRE simulations in parallel, then writes all on-chain proofs sequentially via `record-all-snapshots.mjs`. The real-time dashboard shows CRE capability tags per workflow and per-workflow on-chain proof statistics.
 
 ---
 
-## The 7 Workflows
+## The 8 Workflows
 
 ### 1. `treasury-risk` — Protocol Treasury Health
 Monitors staking pool utilization, reward vault runway, lending market exposure, and priority queue depth. Computes an overall risk score (`ok / warning / critical`) and calls Claude Haiku for a structured assessment. Writes a `keccak256` snapshot hash to `SentinelRegistry` on Sepolia.
@@ -56,6 +56,11 @@ Monitors Chainlink CCIP lane health by reading the Router's `getOnRamp()`, OnRam
 Monitors Curve StableSwap pool balance composition for stLINK/LINK. Flags imbalanced reserves that may indicate liquidity stress or arbitrage opportunities.
 
 **Chainlink usage:** `EVMClient.callContract()` reads Curve pool balances and Chainlink LINK/USD price feed on Ethereum mainnet.
+
+### 8. `link-ai-arbitrage` — LINK AI Arbitrage (LAA)
+Monitors stLINK/LINK arbitrage opportunities via the Curve StableSwap pool. Reads pool balances, premium quotes at multiple swap sizes, Priority Pool queue status, and optional Arb Vault state. Computes an execution signal (execute/wait/unprofitable/pool_closed/no_stlink) and calls GPT-5.3-Codex for AI analysis of optimal swap timing.
+
+**Chainlink usage:** `EVMClient.callContract()` reads Curve StableSwap pool (get_dy, balances), Priority Pool (poolStatus, totalQueued), and optional Arb Vault contracts on Ethereum mainnet. `HTTPClient` + `consensusIdenticalAggregation` for AI analysis endpoint.
 
 ---
 
@@ -192,7 +197,7 @@ error RiskLevelTooLong()
 - Maximum riskLevel length (256 bytes, `RiskLevelTooLong` revert)
 - Gas-efficient custom errors
 
-Risk levels use a prefixed format: `treasury:ok`, `feeds:warning`, `morpho:critical`, `governance:ok`, `flows:ok`, `ccip:ok`.
+Risk levels use a prefixed format: `treasury:ok`, `feeds:warning`, `morpho:critical`, `governance:ok`, `flows:ok`, `ccip:ok`, `laa:ok`.
 
 `snapshotHash = keccak256(abi.encode(timestamp, workflowType, risk, metric1, metric2))`
 
@@ -209,9 +214,9 @@ View on Sepolia Etherscan: `https://sepolia.etherscan.io/address/0xE5B1b708b237F
 Sentinel on-chain records feed back into the standalone dashboard, creating a closed intelligence loop:
 
 ```
-sentinel-unified-cycle.sh (7x/day, runs all 7 CRE simulations in parallel)
+sentinel-unified-cycle.sh (7x/day, runs all 8 CRE simulations in parallel)
   ↓
-record-all-snapshots.mjs (bridge, writes proofs for all 7 workflows)
+record-all-snapshots.mjs (bridge, writes proofs for all 8 workflows)
   ↓ keccak256 proof hash per workflow
 SentinelRegistry (Sepolia)
   ↓ HealthRecorded events
@@ -238,7 +243,8 @@ orbital-sentinel/
 │   ├── morpho-vault-health/    ← Lending market utilization + on-chain write
 │   ├── token-flows/            ← Whale & holder tracking + on-chain write
 │   ├── ccip-lane-health/       ← CCIP lane availability + rate limiter monitoring
-│   └── curve-pool/             ← Curve pool balance composition monitoring
+│   ├── curve-pool/             ← Curve pool balance composition monitoring
+│   └── link-ai-arbitrage/     ← LINK AI Arbitrage (LAA) — Curve arb opportunity detection
 ├── contracts/
 │   ├── SentinelRegistry.sol    ← On-chain risk proof registry (Sepolia, owner-gated)
 │   └── test/
@@ -252,7 +258,7 @@ orbital-sentinel/
 ├── platform/
 │   └── cre_analyze_endpoint.py ← Flask AI analysis server (Claude Haiku + GPT-5.3-Codex)
 ├── scripts/
-│   ├── sentinel-unified-cycle.sh ← Master: runs all 7 CRE sims + on-chain proofs (7x/day)
+│   ├── sentinel-unified-cycle.sh ← Master: runs all 8 CRE sims + on-chain proofs (7x/day)
 │   ├── record-all-snapshots.mjs  ← Bridge: CRE snapshots → on-chain proofs
 │   ├── record-health.mjs         ← One-shot recordHealth call
 │   └── verify-contract.mjs       ← Sourcify contract verification
@@ -272,7 +278,7 @@ Every file in this repo that uses Chainlink products, organized by category. Req
 
 ### CRE Workflow Definitions (`@chainlink/cre-sdk`)
 
-All 7 workflows import `Runner`, `handler`, `CronCapability`, `EVMClient`, `getNetwork`, and `encodeCallMsg` from the CRE SDK:
+All 8 workflows import `Runner`, `handler`, `CronCapability`, `EVMClient`, `getNetwork`, and `encodeCallMsg` from the CRE SDK:
 
 | # | Workflow | File | Chainlink Features |
 |---|----------|------|--------------------|
@@ -283,6 +289,7 @@ All 7 workflows import `Runner`, `handler`, `CronCapability`, `EVMClient`, `getN
 | 5 | Token Flows | [`workflows/token-flows/my-workflow/main.ts`](./workflows/token-flows/my-workflow/main.ts) | EVMClient (50+ ERC20 balanceOf reads), CronCapability, SentinelRegistry write |
 | 6 | CCIP Lane Health | [`workflows/ccip-lane-health/my-workflow/main.ts`](./workflows/ccip-lane-health/my-workflow/main.ts) | EVMClient (CCIP Router + OnRamp + TokenPool), CronCapability, SentinelRegistry write |
 | 7 | Curve Pool | [`workflows/curve-pool/my-workflow/main.ts`](./workflows/curve-pool/my-workflow/main.ts) | EVMClient (Curve pool + LINK/USD Data Feed), CronCapability, SentinelRegistry write |
+| 8 | LINK AI Arbitrage (LAA) | [`workflows/link-ai-arbitrage/my-workflow/main.ts`](./workflows/link-ai-arbitrage/my-workflow/main.ts) | EVMClient (Curve pool + Priority Pool + Arb Vault), HTTPClient (AI analysis), CronCapability, SentinelRegistry write |
 
 ### On-Chain Contract (Sepolia)
 
@@ -310,13 +317,16 @@ All 7 workflows import `Runner`, `handler`, `CronCapability`, `EVMClient`, `getN
 | [`workflows/curve-pool/contracts/abi/SentinelRegistry.ts`](./workflows/curve-pool/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
 | [`workflows/governance-monitor/contracts/abi/SentinelRegistry.ts`](./workflows/governance-monitor/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
 | [`workflows/token-flows/contracts/abi/SentinelRegistry.ts`](./workflows/token-flows/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
+| [`workflows/link-ai-arbitrage/contracts/abi/CurveStableSwapNG.ts`](./workflows/link-ai-arbitrage/contracts/abi/CurveStableSwapNG.ts) | Curve StableSwap NG pool (balances, get_dy) |
+| [`workflows/link-ai-arbitrage/contracts/abi/PriorityPool.ts`](./workflows/link-ai-arbitrage/contracts/abi/PriorityPool.ts) | stake.link Priority Pool (poolStatus, totalQueued) |
+| [`workflows/link-ai-arbitrage/contracts/abi/ArbVault.ts`](./workflows/link-ai-arbitrage/contracts/abi/ArbVault.ts) | Arb Vault (totalStLINKHeld, minProfitBps, cycleCount) |
 
 ### Bridge Scripts (On-Chain Proof Writers)
 
 | File | Description |
 |------|-------------|
-| [`scripts/sentinel-unified-cycle.sh`](./scripts/sentinel-unified-cycle.sh) | Master script: runs all 7 CRE simulations in parallel, then writes all on-chain proofs. Scheduled 7x/day via cron. |
-| [`scripts/record-all-snapshots.mjs`](./scripts/record-all-snapshots.mjs) | Bridge: reads all 7 CRE workflow snapshots, writes keccak256 proofs to SentinelRegistry on Sepolia. Handles `AlreadyRecorded` gracefully. |
+| [`scripts/sentinel-unified-cycle.sh`](./scripts/sentinel-unified-cycle.sh) | Master script: runs all 8 CRE simulations in parallel, then writes all on-chain proofs. Scheduled 7x/day via cron. |
+| [`scripts/record-all-snapshots.mjs`](./scripts/record-all-snapshots.mjs) | Bridge: reads all 8 CRE workflow snapshots, writes keccak256 proofs to SentinelRegistry on Sepolia. Handles `AlreadyRecorded` gracefully. |
 | [`scripts/record-health.mjs`](./scripts/record-health.mjs) | One-shot recordHealth call for a single workflow snapshot |
 | [`scripts/record-health-cron.mjs`](./scripts/record-health-cron.mjs) | Cron variant of record-health |
 | [`scripts/verify-contract.mjs`](./scripts/verify-contract.mjs) | Sourcify contract verification for SentinelRegistry |
@@ -334,6 +344,7 @@ Each workflow has a `run_snapshot.sh` that runs `cre simulate`:
 | [`workflows/token-flows/run_snapshot.sh`](./workflows/token-flows/run_snapshot.sh) |
 | [`workflows/ccip-lane-health/run_snapshot.sh`](./workflows/ccip-lane-health/run_snapshot.sh) |
 | [`workflows/curve-pool/run_snapshot.sh`](./workflows/curve-pool/run_snapshot.sh) |
+| [`workflows/link-ai-arbitrage/run_snapshot.sh`](./workflows/link-ai-arbitrage/run_snapshot.sh) |
 
 ### AI Analysis Endpoint
 

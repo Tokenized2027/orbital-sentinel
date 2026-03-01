@@ -16,12 +16,12 @@ Developers invoke capabilities through SDK interfaces (`EVMClient`, `HTTPClient`
 
 | Capability | Type | What It Does | Used in Sentinel? |
 |-----------|------|-------------|-------------------|
-| **Cron** | Trigger | Time-based scheduling | Yes — all 7 workflows |
+| **Cron** | Trigger | Time-based scheduling | Yes — all 8 workflows |
 | **HTTP** | Trigger | Incoming webhooks | No |
 | **EVM Log** | Trigger | Smart contract event listeners | No (potential upgrade) |
 | **HTTP Client** | Execution | Fetch/post external APIs with DON consensus | Yes — treasury-risk, governance, price-feeds |
 | **Confidential HTTP** | Execution | Privacy-preserving API calls with enclave execution | No (potential upgrade) |
-| **EVM Read** | Execution | Read smart contracts with DON consensus | Yes — all 7 workflows |
+| **EVM Read** | Execution | Read smart contracts with DON consensus | Yes — all 8 workflows |
 | **EVM Write** | Execution | Write to smart contracts with DON consensus | Yes — SentinelRegistry writes |
 
 All execution capabilities use built-in consensus to validate results across multiple nodes.
@@ -41,6 +41,7 @@ All execution capabilities use built-in consensus to validate results across mul
 | token-flows | ERC20 balanceOf (50+ addresses) | SentinelRegistry | — | 30 min | — |
 | ccip-lane-health | CCIP Router, OnRamp, TokenPool | SentinelRegistry | — | 30 min | — |
 | curve-pool | Curve StableSwap, LINK/USD feed | SentinelRegistry | — | 15 min | — |
+| link-ai-arbitrage | Curve pool, Priority Pool, Arb Vault | SentinelRegistry | AI analysis endpoint | 15 min | consensusIdenticalAggregation |
 
 ### CRE Capabilities NOT Yet Used (Upgrade Opportunities)
 
@@ -92,7 +93,7 @@ The SDK uses Protocol Buffers internally with two type representations:
 
 ### Canonical Workflow Pattern
 
-All 7 Sentinel workflows follow this structure:
+All 8 Sentinel workflows follow this structure:
 
 ```typescript
 // 1. Config schema (Zod validation)
@@ -178,7 +179,7 @@ CRE supersedes Chainlink Automation for new development. Mapping:
 | `checkUpkeep()` + `performUpkeep()` | `handler` + trigger | `onCron` handler |
 | Custom logic trigger | EVM Log / HTTP trigger | CronCapability (currently) |
 | Log trigger | EVM Log trigger capability | Not yet used |
-| Time-based trigger | `CronCapability` | All 7 workflows |
+| Time-based trigger | `CronCapability` | All 8 workflows |
 | `StreamsLookup` revert | `HTTPClient` + consensus | treasury-risk, governance |
 | Forwarder address | DON-managed execution | DON handles |
 
@@ -242,6 +243,7 @@ Per-workflow metric encoding:
 | flows | totalSdlTracked | addressCount |
 | ccip | okLanes | totalLanes |
 | curve | imbalancePct | tvlUsd |
+| laa | premiumBps | linkBalance |
 
 This creates an **immutable, verifiable audit trail**: every CRE workflow run produces one on-chain record.
 

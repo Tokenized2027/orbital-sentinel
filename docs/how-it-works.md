@@ -182,7 +182,7 @@ CRE stands for **Compute Runtime Environment**. It's Chainlink's framework for r
 
 ### What CRE Provides
 
-1. **EVMClient** — CRE's built-in capability to read any smart contract on any EVM chain. The workflow calls `EVMClient.callContract()` with ABI-encoded function data, and CRE routes it through configured RPCs. This is how all 7 workflows read on-chain state.
+1. **EVMClient** — CRE's built-in capability to read any smart contract on any EVM chain. The workflow calls `EVMClient.callContract()` with ABI-encoded function data, and CRE routes it through configured RPCs. This is how all 8 workflows read on-chain state.
 
 2. **CronCapability** — Schedules workflows to run on a timer (every 15 minutes in our case).
 
@@ -265,7 +265,7 @@ Storing the full snapshot on-chain would cost hundreds of dollars in gas per wri
 ### Current Stats
 
 - **49 proof records** on Sepolia (as of March 1, 2026)
-- **7 workflows** running simultaneously
+- **8 workflows** running simultaneously
 - **Registry contract:** `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`
 - All records verifiable on [Sepolia Etherscan](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40)
 
