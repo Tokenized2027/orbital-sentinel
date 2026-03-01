@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Solidity Contracts ─────────────────────────────────────────────
+  contracts:
+    name: Contracts (build + test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Forge build
+        run: forge build
+
+      - name: Forge test
+        run: forge test -vv
+
+  # ── Dashboard (Next.js) ────────────────────────────────────────────
+  dashboard:
+    name: Dashboard (typecheck + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: dashboard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npx next build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+  # ── CRE Workflows (Bun + TypeScript) ──────────────────────────────
+  workflows:
+    name: Workflows (typecheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install and typecheck treasury-risk
+        run: |
+          cd workflows/treasury-risk/my-workflow
+          bun install
+          bun x tsc --noEmit
+
+      - name: Install and typecheck governance-monitor
+        run: |
+          cd workflows/governance-monitor/my-workflow
+          bun install
+          bun x tsc --noEmit
+
+      - name: Install and typecheck price-feeds
+        run: |
+          cd workflows/price-feeds/my-workflow
+          bun install
+          bun x tsc --noEmit
+
+      - name: Install and typecheck morpho-vault-health
+        run: |
+          cd workflows/morpho-vault-health/my-workflow
+          bun install
+          bun x tsc --noEmit
+
+      - name: Install and typecheck token-flows
+        run: |
+          cd workflows/token-flows/my-workflow
+          bun install
+          bun x tsc --noEmit
+
+      - name: Install and typecheck ccip-lane-health
+        run: |
+          cd workflows/ccip-lane-health/my-workflow
+          bun install
+          bun x tsc --noEmit
+
+      - name: Install and typecheck curve-pool
+        run: |
+          cd workflows/curve-pool/my-workflow
+          bun install
+          bun x tsc --noEmit
+
+  # ── Prettier Format Check ──────────────────────────────────────────
+  format:
+    name: Format check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - name: Install prettier
+        run: npm install -g prettier
+
+      - name: Check formatting
+        run: prettier --check "dashboard/**/*.{ts,tsx}" "scripts/**/*.{ts,mjs}" --ignore-path .gitignore
