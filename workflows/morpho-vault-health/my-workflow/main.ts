@@ -9,7 +9,7 @@ import {
 } from '@chainlink/cre-sdk';
 import { encodeFunctionData, decodeFunctionResult, formatUnits, keccak256, encodeAbiParameters, parseAbiParameters, type Address, zeroAddress } from 'viem';
 import { z } from 'zod';
-import { MorphoBlue, ERC4626Vault, ERC20 } from '../contracts/abi';
+import { MorphoBlue, AdaptiveCurveIrm, ERC4626Vault, ERC20 } from '../contracts/abi';
 import { SentinelRegistry } from '../contracts/abi/SentinelRegistry';
 
 // ---------- Config ----------
@@ -29,6 +29,14 @@ const configSchema = z.object({
 
 type Config = z.infer<typeof configSchema>;
 
+type MarketParams = {
+	loanToken: string;
+	collateralToken: string;
+	oracle: string;
+	irm: string;
+	lltv: string;
+};
+
 type MorphoMarketResult = {
 	totalSupplyAssets: string;
 	totalSupplyShares: string;
@@ -37,6 +45,13 @@ type MorphoMarketResult = {
 	lastUpdate: string;
 	fee: string;
 	utilization: number;
+};
+
+type ApyResult = {
+	borrowRatePerSecond: string;
+	borrowApy: number;
+	supplyApy: number;
+	irmAddress: string;
 };
 
 type VaultResult = {
@@ -49,6 +64,7 @@ type VaultResult = {
 type OutputPayload = {
 	morphoMarket: MorphoMarketResult;
 	vault: VaultResult;
+	apy: ApyResult;
 	metadata: {
 		marketId: string;
 		morphoAddress: string;
@@ -197,6 +213,93 @@ function readVault(
 	};
 }
 
+// ---------- APY ----------
+
+const SECONDS_PER_YEAR = 365.25 * 24 * 3600;
+const WAD = 1e18;
+
+function readMarketParams(
+	runtime: Runtime<Config>,
+	evmClient: InstanceType<typeof cre.capabilities.EVMClient>,
+): MarketParams {
+	const callData = encodeFunctionData({
+		abi: MorphoBlue,
+		functionName: 'idToMarketParams',
+		args: [runtime.config.marketId as `0x${string}`],
+	});
+
+	const raw = callContract(runtime, evmClient, runtime.config.morphoAddress, callData);
+	const decoded = decodeFunctionResult({
+		abi: MorphoBlue,
+		functionName: 'idToMarketParams',
+		data: bytesToHex(raw),
+	}) as readonly [string, string, string, string, bigint];
+
+	const [loanToken, collateralToken, oracle, irm, lltv] = decoded;
+	runtime.log(`MarketParams | irm=${irm} lltv=${lltv.toString()}`);
+
+	return {
+		loanToken,
+		collateralToken,
+		oracle,
+		irm,
+		lltv: lltv.toString(),
+	};
+}
+
+function readBorrowRate(
+	runtime: Runtime<Config>,
+	evmClient: InstanceType<typeof cre.capabilities.EVMClient>,
+	params: MarketParams,
+	market: MorphoMarketResult,
+): ApyResult {
+	const callData = encodeFunctionData({
+		abi: AdaptiveCurveIrm,
+		functionName: 'borrowRateView',
+		args: [
+			{
+				loanToken: params.loanToken as Address,
+				collateralToken: params.collateralToken as Address,
+				oracle: params.oracle as Address,
+				irm: params.irm as Address,
+				lltv: BigInt(params.lltv),
+			},
+			{
+				totalSupplyAssets: BigInt(market.totalSupplyAssets),
+				totalSupplyShares: BigInt(market.totalSupplyShares),
+				totalBorrowAssets: BigInt(market.totalBorrowAssets),
+				totalBorrowShares: BigInt(market.totalBorrowShares),
+				lastUpdate: BigInt(market.lastUpdate),
+				fee: BigInt(market.fee),
+			},
+		],
+	});
+
+	const raw = callContract(runtime, evmClient, params.irm, callData);
+	const borrowRatePerSecond = decodeFunctionResult({
+		abi: AdaptiveCurveIrm,
+		functionName: 'borrowRateView',
+		data: bytesToHex(raw),
+	}) as bigint;
+
+	// borrowRate is in WAD (1e18 = 100% per second)
+	const ratePerSec = Number(borrowRatePerSecond) / WAD;
+	const borrowApy = ratePerSec * SECONDS_PER_YEAR * 100; // as percentage
+	const feeRate = Number(BigInt(market.fee)) / WAD;
+	const supplyApy = borrowApy * market.utilization * (1 - feeRate);
+
+	runtime.log(
+		`APY | borrowRate=${borrowRatePerSecond.toString()}/s borrowAPY=${borrowApy.toFixed(4)}% supplyAPY=${supplyApy.toFixed(4)}% fee=${(feeRate * 100).toFixed(2)}%`,
+	);
+
+	return {
+		borrowRatePerSecond: borrowRatePerSecond.toString(),
+		borrowApy,
+		supplyApy,
+		irmAddress: params.irm,
+	};
+}
+
 // ---------- Handler ----------
 
 function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
@@ -205,9 +308,20 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 	const morphoMarket = readMorphoMarket(runtime, evmClient);
 	const vault = readVault(runtime, evmClient);
 
+	// Read IRM for APY calculation
+	let apy: ApyResult;
+	try {
+		const params = readMarketParams(runtime, evmClient);
+		apy = readBorrowRate(runtime, evmClient, params, morphoMarket);
+	} catch (e) {
+		runtime.log(`APY read failed (degraded): ${e instanceof Error ? e.message : String(e)}`);
+		apy = { borrowRatePerSecond: '0', borrowApy: 0, supplyApy: 0, irmAddress: '' };
+	}
+
 	const outputPayload: OutputPayload = {
 		morphoMarket,
 		vault,
+		apy,
 		metadata: {
 			marketId: runtime.config.marketId,
 			morphoAddress: runtime.config.morphoAddress,

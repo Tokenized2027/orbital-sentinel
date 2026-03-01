@@ -11,3 +11,6 @@ __pycache__/
 .next/
 scripts/.last-write-state.json
 scripts/moltbook-post-draft.md
+.cre_build_tmp.js
+*.tsbuildinfo
+intelligence/data/

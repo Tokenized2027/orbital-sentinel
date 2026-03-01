@@ -2,7 +2,7 @@
 
 **Autonomous AI agent platform for DeFi protocol health monitoring, built on Chainlink CRE.**
 
-Orbital Sentinel runs 5 production CRE workflows that continuously read live Ethereum mainnet data and feed it through a Claude AI analysis layer. All workflows write verifiable risk proofs on-chain via `SentinelRegistry` on Sepolia — every 15 minutes, fully autonomous, no human in the loop. Each proof is a `keccak256` hash of workflow-specific metrics with a prefixed risk level (e.g., `treasury:ok`, `feeds:warning`, `morpho:critical`).
+Orbital Sentinel runs 7 production CRE workflows that continuously read live Ethereum mainnet data and feed it through a Claude AI analysis layer. All workflows write verifiable risk proofs on-chain via `SentinelRegistry` on Sepolia — every 15 minutes, fully autonomous, no human in the loop. Each proof is a `keccak256` hash of workflow-specific metrics with a prefixed risk level (e.g., `treasury:ok`, `feeds:warning`, `morpho:critical`, `ccip:ok`).
 
 ---
 
@@ -16,11 +16,11 @@ Chainlink CRE Workflow
   └── Write proof on-chain (SentinelRegistry.sol → Sepolia)
 ```
 
-All 5 workflows run autonomously on a cron schedule. Each workflow writes a proof hash on-chain via the SentinelRegistry contract on Sepolia. A 6th data source (CCIP lane health) is also bridged on-chain. The real-time dashboard shows CRE capability tags per workflow and per-workflow on-chain proof statistics.
+All 7 workflows run autonomously on a cron schedule. Each workflow writes a proof hash on-chain via the SentinelRegistry contract on Sepolia. The real-time dashboard shows CRE capability tags per workflow and per-workflow on-chain proof statistics.
 
 ---
 
-## The 5 Workflows
+## The 7 Workflows
 
 ### 1. `treasury-risk` — Protocol Treasury Health
 Monitors staking pool utilization, reward vault runway, lending market exposure, and priority queue depth. Computes an overall risk score (`ok / warning / critical`) and calls Claude Sonnet for a structured assessment. Writes a `keccak256` snapshot hash to `SentinelRegistry` on Sepolia.
@@ -46,6 +46,16 @@ Reads Morpho Blue market utilization rates and ERC4626 vault TVL. Flags high uti
 Tracks token and staked-token balances across classified address categories (validators, whales, DEX pools, vesting schedules). Detects large movements that may indicate protocol stress.
 
 **Chainlink usage:** `EVMClient.callContract()` reads `balanceOf()` and vesting `releasable()` across 50+ classified addresses.
+
+### 6. `ccip-lane-health` — CCIP Lane Availability
+Monitors Chainlink CCIP lane health by reading the Router's `getOnRamp()`, OnRamp `paused()` state, and `LockReleaseTokenPool` rate limiter buckets per destination chain. Detects paused lanes, unconfigured routes, and rate limiter depletion.
+
+**Chainlink usage:** `EVMClient.callContract()` reads CCIP Router, OnRamp, and LockReleaseTokenPool contracts on Ethereum mainnet.
+
+### 7. `curve-pool` — Curve Pool Balance Monitoring
+Monitors Curve StableSwap pool balance composition for stLINK/LINK. Flags imbalanced reserves that may indicate liquidity stress or arbitrage opportunities.
+
+**Chainlink usage:** `EVMClient.callContract()` reads Curve pool balances and Chainlink LINK/USD price feed on Ethereum mainnet.
 
 ---
 
@@ -192,7 +202,9 @@ orbital-sentinel/
 │   ├── governance-monitor/     ← DAO proposal monitoring + on-chain write
 │   ├── price-feeds/            ← Chainlink Data Feed reads + on-chain write
 │   ├── morpho-vault-health/    ← Lending market utilization + on-chain write
-│   └── token-flows/            ← Whale & holder tracking + on-chain write
+│   ├── token-flows/            ← Whale & holder tracking + on-chain write
+│   ├── ccip-lane-health/       ← CCIP lane availability + rate limiter monitoring
+│   └── curve-pool/             ← Curve pool balance composition monitoring
 ├── contracts/
 │   └── SentinelRegistry.sol    ← On-chain risk proof registry (Sepolia)
 ├── dashboard/                  ← Next.js standalone dashboard
@@ -206,11 +218,107 @@ orbital-sentinel/
 │   ├── record-health.mjs       ← One-shot recordHealth call
 │   └── verify-contract.mjs     ← Sourcify contract verification
 ├── docs/
+│   ├── CRE-ECOSYSTEM-REFERENCE.md ← CRE capabilities, SDK patterns, ecosystem context
 │   ├── submission.md           ← Hackathon submission copy-paste
 │   └── demo-video-script.md    ← Recording guide
 ├── README.md
 └── CHAINLINK.md                ← All Chainlink touchpoints documented
 ```
+
+---
+
+## Chainlink Files Index
+
+Every file in this repo that uses Chainlink products, organized by category. Required for hackathon submission — see [CHAINLINK.md](./CHAINLINK.md) for detailed usage documentation.
+
+### CRE Workflow Definitions (`@chainlink/cre-sdk`)
+
+All 7 workflows import `Runner`, `handler`, `CronCapability`, `EVMClient`, `getNetwork`, and `encodeCallMsg` from the CRE SDK:
+
+| # | Workflow | File | Chainlink Features |
+|---|----------|------|--------------------|
+| 1 | Treasury Risk | [`workflows/treasury-risk/my-workflow/main.ts`](./workflows/treasury-risk/my-workflow/main.ts) | EVMClient (4 mainnet reads), HTTPClient (AI analysis), CronCapability, SentinelRegistry write |
+| 2 | Governance Monitor | [`workflows/governance-monitor/my-workflow/main.ts`](./workflows/governance-monitor/my-workflow/main.ts) | HTTPClient + consensusIdenticalAggregation (Snapshot + Discourse), CronCapability, SentinelRegistry write |
+| 3 | Price Feeds | [`workflows/price-feeds/my-workflow/main.ts`](./workflows/price-feeds/my-workflow/main.ts) | EVMClient reads Chainlink Data Feeds (LINK/USD, ETH/USD), CronCapability, SentinelRegistry write |
+| 4 | Morpho Vault Health | [`workflows/morpho-vault-health/my-workflow/main.ts`](./workflows/morpho-vault-health/my-workflow/main.ts) | EVMClient (Morpho Blue + ERC4626), CronCapability, SentinelRegistry write |
+| 5 | Token Flows | [`workflows/token-flows/my-workflow/main.ts`](./workflows/token-flows/my-workflow/main.ts) | EVMClient (50+ ERC20 balanceOf reads), CronCapability, SentinelRegistry write |
+| 6 | CCIP Lane Health | [`workflows/ccip-lane-health/my-workflow/main.ts`](./workflows/ccip-lane-health/my-workflow/main.ts) | EVMClient (CCIP Router + OnRamp + TokenPool), CronCapability, SentinelRegistry write |
+| 7 | Curve Pool | [`workflows/curve-pool/my-workflow/main.ts`](./workflows/curve-pool/my-workflow/main.ts) | EVMClient (Curve pool + LINK/USD Data Feed), CronCapability, SentinelRegistry write |
+
+### On-Chain Contract (Sepolia)
+
+| File | Description |
+|------|-------------|
+| [`contracts/SentinelRegistry.sol`](./contracts/SentinelRegistry.sol) | `OrbitalSentinelRegistry` — `recordHealth(bytes32, string)` writes keccak256 risk proofs. Deployed: [`0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334`](https://sepolia.etherscan.io/address/0xAFc081cde50fA2Da7408f4E811Ca9dE128f7B334) |
+
+### ABI Files (Chainlink Contract Interfaces)
+
+| File | Contract |
+|------|----------|
+| [`workflows/treasury-risk/contracts/abi/StakingPool.ts`](./workflows/treasury-risk/contracts/abi/StakingPool.ts) | Chainlink staking pool (getTotalPrincipal, getMaxPoolSize) |
+| [`workflows/treasury-risk/contracts/abi/RewardVault.ts`](./workflows/treasury-risk/contracts/abi/RewardVault.ts) | Chainlink reward vault (getRewardBuckets) |
+| [`workflows/treasury-risk/contracts/abi/SentinelRegistry.ts`](./workflows/treasury-risk/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI for on-chain writes |
+| [`workflows/price-feeds/contracts/abi/PriceFeedAggregator.ts`](./workflows/price-feeds/contracts/abi/PriceFeedAggregator.ts) | Chainlink AggregatorV3 (latestAnswer, latestRoundData) |
+| [`workflows/price-feeds/contracts/abi/SentinelRegistry.ts`](./workflows/price-feeds/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
+| [`workflows/morpho-vault-health/contracts/abi/MorphoBlue.ts`](./workflows/morpho-vault-health/contracts/abi/MorphoBlue.ts) | Morpho Blue market struct |
+| [`workflows/morpho-vault-health/contracts/abi/ERC4626Vault.ts`](./workflows/morpho-vault-health/contracts/abi/ERC4626Vault.ts) | ERC4626 vault (totalAssets) |
+| [`workflows/morpho-vault-health/contracts/abi/SentinelRegistry.ts`](./workflows/morpho-vault-health/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
+| [`workflows/ccip-lane-health/contracts/abi/CCIPRouter.ts`](./workflows/ccip-lane-health/contracts/abi/CCIPRouter.ts) | Chainlink CCIP Router (getOnRamp) |
+| [`workflows/ccip-lane-health/contracts/abi/CCIPOnRamp.ts`](./workflows/ccip-lane-health/contracts/abi/CCIPOnRamp.ts) | Chainlink CCIP OnRamp (paused) |
+| [`workflows/ccip-lane-health/contracts/abi/LockReleaseTokenPool.ts`](./workflows/ccip-lane-health/contracts/abi/LockReleaseTokenPool.ts) | Chainlink CCIP TokenPool (rate limiter) |
+| [`workflows/curve-pool/contracts/abi/CurvePool.ts`](./workflows/curve-pool/contracts/abi/CurvePool.ts) | Curve StableSwap pool (balances, A, virtual_price) |
+| [`workflows/curve-pool/contracts/abi/PriceFeedAggregator.ts`](./workflows/curve-pool/contracts/abi/PriceFeedAggregator.ts) | Chainlink LINK/USD feed for TVL calc |
+| [`workflows/curve-pool/contracts/abi/SentinelRegistry.ts`](./workflows/curve-pool/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
+| [`workflows/governance-monitor/contracts/abi/SentinelRegistry.ts`](./workflows/governance-monitor/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
+| [`workflows/token-flows/contracts/abi/SentinelRegistry.ts`](./workflows/token-flows/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
+
+### Bridge Scripts (On-Chain Proof Writers)
+
+| File | Description |
+|------|-------------|
+| [`scripts/record-all-snapshots.mjs`](./scripts/record-all-snapshots.mjs) | Cron bridge: reads all 7 CRE workflow snapshots, writes keccak256 proofs to SentinelRegistry on Sepolia |
+| [`scripts/record-health.mjs`](./scripts/record-health.mjs) | One-shot recordHealth call for a single workflow snapshot |
+| [`scripts/record-health-cron.mjs`](./scripts/record-health-cron.mjs) | Cron variant of record-health |
+| [`scripts/verify-contract.mjs`](./scripts/verify-contract.mjs) | Sourcify contract verification for SentinelRegistry |
+
+### CRE Simulation Scripts
+
+Each workflow has a `run_snapshot.sh` that runs `cre simulate`:
+
+| File |
+|------|
+| [`workflows/treasury-risk/run_snapshot.sh`](./workflows/treasury-risk/run_snapshot.sh) |
+| [`workflows/governance-monitor/run_snapshot.sh`](./workflows/governance-monitor/run_snapshot.sh) |
+| [`workflows/price-feeds/run_snapshot.sh`](./workflows/price-feeds/run_snapshot.sh) |
+| [`workflows/morpho-vault-health/run_snapshot.sh`](./workflows/morpho-vault-health/run_snapshot.sh) |
+| [`workflows/token-flows/run_snapshot.sh`](./workflows/token-flows/run_snapshot.sh) |
+| [`workflows/ccip-lane-health/run_snapshot.sh`](./workflows/ccip-lane-health/run_snapshot.sh) |
+| [`workflows/curve-pool/run_snapshot.sh`](./workflows/curve-pool/run_snapshot.sh) |
+
+### AI Analysis Endpoint
+
+| File | Description |
+|------|-------------|
+| [`platform/cre_analyze_endpoint.py`](./platform/cre_analyze_endpoint.py) | Flask server called by CRE workflows via HTTPClient for AI risk assessment |
+
+### Dashboard (On-Chain Proof Reader)
+
+| File | Description |
+|------|-------------|
+| [`dashboard/app/api/sentinel/route.ts`](./dashboard/app/api/sentinel/route.ts) | API route reading SentinelRegistry on-chain proof data |
+| [`dashboard/app/api/cre-signals/route.ts`](./dashboard/app/api/cre-signals/route.ts) | API route for CRE workflow signal data |
+| [`dashboard/app/components/SentinelRegistry.tsx`](./dashboard/app/components/SentinelRegistry.tsx) | UI: on-chain proof records with Etherscan links |
+| [`dashboard/app/components/WorkflowGrid.tsx`](./dashboard/app/components/WorkflowGrid.tsx) | UI: workflow grid with CRE capability tags |
+| [`dashboard/lib/db/schema.ts`](./dashboard/lib/db/schema.ts) | Drizzle ORM schema for `sentinel_records` table |
+| [`dashboard/lib/db/queries.ts`](./dashboard/lib/db/queries.ts) | Queries for sentinel proof statistics |
+
+### Documentation
+
+| File | Description |
+|------|-------------|
+| [`CHAINLINK.md`](./CHAINLINK.md) | Complete Chainlink touchpoint map (SDK, EVMClient, Data Feeds, CCIP, HTTPClient, CronCapability, getNetwork) |
+| [`docs/CRE-ECOSYSTEM-REFERENCE.md`](./docs/CRE-ECOSYSTEM-REFERENCE.md) | CRE capabilities, SDK patterns, runtime requirements |
+| [`docs/submission.md`](./docs/submission.md) | Hackathon submission details |
 
 ---
 

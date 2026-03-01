@@ -29,7 +29,7 @@ We built 5 production CRE workflows for stake.link (the largest Chainlink liquid
 
 4. **Morpho Vault Health** — reads Morpho Blue market utilization rates + ERC4626 vault TVL via EVMClient, flags high utilization (liquidity crunch risk).
 
-5. **Token Flows** — tracks SDL + stLINK balances across 50+ classified addresses (NOPs, whales, DEX pools, vesting contracts). Detects large movements that may indicate protocol stress.
+5. **Curve Pool Monitor** — reads the Curve LINK/stLINK StableSwap pool (balances, amplification factor, virtual price) via EVMClient, computes pool imbalance percentage and TVL using LINK/USD Chainlink price feed.
 
 Every workflow run produces an immutable on-chain audit trail: a HealthRecorded event on the SentinelRegistry contract (Sepolia), containing the keccak256 hash of workflow-specific metrics. Risk levels use a prefixed format (`treasury:ok`, `feeds:warning`, `morpho:critical`, etc.) so each proof is tagged with its source workflow. A bridge script (`record-all-snapshots.mjs`) reads live CRE snapshots every 15 minutes and writes proofs on-chain for all 6 data sources — fully autonomous, no manual triggering.
 

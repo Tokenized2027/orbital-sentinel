@@ -1,5 +1,5 @@
 {
-  "name": "typescript-governance-lifecycle",
+  "name": "typescript-ccip-lane-health",
   "version": "1.0.0",
   "main": "dist/main.js",
   "private": true,
@@ -9,6 +9,7 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@chainlink/cre-sdk": "^1.0.9",
+    "viem": "2.34.0",
     "zod": "3.25.76"
   },
   "devDependencies": {

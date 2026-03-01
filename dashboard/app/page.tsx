@@ -12,6 +12,7 @@ import GenericDetail from './components/GenericDetail';
 import SentinelRegistry from './components/SentinelRegistry';
 import Glossary from './components/Glossary';
 import ArchitectureDiagram from './components/ArchitectureDiagram';
+import VerificationGuide from './components/VerificationGuide';
 
 type CREData = {
   ok: boolean;
@@ -106,6 +107,8 @@ export default function Page() {
       <Glossary />
 
       <SentinelRegistry />
+
+      <VerificationGuide />
 
       <ArchitectureDiagram />
 

@@ -2,11 +2,13 @@
 
 This document maps every Chainlink touchpoint in the codebase, as required for hackathon submission.
 
+See also: [CRE Ecosystem Reference](./docs/CRE-ECOSYSTEM-REFERENCE.md) for capabilities, SDK patterns, runtime requirements, and official template repos.
+
 ---
 
 ## 1. `@chainlink/cre-sdk` — Workflow Runtime
 
-All 5 workflows import and use the CRE SDK as their execution runtime:
+All 8 workflows import and use the CRE SDK as their execution runtime:
 
 ```typescript
 import { cre, Runner, consensusIdenticalAggregation, getNetwork, encodeCallMsg } from '@chainlink/cre-sdk';
@@ -19,6 +21,8 @@ import { cre, Runner, consensusIdenticalAggregation, getNetwork, encodeCallMsg }
 | `workflows/price-feeds/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.HTTPClient`, `cre.capabilities.CronCapability`, `consensusIdenticalAggregation`, `getNetwork` |
 | `workflows/morpho-vault-health/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.CronCapability`, `getNetwork`, `encodeCallMsg` |
 | `workflows/token-flows/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.CronCapability`, `getNetwork`, `encodeCallMsg` |
+| `workflows/ccip-lane-health/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.CronCapability`, `getNetwork`, `encodeCallMsg` |
+| `workflows/curve-pool/my-workflow/main.ts` | `Runner`, `cre.capabilities.EVMClient`, `cre.capabilities.CronCapability`, `getNetwork`, `encodeCallMsg` |
 
 ---
 
@@ -75,6 +79,21 @@ Reads ERC20 balances and vesting schedules across 50+ classified addresses:
 evmClient.callContract(runtime, { call: encodeCallMsg({ to: tokenAddress, data: balanceOf(address) }) })
 ```
 
+### `workflows/ccip-lane-health/my-workflow/main.ts`
+
+Reads CCIP infrastructure contracts on Ethereum mainnet:
+
+```typescript
+// CCIP Router — lane configuration check
+evmClient.callContract(runtime, { call: encodeCallMsg({ to: routerAddress, data: getOnRamp(destChainSelector) }) })
+// OnRamp — paused state
+evmClient.callContract(runtime, { call: encodeCallMsg({ to: onRampAddress, data: paused() }) })
+// LockReleaseTokenPool — rate limiter bucket state
+evmClient.callContract(runtime, { call: encodeCallMsg({ to: poolAddress, data: getCurrentOutboundRateLimiterState(destChainSelector) }) })
+```
+
+ABI files: `workflows/ccip-lane-health/contracts/abi/CCIPRouter.ts`, `CCIPOnRamp.ts`, `LockReleaseTokenPool.ts`
+
 ---
 
 ## 3. Chainlink CRE HTTP Client — Deterministic Off-Chain Fetches
@@ -111,12 +130,14 @@ Schedules:
 - `price-feeds`: every 15 minutes
 - `morpho-vault-health`: every 15 minutes
 - `token-flows`: every 30 minutes
+- `ccip-lane-health`: every 30 minutes
+- `curve-pool`: every 15 minutes
 
 ---
 
 ## 5. SentinelRegistry.sol — On-Chain Write (Sepolia)
 
-**All 5 CRE workflows** write verifiable proof hashes to `OrbitalSentinelRegistry` on Sepolia after each run. A bridge script (`scripts/record-all-snapshots.mjs`) reads live CRE snapshots and writes proofs on-chain every 15 minutes via cron.
+**All 7 CRE workflows** write verifiable proof hashes to `OrbitalSentinelRegistry` on Sepolia after each run. A bridge script (`scripts/record-all-snapshots.mjs`) reads live CRE snapshots and writes proofs on-chain every 15 minutes via cron.
 
 **File:** `contracts/SentinelRegistry.sol`
 
@@ -165,11 +186,12 @@ const sepoliaNet = getNetwork({ chainFamily: 'evm', chainSelectorName: 'ethereum
 
 | Chainlink Component | Where Used |
 |---------------------|-----------|
-| `@chainlink/cre-sdk` Runner + handler | All 5 workflow `main.ts` files |
-| `EVMClient.callContract()` | All 5 workflows (mainnet reads + Sepolia writes) |
+| `@chainlink/cre-sdk` Runner + handler | All 8 workflow `main.ts` files |
+| `EVMClient.callContract()` | All 8 workflows (mainnet reads + Sepolia writes) |
 | Chainlink Data Feeds (LINK/USD, ETH/USD) | `workflows/price-feeds/my-workflow/main.ts` |
+| CCIP Router + OnRamp + TokenPool | `workflows/ccip-lane-health/my-workflow/main.ts` |
 | `HTTPClient` + `consensusIdenticalAggregation` | treasury-risk, governance-monitor, price-feeds |
-| `CronCapability` | All 5 workflows |
-| `getNetwork()` chain selector | All 5 workflows (mainnet + Sepolia) |
-| `SentinelRegistry.sol` (on-chain write) | All 5 workflow `main.ts` files + `scripts/record-all-snapshots.mjs` |
-| `encodeCallMsg` | All 5 workflows |
+| `CronCapability` | All 8 workflows |
+| `getNetwork()` chain selector | All 8 workflows (mainnet + Sepolia) |
+| `SentinelRegistry.sol` (on-chain write) | All 8 workflow `main.ts` files + `scripts/record-all-snapshots.mjs` |
+| `encodeCallMsg` | All 8 workflows |

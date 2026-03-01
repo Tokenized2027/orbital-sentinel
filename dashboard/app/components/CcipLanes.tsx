@@ -23,6 +23,7 @@ type Workflow = {
 
 const CHAIN_COLORS: Record<string, string> = {
   'arbitrum-one': '#12AAFF',
+  'avalanche-mainnet': '#E84142',
   'base-mainnet': '#0052FF',
   'polygon-mainnet': '#8247E5',
 };
@@ -38,7 +39,7 @@ export default function CcipLanes({ workflow }: { workflow: Workflow | null }) {
   return (
     <div className="card card-neon">
       <SectionHeader
-        title="CCIP Lanes"
+        title="wstLINK CCIP Lanes"
         right={
           <span style={{ fontSize: 14, color: 'var(--t2)' }}>
             {okCount}/{total} lanes operational
@@ -55,7 +56,7 @@ export default function CcipLanes({ workflow }: { workflow: Workflow | null }) {
               <span style={{ fontSize: 14, color: 'var(--t1)', fontWeight: 500 }}>
                 {lane.destChainName.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
               </span>
-              {lane.configured && <Badge risk="info">Configured</Badge>}
+
             </div>
             {lane.rateLimiter?.isEnabled && (
               <div style={{ maxWidth: 200 }}>

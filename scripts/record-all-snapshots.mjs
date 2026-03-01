@@ -2,7 +2,7 @@
 /**
  * Orbital Sentinel — Real CRE snapshot → on-chain proof bridge.
  *
- * Reads the 6 CRE snapshot JSON files produced by the Orbital orchestration
+ * Reads the 8 CRE snapshot JSON files produced by the Orbital orchestration
  * and writes keccak256 proof hashes to SentinelRegistry on Sepolia.
  *
  * Only writes when a snapshot has changed (compares generated_at_utc).
@@ -12,6 +12,7 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import pg from 'pg';
 import {
   createWalletClient,
   createPublicClient,
@@ -63,17 +64,49 @@ const registryAbi = [
 
 const WORKFLOWS = [
   {
+    key: 'stlink-arb',
+    file: 'cre_stlink_arb_snapshot.json',
+    extractRisk: (d) => {
+      const signal = d.signal ?? 'wait';
+      if (signal === 'execute') return 'ok';
+      if (signal === 'unprofitable' || signal === 'pool_closed' || signal === 'no_stlink') return 'warning';
+      return 'ok'; // 'wait' is normal
+    },
+    hashFields: (d) => {
+      const ts = BigInt(Math.floor(new Date(d.generated_at_utc || d.metadata?.timestamp).getTime() / 1000));
+      const signal = d.signal ?? 'wait';
+      const premium = BigInt(d.premiumQuotes?.[0]?.premiumBps ?? 0);
+      const linkBal = BigInt(d.poolState?.linkBalance ?? '0');
+      const risk = signal === 'execute' ? 'ok' : signal === 'wait' ? 'ok' : 'warning';
+      return encodeAbiParameters(
+        parseAbiParameters('uint256 ts, string wf, string signal, uint256 premium, uint256 linkBal'),
+        [ts, 'stlink-arb', risk, premium, linkBal],
+      );
+    },
+  },
+  {
     key: 'treasury',
     file: 'cre_treasury_snapshot.json',
     extractRisk: (d) => d.overallRisk ?? 'ok',
     hashFields: (d) => {
       const ts = BigInt(Math.floor(new Date(d.generated_at_utc).getTime() / 1000));
       const risk = d.overallRisk ?? 'ok';
-      const fillPct = BigInt(Math.round((d.staking?.community?.fillPct ?? 0) * 1e4));
-      const runway = BigInt(Math.round((d.rewards?.runwayDays ?? 0) * 100));
+      // Community pool
+      const communityStaked = BigInt(Math.round(Number(d.staking?.community?.staked ?? 0)));
+      const communityCap = BigInt(Math.round(Number(d.staking?.community?.cap ?? 0)));
+      const communityFillPct = BigInt(Math.round((d.staking?.community?.fillPct ?? 0) * 100));
+      // Operator pool
+      const operatorStaked = BigInt(Math.round(Number(d.staking?.operator?.staked ?? 0)));
+      const operatorCap = BigInt(Math.round(Number(d.staking?.operator?.cap ?? 0)));
+      const operatorFillPct = BigInt(Math.round((d.staking?.operator?.fillPct ?? 0) * 100));
+      // Priority pool queue
+      const queueLink = BigInt(Math.round(Number(d.queue?.queueLink ?? 0)));
+      // Rewards vault
+      const vaultBalance = BigInt(Math.round(Number(d.rewards?.vaultBalance ?? 0)));
+      const runwayDays = BigInt(Math.round((d.rewards?.runwayDays ?? 0) * 100));
       return encodeAbiParameters(
-        parseAbiParameters('uint256 ts, string wf, string risk, uint256 fillPct, uint256 runway'),
-        [ts, 'treasury', risk, fillPct, runway],
+        parseAbiParameters('uint256 ts, string wf, string risk, uint256 communityStaked, uint256 communityCap, uint256 communityFillPct, uint256 operatorStaked, uint256 operatorCap, uint256 operatorFillPct, uint256 queueLink, uint256 vaultBalance, uint256 runwayDays'),
+        [ts, 'treasury', risk, communityStaked, communityCap, communityFillPct, operatorStaked, operatorCap, operatorFillPct, queueLink, vaultBalance, runwayDays],
       );
     },
   },
@@ -89,12 +122,16 @@ const WORKFLOWS = [
     },
     hashFields: (d) => {
       const ts = BigInt(Math.floor(new Date(d.generated_at_utc).getTime() / 1000));
-      const ratio = BigInt(Math.round((d.monitor?.stlinkLinkPriceRatio ?? 0) * 1e6));
-      const bps = BigInt(Math.round((d.monitor?.depegBps ?? 0) * 100));
       const risk = d.monitor?.depegStatus === 'healthy' ? 'ok' : (d.monitor?.depegStatus ?? 'ok');
+      // stLINK/LINK ratio (6 decimal precision)
+      const ratio = BigInt(Math.round((d.monitor?.stlinkLinkPriceRatio ?? 0) * 1e6));
+      const depegBps = BigInt(Math.round((d.monitor?.depegBps ?? 0) * 100));
+      // Oracle prices (8 decimal precision, matching Chainlink feed decimals)
+      const linkUsd = BigInt(Math.round((d.monitor?.linkUsd ?? 0) * 1e8));
+      const ethUsd = BigInt(Math.round((d.monitor?.ethUsd ?? 0) * 1e8));
       return encodeAbiParameters(
-        parseAbiParameters('uint256 ts, string wf, string risk, uint256 ratio, uint256 bps'),
-        [ts, 'feeds', risk, ratio, bps],
+        parseAbiParameters('uint256 ts, string wf, string risk, uint256 ratio, uint256 depegBps, uint256 linkUsd, uint256 ethUsd'),
+        [ts, 'feeds', risk, ratio, depegBps, linkUsd, ethUsd],
       );
     },
   },
@@ -107,9 +144,40 @@ const WORKFLOWS = [
       const active = BigInt(d.summary?.activeProposals ?? 0);
       const urgent = BigInt(d.summary?.urgentProposals ?? 0);
       const risk = d.summary?.urgentProposals > 0 ? 'warning' : 'ok';
+
+      // Extract 7 most recent SLURPs with vote outcomes
+      const proposals = (d.proposals ?? []);
+      const slurps = proposals
+        .filter((p) => /SLURP[- ]?\d+/i.test(p.title))
+        .slice(0, 7);
+
+      // Encode each SLURP: number, yesPct (basis points), votes, passed (1/0)
+      const slurpData = slurps.map((p) => {
+        const m = p.title.match(/SLURP[- ]?(\d+)/i);
+        const num = BigInt(m ? m[1] : 0);
+        const total = p.scores_total || 1;
+        const yesPct = BigInt(Math.round(((p.scores?.[0] ?? 0) / total) * 10000));
+        const votes = BigInt(p.votes ?? 0);
+        const passed = BigInt((p.scores?.[0] ?? 0) > (p.scores?.[1] ?? 0) ? 1 : 0);
+        return { num, yesPct, votes, passed };
+      });
+
+      // Pack SLURP numbers into a single uint256 (7 x 16-bit values)
+      let slurpNums = 0n;
+      let slurpYesPcts = 0n;
+      let slurpVotes = 0n;
+      let slurpOutcomes = 0n;
+      for (let i = 0; i < 7; i++) {
+        const s = slurpData[i] ?? { num: 0n, yesPct: 0n, votes: 0n, passed: 0n };
+        slurpNums |= (s.num & 0xFFFFn) << BigInt(i * 16);
+        slurpYesPcts |= (s.yesPct & 0xFFFFn) << BigInt(i * 16);
+        slurpVotes |= (s.votes & 0xFFFFn) << BigInt(i * 16);
+        slurpOutcomes |= (s.passed & 0x1n) << BigInt(i);
+      }
+
       return encodeAbiParameters(
-        parseAbiParameters('uint256 ts, string wf, string risk, uint256 active, uint256 urgent'),
-        [ts, 'governance', risk, active, urgent],
+        parseAbiParameters('uint256 ts, string wf, string risk, uint256 active, uint256 urgent, uint256 slurpNums, uint256 slurpYesPcts, uint256 slurpVotes, uint256 slurpOutcomes'),
+        [ts, 'governance', risk, active, urgent, slurpNums, slurpYesPcts, slurpVotes, slurpOutcomes],
       );
     },
   },
@@ -124,27 +192,47 @@ const WORKFLOWS = [
     },
     hashFields: (d) => {
       const ts = BigInt(Math.floor(new Date(d.generated_at_utc).getTime() / 1000));
-      const util = BigInt(Math.round((d.morphoMarket?.utilization ?? 0) * 1e6));
-      const totalSupply = BigInt(d.vault?.totalSupply?.replace?.(/\D/g, '') ?? '0');
       const util01 = d.morphoMarket?.utilization ?? 0;
       const risk = util01 > 0.95 ? 'critical' : util01 > 0.85 ? 'warning' : 'ok';
+      // Utilization (6 decimal precision)
+      const util = BigInt(Math.round(util01 * 1e6));
+      // Supply & borrow (raw wei values, truncated to whole tokens for hash)
+      const totalSupplyAssets = BigInt(d.morphoMarket?.totalSupplyAssets ?? '0') / (10n ** 18n);
+      const totalBorrowAssets = BigInt(d.morphoMarket?.totalBorrowAssets ?? '0') / (10n ** 18n);
+      // Vault share price (6 decimal precision)
+      const sharePrice = BigInt(Math.round((d.vault?.sharePrice ?? 0) * 1e6));
+      // Vault total assets (whole tokens)
+      const vaultTotalAssets = BigInt(d.vault?.totalAssets ?? '0') / (10n ** 18n);
       return encodeAbiParameters(
-        parseAbiParameters('uint256 ts, string wf, string risk, uint256 util, uint256 supply'),
-        [ts, 'morpho', risk, util, totalSupply],
+        parseAbiParameters('uint256 ts, string wf, string risk, uint256 util, uint256 totalSupply, uint256 totalBorrow, uint256 sharePrice, uint256 vaultAssets'),
+        [ts, 'morpho', risk, util, totalSupplyAssets, totalBorrowAssets, sharePrice, vaultTotalAssets],
       );
     },
   },
   {
-    key: 'flows',
-    file: 'cre_sdl_flows_snapshot.json',
-    extractRisk: () => 'ok',
+    key: 'curve',
+    file: 'cre_curve_pool_snapshot.json',
+    extractRisk: (d) => {
+      const imbalance = d.pool?.imbalancePct ?? 0;
+      if (imbalance > 30) return 'critical';
+      if (imbalance > 15) return 'warning';
+      return 'ok';
+    },
     hashFields: (d) => {
       const ts = BigInt(Math.floor(new Date(d.generated_at_utc).getTime() / 1000));
-      const totalSdl = BigInt(d.totals?.totalSdlTracked?.slice?.(0, 20) ?? '0');
-      const addrCount = BigInt(d.metadata?.addressCount ?? 0);
+      const risk = (d.pool?.imbalancePct ?? 0) > 30 ? 'critical' : (d.pool?.imbalancePct ?? 0) > 15 ? 'warning' : 'ok';
+      // Pool composition (whole tokens)
+      const linkBalance = BigInt(Math.round(d.pool?.linkBalance ?? 0));
+      const stlinkBalance = BigInt(Math.round(d.pool?.stlinkBalance ?? 0));
+      const imbalancePct = BigInt(Math.round((d.pool?.imbalancePct ?? 0) * 100));
+      // Pool metrics (6 decimal precision for virtualPrice)
+      const virtualPrice = BigInt(Math.round((d.pool?.virtualPrice ?? 0) * 1e6));
+      const tvlUsd = BigInt(Math.round(d.pool?.tvlUsd ?? 0));
+      // LINK price from oracle (8 decimals)
+      const linkUsd = BigInt(Math.round((d.prices?.linkUsd ?? 0) * 1e8));
       return encodeAbiParameters(
-        parseAbiParameters('uint256 ts, string wf, string risk, uint256 totalSdl, uint256 addrCount'),
-        [ts, 'flows', 'ok', totalSdl, addrCount],
+        parseAbiParameters('uint256 ts, string wf, string risk, uint256 linkBalance, uint256 stlinkBalance, uint256 imbalancePct, uint256 virtualPrice, uint256 tvlUsd, uint256 linkUsd'),
+        [ts, 'curve', risk, linkBalance, stlinkBalance, imbalancePct, virtualPrice, tvlUsd, linkUsd],
       );
     },
   },
@@ -214,6 +302,26 @@ async function writeOnChain(snapshotHash, riskLevel) {
   throw new Error(`All ${RPC_URLS.length} RPCs failed. Last: ${lastErr?.message || lastErr}`);
 }
 
+// ── Database ──────────────────────────────────────────────────────────
+
+const DB_URL = 'postgresql://devuser:Mbwet%2FF%2F7ENsFDXOgd8HJOOC1JJwQsL5@localhost:5432/sdl_analytics';
+let _pool = null;
+
+function getPool() {
+  if (!_pool) _pool = new pg.Pool({ connectionString: DB_URL, max: 2 });
+  return _pool;
+}
+
+async function insertRecord({ snapshotHash, riskLevel, blockTimestamp, blockNumber, txHash, recorder }) {
+  const pool = getPool();
+  await pool.query(
+    `INSERT INTO sentinel_records (protocol_id, snapshot_hash, risk_level, block_timestamp, block_number, tx_hash, recorder)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     ON CONFLICT ON CONSTRAINT uq_sentinel_tx DO NOTHING`,
+    ['stake.link', snapshotHash, riskLevel, blockTimestamp, blockNumber, txHash, recorder],
+  );
+}
+
 // ── Main ───────────────────────────────────────────────────────────────
 
 async function main() {
@@ -261,6 +369,22 @@ async function main() {
       const result = await writeOnChain(snapshotHash, riskLevel);
       log(`[${wf.key}] TX ${result.txHash} — block ${result.blockNumber} status=${result.status}`);
 
+      // Insert into dashboard DB
+      try {
+        const account = privateKeyToAccount(DEPLOYER_KEY);
+        await insertRecord({
+          snapshotHash,
+          riskLevel,
+          blockTimestamp: new Date(),
+          blockNumber: Number(result.blockNumber),
+          txHash: result.txHash,
+          recorder: account.address,
+        });
+        log(`[${wf.key}] DB record inserted`);
+      } catch (dbErr) {
+        log(`[${wf.key}] DB insert failed (non-critical): ${dbErr.message}`);
+      }
+
       state[wf.key] = generatedAt;
       successes++;
     } catch (err) {
@@ -282,6 +406,9 @@ async function main() {
     });
     log(`Total on-chain records: ${count}`);
   } catch { /* non-critical */ }
+
+  // Close DB pool
+  if (_pool) await _pool.end();
 
   log(`Done — ${successes} written, ${skips} skipped, ${failures} failed`);
 

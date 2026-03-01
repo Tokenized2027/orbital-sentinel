@@ -1,0 +1,20 @@
+{
+  "schedule": "0 */30 * * * *",
+  "chainName": "ethereum-mainnet",
+  "routerAddress": "0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D",
+  "linkTokenPoolAddress": "YOUR_LINK_TOKEN_POOL_ADDRESS",
+  "lanes": [
+    {
+      "destChainName": "arbitrum-one",
+      "destChainSelector": "4949039107694359620"
+    },
+    {
+      "destChainName": "base-mainnet",
+      "destChainSelector": "15971525489660198786"
+    }
+  ],
+  "thresholds": {
+    "rateLimiterCapacityPctWarning": 20,
+    "rateLimiterCapacityPctCritical": 5
+  }
+}

@@ -9,7 +9,7 @@ import {
 } from '@chainlink/cre-sdk';
 import { encodeFunctionData, decodeFunctionResult, formatUnits, keccak256, encodeAbiParameters, parseAbiParameters, type Address, zeroAddress } from 'viem';
 import { z } from 'zod';
-import { ERC20, SDLVesting } from '../contracts/abi';
+import { ERC20, SDLVesting, Multicall3 } from '../contracts/abi';
 import { SentinelRegistry } from '../contracts/abi/SentinelRegistry';
 import {
 	SDL_TOKEN,
@@ -19,6 +19,10 @@ import {
 	VESTING_CONTRACTS,
 	type AddressEntry,
 } from './addresses';
+
+// ---------- Constants ----------
+
+const MULTICALL3_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11';
 
 // ---------- Config ----------
 
@@ -99,42 +103,33 @@ function callContract(
 	return resp.data;
 }
 
-function readBalance(
+type Call3 = { target: Address; allowFailure: boolean; callData: `0x${string}` };
+
+function batchMulticall(
 	runtime: Runtime<Config>,
 	evmClient: InstanceType<typeof cre.capabilities.EVMClient>,
-	tokenAddress: string,
-	holder: string,
-): bigint {
-	const callData = encodeFunctionData({
-		abi: ERC20,
-		functionName: 'balanceOf',
-		args: [holder as Address],
+	calls: Call3[],
+): Array<{ success: boolean; returnData: `0x${string}` }> {
+	const multicallData = encodeFunctionData({
+		abi: Multicall3,
+		functionName: 'aggregate3',
+		args: [calls],
 	});
-	const raw = callContract(runtime, evmClient, tokenAddress, callData);
+	const rawResult = callContract(runtime, evmClient, MULTICALL3_ADDRESS, multicallData);
 	return decodeFunctionResult({
-		abi: ERC20,
-		functionName: 'balanceOf',
-		data: bytesToHex(raw),
-	}) as bigint;
+		abi: Multicall3,
+		functionName: 'aggregate3',
+		data: bytesToHex(rawResult),
+	}) as unknown as Array<{ success: boolean; returnData: `0x${string}` }>;
 }
 
-function readReleasable(
-	runtime: Runtime<Config>,
-	evmClient: InstanceType<typeof cre.capabilities.EVMClient>,
-	vestingContract: string,
-	beneficiary: string,
-): bigint {
+function decodeUint256(returnData: `0x${string}`): bigint {
+	if (returnData.length <= 2) return 0n;
 	try {
-		const callData = encodeFunctionData({
-			abi: SDLVesting,
-			functionName: 'releasableAmount',
-			args: [beneficiary as Address],
-		});
-		const raw = callContract(runtime, evmClient, vestingContract, callData);
 		return decodeFunctionResult({
-			abi: SDLVesting,
-			functionName: 'releasableAmount',
-			data: bytesToHex(raw),
+			abi: ERC20,
+			functionName: 'balanceOf',
+			data: returnData,
 		}) as bigint;
 	} catch {
 		return 0n;
@@ -147,25 +142,68 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 	const evmClient = getEvmClient(runtime.config.chainName);
 
 	const allAddresses = getAllAddresses();
-	const stLinkAddresses = new Set(
-		getStLinkTrackedAddresses().map((a) => a.address.toLowerCase()),
+	const stLinkAddresses = getStLinkTrackedAddresses();
+	const stLinkSet = new Set(
+		stLinkAddresses.map((a) => a.address.toLowerCase()),
 	);
 
-	// Read SDL balances for all addresses
+	// Build batch: SDL balances + stLINK balances + vesting — all in one multicall
+	const calls: Call3[] = [];
+
+	// SDL balanceOf for all addresses (indices 0..allAddresses.length-1)
+	for (const entry of allAddresses) {
+		calls.push({
+			target: SDL_TOKEN as Address,
+			allowFailure: true,
+			callData: encodeFunctionData({
+				abi: ERC20,
+				functionName: 'balanceOf',
+				args: [entry.address as Address],
+			}),
+		});
+	}
+	const sdlCount = allAddresses.length;
+
+	// stLINK balanceOf for tracked addresses (indices sdlCount..sdlCount+stLinkAddresses.length-1)
+	for (const entry of stLinkAddresses) {
+		calls.push({
+			target: STLINK_TOKEN as Address,
+			allowFailure: true,
+			callData: encodeFunctionData({
+				abi: ERC20,
+				functionName: 'balanceOf',
+				args: [entry.address as Address],
+			}),
+		});
+	}
+	const stLinkCount = stLinkAddresses.length;
+
+	// Vesting releasableAmount (indices sdlCount+stLinkCount..)
+	for (const vc of VESTING_CONTRACTS) {
+		calls.push({
+			target: vc.address as Address,
+			allowFailure: true,
+			callData: encodeFunctionData({
+				abi: SDLVesting,
+				functionName: 'releasableAmount',
+				args: [vc.beneficiary as Address],
+			}),
+		});
+	}
+
+	// Execute single multicall (1 CRE callContract instead of 67)
+	const results = batchMulticall(runtime, evmClient, calls);
+
+	// Parse SDL balances
 	const balances: BalanceEntry[] = [];
 	let totalSdl = 0n;
 	let totalStLink = 0n;
 	let nopSdl = 0n;
 	let protocolSdl = 0n;
 
-	for (const entry of allAddresses) {
-		const sdlBal = readBalance(runtime, evmClient, SDL_TOKEN, entry.address);
-		let stLinkBal: bigint | null = null;
-
-		if (stLinkAddresses.has(entry.address.toLowerCase())) {
-			stLinkBal = readBalance(runtime, evmClient, STLINK_TOKEN, entry.address);
-			totalStLink += stLinkBal;
-		}
+	for (let i = 0; i < allAddresses.length; i++) {
+		const entry = allAddresses[i];
+		const sdlBal = results[i].success ? decodeUint256(results[i].returnData) : 0n;
 
 		totalSdl += sdlBal;
 		if (entry.group === 'nop' || entry.group === 'nop_sub') {
@@ -180,14 +218,40 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 			label: entry.label,
 			group: entry.group,
 			sdlBalance: sdlBal.toString(),
-			stLinkBalance: stLinkBal !== null ? stLinkBal.toString() : null,
+			stLinkBalance: null,
 		});
 	}
 
-	// Read vesting contract releasable amounts
+	// Parse stLINK balances
+	for (let i = 0; i < stLinkAddresses.length; i++) {
+		const entry = stLinkAddresses[i];
+		const stLinkBal = results[sdlCount + i].success ? decodeUint256(results[sdlCount + i].returnData) : 0n;
+
+		totalStLink += stLinkBal;
+
+		const balanceEntry = balances.find((b) => b.address.toLowerCase() === entry.address.toLowerCase());
+		if (balanceEntry) {
+			balanceEntry.stLinkBalance = stLinkBal.toString();
+		}
+	}
+
+	// Parse vesting results
 	const vestingResults: VestingResult[] = [];
-	for (const vc of VESTING_CONTRACTS) {
-		const releasable = readReleasable(runtime, evmClient, vc.address, vc.beneficiary);
+	for (let i = 0; i < VESTING_CONTRACTS.length; i++) {
+		const vc = VESTING_CONTRACTS[i];
+		const result = results[sdlCount + stLinkCount + i];
+		let releasable = 0n;
+		if (result.success && result.returnData.length > 2) {
+			try {
+				releasable = decodeFunctionResult({
+					abi: SDLVesting,
+					functionName: 'releasableAmount',
+					data: result.returnData,
+				}) as bigint;
+			} catch {
+				releasable = 0n;
+			}
+		}
 		vestingResults.push({
 			address: vc.address,
 			beneficiary: vc.beneficiary,

@@ -1,4 +1,5 @@
 import {
+	bytesToHex,
 	consensusIdenticalAggregation,
 	cre,
 	encodeCallMsg,
@@ -19,6 +20,7 @@ import {
 } from 'viem';
 import { z } from 'zod';
 import { CurvePool } from '../contracts/abi/CurvePool';
+import { CurveGauge } from '../contracts/abi/CurveGauge';
 import { PriceFeedAggregator } from '../contracts/abi/PriceFeedAggregator';
 import { SentinelRegistry } from '../contracts/abi/SentinelRegistry';
 
@@ -30,6 +32,7 @@ const configSchema = z.object({
 	contracts: z.object({
 		curvePool: z.string(),
 		linkUsdFeed: z.string(),
+		gauge: z.string().optional(),
 	}),
 	thresholds: z.object({
 		imbalancePctWarning: z.number().default(15),
@@ -65,6 +68,20 @@ type PoolSnapshot = {
 	risk: RiskLevel;
 };
 
+type GaugeReward = {
+	token: string;
+	ratePerSecond: string;
+	periodFinish: number;
+	isActive: boolean;
+};
+
+type GaugeSnapshot = {
+	totalStaked: string;
+	rewardCount: number;
+	rewards: GaugeReward[];
+	inflationRate: string;
+};
+
 type CurvePoolOutputPayload = {
 	timestamp: string;
 	chainName: string;
@@ -72,6 +89,7 @@ type CurvePoolOutputPayload = {
 	prices: {
 		linkUsd: number;
 	};
+	gauge?: GaugeSnapshot;
 	overallRisk: RiskLevel;
 	alerts: string[];
 	registryTx?: string;
@@ -91,6 +109,91 @@ function safeJsonStringify(obj: unknown): string {
 	} catch {
 		return '{"error":"serialization_failed"}';
 	}
+}
+
+// ---------- Gauge reader ----------
+
+function readGauge(
+	runtime: Runtime<Config>,
+	evmClient: InstanceType<typeof cre.capabilities.EVMClient>,
+	gaugeAddress: Address,
+): GaugeSnapshot {
+	// totalSupply (LP tokens staked in gauge)
+	const tsCallData = encodeFunctionData({ abi: CurveGauge, functionName: 'totalSupply' });
+	const tsResp = evmClient.callContract(runtime, {
+		call: encodeCallMsg({ from: zeroAddress, to: gaugeAddress, data: tsCallData }),
+	}).result();
+	const totalStaked = decodeFunctionResult({
+		abi: CurveGauge, functionName: 'totalSupply', data: bytesToHex(tsResp.data),
+	}) as bigint;
+
+	// inflation_rate (CRV per second for this gauge)
+	let inflationRate = 0n;
+	try {
+		const irCallData = encodeFunctionData({ abi: CurveGauge, functionName: 'inflation_rate' });
+		const irResp = evmClient.callContract(runtime, {
+			call: encodeCallMsg({ from: zeroAddress, to: gaugeAddress, data: irCallData }),
+		}).result();
+		inflationRate = decodeFunctionResult({
+			abi: CurveGauge, functionName: 'inflation_rate', data: bytesToHex(irResp.data),
+		}) as bigint;
+	} catch (e) {
+		runtime.log(`inflation_rate read failed (may not exist on this gauge type): ${e instanceof Error ? e.message : String(e)}`);
+	}
+
+	// reward_count
+	const rcCallData = encodeFunctionData({ abi: CurveGauge, functionName: 'reward_count' });
+	const rcResp = evmClient.callContract(runtime, {
+		call: encodeCallMsg({ from: zeroAddress, to: gaugeAddress, data: rcCallData }),
+	}).result();
+	const rewardCount = Number(decodeFunctionResult({
+		abi: CurveGauge, functionName: 'reward_count', data: bytesToHex(rcResp.data),
+	}) as bigint);
+
+	const rewards: GaugeReward[] = [];
+	const now = Math.floor(Date.now() / 1000);
+
+	for (let i = 0; i < rewardCount; i++) {
+		// reward_tokens(i)
+		const rtCallData = encodeFunctionData({ abi: CurveGauge, functionName: 'reward_tokens', args: [BigInt(i)] });
+		const rtResp = evmClient.callContract(runtime, {
+			call: encodeCallMsg({ from: zeroAddress, to: gaugeAddress, data: rtCallData }),
+		}).result();
+		const tokenAddr = decodeFunctionResult({
+			abi: CurveGauge, functionName: 'reward_tokens', data: bytesToHex(rtResp.data),
+		}) as string;
+
+		// reward_data(token)
+		const rdCallData = encodeFunctionData({ abi: CurveGauge, functionName: 'reward_data', args: [tokenAddr as Address] });
+		const rdResp = evmClient.callContract(runtime, {
+			call: encodeCallMsg({ from: zeroAddress, to: gaugeAddress, data: rdCallData }),
+		}).result();
+		const rewardData = decodeFunctionResult({
+			abi: CurveGauge, functionName: 'reward_data', data: bytesToHex(rdResp.data),
+		}) as readonly [string, bigint, bigint, bigint, bigint];
+
+		const [_distributor, periodFinishBig, rateBig, _lastUpdate, _integral] = rewardData;
+		const periodFinish = Number(periodFinishBig);
+		const isActive = periodFinish > now && rateBig > 0n;
+
+		rewards.push({
+			token: tokenAddr,
+			ratePerSecond: rateBig.toString(),
+			periodFinish,
+			isActive,
+		});
+
+		runtime.log(`Gauge reward #${i}: token=${tokenAddr} rate=${formatUnits(rateBig, 18)}/s active=${isActive} periodFinish=${periodFinish}`);
+	}
+
+	runtime.log(`Gauge | staked=${formatUnits(totalStaked, 18)} LP | ${rewardCount} reward tokens | CRV inflation=${formatUnits(inflationRate, 18)}/s`);
+
+	return {
+		totalStaked: totalStaked.toString(),
+		rewardCount,
+		rewards,
+		inflationRate: inflationRate.toString(),
+	};
 }
 
 // ---------- Workflow ----------
@@ -113,27 +216,21 @@ async function onCron(runtime: Runtime<Config>, _trigger: CronPayload) {
 	const ampCallData = encodeFunctionData({ abi: CurvePool, functionName: 'A' });
 	const vpCallData = encodeFunctionData({ abi: CurvePool, functionName: 'get_virtual_price' });
 
-	let rawBal0: string, rawBal1: string, rawAmp: string, rawVP: string;
+	let r0Resp: any, r1Resp: any, rAResp: any, rVResp: any;
 	try {
-		const [r0, r1, rA, rV] = [
-			evmClient.callContract(runtime, { call: encodeCallMsg({ from: zeroAddress, to: poolAddress, data: bal0CallData }) }).result(),
-			evmClient.callContract(runtime, { call: encodeCallMsg({ from: zeroAddress, to: poolAddress, data: bal1CallData }) }).result(),
-			evmClient.callContract(runtime, { call: encodeCallMsg({ from: zeroAddress, to: poolAddress, data: ampCallData }) }).result(),
-			evmClient.callContract(runtime, { call: encodeCallMsg({ from: zeroAddress, to: poolAddress, data: vpCallData }) }).result(),
-		];
-		rawBal0 = r0;
-		rawBal1 = r1;
-		rawAmp = rA;
-		rawVP = rV;
+		r0Resp = evmClient.callContract(runtime, { call: encodeCallMsg({ from: zeroAddress, to: poolAddress, data: bal0CallData }) }).result();
+		r1Resp = evmClient.callContract(runtime, { call: encodeCallMsg({ from: zeroAddress, to: poolAddress, data: bal1CallData }) }).result();
+		rAResp = evmClient.callContract(runtime, { call: encodeCallMsg({ from: zeroAddress, to: poolAddress, data: ampCallData }) }).result();
+		rVResp = evmClient.callContract(runtime, { call: encodeCallMsg({ from: zeroAddress, to: poolAddress, data: vpCallData }) }).result();
 	} catch (e) {
 		runtime.log(`Curve pool read failed: ${e instanceof Error ? e.message : String(e)}`);
 		throw e;
 	}
 
-	const bal0 = decodeFunctionResult({ abi: CurvePool, functionName: 'balances', data: rawBal0 as `0x${string}` });
-	const bal1 = decodeFunctionResult({ abi: CurvePool, functionName: 'balances', data: rawBal1 as `0x${string}` });
-	const amp = decodeFunctionResult({ abi: CurvePool, functionName: 'A', data: rawAmp as `0x${string}` });
-	const vp = decodeFunctionResult({ abi: CurvePool, functionName: 'get_virtual_price', data: rawVP as `0x${string}` });
+	const bal0 = decodeFunctionResult({ abi: CurvePool, functionName: 'balances', data: bytesToHex(r0Resp.data) });
+	const bal1 = decodeFunctionResult({ abi: CurvePool, functionName: 'balances', data: bytesToHex(r1Resp.data) });
+	const amp = decodeFunctionResult({ abi: CurvePool, functionName: 'A', data: bytesToHex(rAResp.data) });
+	const vp = decodeFunctionResult({ abi: CurvePool, functionName: 'get_virtual_price', data: bytesToHex(rVResp.data) });
 
 	// Both LINK and stLINK are 18 decimals
 	const stlinkBalance = Number(formatUnits(bal0 as bigint, 18));
@@ -155,15 +252,15 @@ async function onCron(runtime: Runtime<Config>, _trigger: CronPayload) {
 
 	let linkUsd = 0;
 	try {
-		const rawRound = evmClient.callContract(runtime, {
+		const roundResp = evmClient.callContract(runtime, {
 			call: encodeCallMsg({ from: zeroAddress, to: linkFeedAddress, data: latestRoundCallData }),
 		}).result();
-		const rawDecimals = evmClient.callContract(runtime, {
+		const decResp = evmClient.callContract(runtime, {
 			call: encodeCallMsg({ from: zeroAddress, to: linkFeedAddress, data: decimalsCallData }),
 		}).result();
 
-		const roundData = decodeFunctionResult({ abi: PriceFeedAggregator, functionName: 'latestRoundData', data: rawRound as `0x${string}` });
-		const feedDecimals = decodeFunctionResult({ abi: PriceFeedAggregator, functionName: 'decimals', data: rawDecimals as `0x${string}` });
+		const roundData = decodeFunctionResult({ abi: PriceFeedAggregator, functionName: 'latestRoundData', data: bytesToHex(roundResp.data) });
+		const feedDecimals = decodeFunctionResult({ abi: PriceFeedAggregator, functionName: 'decimals', data: bytesToHex(decResp.data) });
 
 		const answer = (roundData as readonly [bigint, bigint, bigint, bigint, bigint])[1];
 		linkUsd = Number(formatUnits(answer, Number(feedDecimals)));
@@ -201,11 +298,22 @@ async function onCron(runtime: Runtime<Config>, _trigger: CronPayload) {
 		risk,
 	};
 
+	// --- Read gauge rewards (if configured) ---
+	let gauge: GaugeSnapshot | undefined;
+	if (runtime.config.contracts.gauge) {
+		try {
+			gauge = readGauge(runtime, evmClient, runtime.config.contracts.gauge as Address);
+		} catch (e) {
+			runtime.log(`Gauge read failed (degraded): ${e instanceof Error ? e.message : String(e)}`);
+		}
+	}
+
 	const outputPayload: CurvePoolOutputPayload = {
 		timestamp: new Date().toISOString(),
 		chainName: runtime.config.chainName,
 		pool: poolSnapshot,
 		prices: { linkUsd },
+		gauge,
 		overallRisk: risk,
 		alerts,
 	};
@@ -233,7 +341,7 @@ async function onCron(runtime: Runtime<Config>, _trigger: CronPayload) {
 				args: [snapshotHash, `curve:${risk}`],
 			});
 
-			sepoliaClient.callContract(runtime, {
+			const writeResp = sepoliaClient.callContract(runtime, {
 				call: encodeCallMsg({ from: zeroAddress, to: runtime.config.registry.address as Address, data: writeCallData }),
 			}).result();
 

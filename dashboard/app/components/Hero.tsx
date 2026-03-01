@@ -18,14 +18,14 @@ export default function Hero({ overallStatus, healthyCount, totalCount, totalAle
 
   return (
     <div style={{ textAlign: 'center', paddingBottom: 8 }}>
-      {/* Chainlink logo */}
+      {/* Orbital logo */}
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
         <Image
-          src="/chainlink-logo.svg"
-          alt="Chainlink"
-          width={48}
-          height={55}
-          style={{ objectFit: 'contain', filter: 'drop-shadow(0 0 20px rgba(120, 80, 255, 0.4)) drop-shadow(0 0 40px rgba(46, 123, 255, 0.2))' }}
+          src="/orbital-logo.png"
+          alt="Orbital Sentinel"
+          width={72}
+          height={72}
+          style={{ objectFit: 'contain', filter: 'drop-shadow(0 0 24px rgba(120, 80, 255, 0.5)) drop-shadow(0 0 48px rgba(46, 123, 255, 0.25))' }}
           priority
         />
       </div>
