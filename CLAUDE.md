@@ -2,7 +2,7 @@
 repo: orbital-sentinel
 language: TypeScript, Solidity, Python
 deploy_target: Sepolia (contracts), BOSGAME (dashboard + scripts), CRE Runtime (workflows)
-production_status: hackathon-demo
+production_status: hackathon-demo (LAA workflow live on CRE mainnet)
 ci: GitHub Actions (contracts + dashboard + workflows + format)
 health_check: dashboard at :3016, SentinelRegistry on Sepolia
 -->
@@ -271,7 +271,7 @@ bun install
 
 ## Current State
 
-- **All 8 workflows:** implemented and simulating successfully
+- **LAA workflow:** deployed and ACTIVE on CRE mainnet DON (workflow ID: `005f8a76...fe96`, 7x/day schedule). Other 7 workflows: implemented and simulating locally via `cre simulate`
 - **Composite intelligence:** cross-workflow LAA analysis operational. Reads 5 workflow snapshots + LAA, produces ecosystem-aware arb recommendation via GPT-5.3-Codex. First composite proof on Sepolia: block 10,371,778.
 - **SentinelRegistry:** deployed on Sepolia at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit). Access control, dedup, validation active on-chain. 73+ records.
 - **Dashboard:** running on port 3016, reads on-chain proofs + CRE signals
@@ -307,7 +307,7 @@ Before any commit:
 | Address | `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit) |
 | Solidity | 0.8.19 |
 | Key function | `recordHealth(bytes32 snapshotHash, string riskLevel)` — **owner-only** |
-| Access control | `owner` + `onlyOwner` modifier + Ownable2Step (`transferOwnership` → `pendingOwner` → `acceptOwnership`) |
+| Access control | `owner` + `onlyOwner` modifier + single-step Ownable (`transferOwnership` completes immediately, no `acceptOwnership` needed) |
 | Duplicate prevention | `mapping(bytes32 => bool) recorded` — reverts `AlreadyRecorded` on duplicates |
 | Input validation | Reverts `EmptyRiskLevel` on empty `riskLevel` string, `RiskLevelTooLong` on > 256 bytes |
 | Events | `HealthRecorded(bytes32 indexed, string, uint256)`, `OwnershipTransferStarted(address indexed, address indexed)`, `OwnershipTransferred(address indexed, address indexed)` |
@@ -318,22 +318,28 @@ Before any commit:
 
 ---
 
-## Unified CRE Cycle Schedule
+## CRE Deployment Status
 
-All 8 workflows run together in a unified cycle, 7 times per day (~3h 25min apart). The master script `scripts/sentinel-unified-cycle.sh` runs all CRE simulations in parallel (Phase 1), then runs composite intelligence analysis (Phase 1.5), then writes all on-chain proofs in one batch via `record-all-snapshots.mjs` (Phase 2).
+**Only LAA is deployed on CRE mainnet.** The other 7 workflows run locally via `cre simulate`.
 
-| Cycle | UTC Time | Cron |
-|-------|----------|------|
-| 1 | 00:00 | `0 0 * * *` |
-| 2 | 03:25 | `25 3 * * *` |
-| 3 | 06:50 | `50 6 * * *` |
-| 4 | 10:15 | `15 10 * * *` |
-| 5 | 13:40 | `40 13 * * *` |
-| 6 | 17:05 | `5 17 * * *` |
-| 7 | 20:30 | `30 20 * * *` |
+| Workflow | Status | Schedule |
+|----------|--------|----------|
+| link-ai-arbitrage (LAA) | **ACTIVE on CRE DON** | 7x/day (00, 03, 07, 10, 14, 17, 21 UTC) |
+| treasury-risk | Local simulate | 7x/day (unified cycle) |
+| price-feeds | Local simulate | 7x/day (unified cycle) |
+| morpho-vault-health | Local simulate | 7x/day (unified cycle) |
+| curve-pool | Local simulate | 7x/day (unified cycle) |
+| ccip-lane-health | Local simulate | 7x/day (unified cycle) |
+| governance-monitor | Local simulate | 7x/day (unified cycle) |
+| token-flows | Local simulate | Not in unified cycle |
 
-**Per cycle:** 7 CRE simulations (parallel) + 1 composite AI analysis + 8 on-chain proof writes (sequential). Total: 56 on-chain proofs/day (49 workflow + 7 composite).
+**CRE LAA Details:**
+- Workflow ID: `005f8a760f4b41e09d4646bfeb7ae17d00140408fc9e7d89ae10d570ff62fe96`
+- Workflow Registry: `0x4Ac54353FA4Fa961AfcC5ec4B118596d3305E7e5` (Ethereum mainnet)
+- Deploy TX: `0x3ab827b80223329dceb3875c0f7b04606f14c1e44fd05be9ea5b48bbac86aa71`
+- Owner: `0xB250152756E2d6E3bD237a6875aE5E26e3D3877b`
+- AI Endpoint: `https://sentinel-ai.schuna.co.il/api/cre/analyze-arb` (auth: `X-CRE-Secret` header)
+- DON Family: `zone-a`
+- Estimated AI cost: ~$0.004/call (GPT-5.3-Codex), ~$0.14 total through March 8
 
-**Workflows in each cycle:** treasury-risk, price-feeds, governance-monitor, morpho-vault-health, curve-pool, ccip-lane-health, link-ai-arbitrage (LAA).
-
-> **Note:** `token-flows` is implemented but NOT wired into the unified cycle or `record-all-snapshots.mjs`. To add it, update both `sentinel-unified-cycle.sh` and `record-all-snapshots.mjs`.
+Composite intelligence (Phase 1.5) and on-chain proof writing (Phase 2) still run via the local `sentinel-unified-cycle.sh` cron 7x/day.

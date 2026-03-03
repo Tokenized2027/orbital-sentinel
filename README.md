@@ -2,7 +2,7 @@
 
 **AI-powered DeFi arbitrage intelligence built on Chainlink CRE, with cross-workflow ecosystem awareness and on-chain proof verification.**
 
-Orbital Sentinel's core product is the **LINK AI Arbitrage (LAA)** workflow: an autonomous system that detects stLINK/LINK arbitrage opportunities on Curve and makes execution decisions informed by real-time data from 5 additional CRE workflows monitoring the entire stake.link ecosystem. Every decision is backed by a verifiable `keccak256` proof hash written to Ethereum Sepolia.
+Orbital Sentinel's core product is the **LINK AI Arbitrage (LAA)** workflow: an autonomous system that detects stLINK/LINK arbitrage opportunities on Curve and makes execution decisions informed by real-time data from 5 additional CRE workflows monitoring the entire stake.link ecosystem. The LAA workflow is **live on CRE mainnet**, running 7x/day on the DON. All 8 workflows are implemented and simulating successfully, with the remaining 7 ready for CRE deployment. Every decision is backed by a verifiable `keccak256` proof hash written to Ethereum Sepolia.
 
 What makes this different from a simple arb bot: **the LAA doesn't decide in isolation.** A composite intelligence layer reads treasury health, oracle prices, lending market utilization, CCIP bridge status, and Curve pool structure, then feeds that full ecosystem context to an AI analyst (GPT-5.3-Codex) that can override the raw signal. When the math says "execute" but the ecosystem says "the Priority Pool queue is 365K LINK deep and the basis is unstable," the composite layer says "wait."
 
@@ -48,17 +48,18 @@ This is where the composite intelligence layer comes in.
 After all CRE workflows complete in the unified cycle, a composite intelligence script reads data from all 6 sources and sends the full ecosystem context to an AI analyst (GPT-5.3-Codex). The AI produces an ecosystem-aware recommendation that can confirm or override the isolated LAA signal.
 
 ```
-Phase 1: CRE Unified Cycle (7x/day)
+Phase 1: CRE Workflows (LAA on mainnet DON, others via local simulate)
   ┌─────────────────────────────────────────────────────────────┐
-  │  7 CRE workflows run in parallel (Ethereum mainnet reads)  │
+  │  8 CRE workflows (reads from Ethereum mainnet)             │
   │                                                             │
-  │  LAA ─────────── Curve pool, Premium quotes, Priority Pool  │
-  │  price-feeds ─── LINK/USD, ETH/USD (Chainlink Data Feeds)  │
-  │  treasury-risk ─ Staking pools, Reward runway, Queue depth  │
-  │  morpho-vault ── Utilization, Supply/Borrow, APY            │
-  │  ccip-lanes ──── Router, OnRamp, TokenPool (3 dest chains)  │
-  │  curve-pool ──── Composition, TVL, Gauge rewards            │
-  │  governance ──── Snapshot proposals, Forum activity          │
+  │  LAA ─────────── Curve pool, Premium quotes, Priority Pool  │  CRE mainnet DON
+  │  price-feeds ─── LINK/USD, ETH/USD (Chainlink Data Feeds)  │  local simulate
+  │  treasury-risk ─ Staking pools, Reward runway, Queue depth  │  local simulate
+  │  morpho-vault ── Utilization, Supply/Borrow, APY            │  local simulate
+  │  curve-pool ──── Composition, TVL, Gauge rewards            │  local simulate
+  │  ccip-lanes ──── Router, OnRamp, TokenPool (3 dest chains)  │  local simulate
+  │  governance ──── Snapshot proposals, Forum activity          │  local simulate
+  │  token-flows ─── Whale/holder balance tracking              │  local simulate
   └──────────────────────────┬──────────────────────────────────┘
                              │
 Phase 1.5: Composite Intelligence
@@ -110,7 +111,7 @@ The composite proof hash encoding this decision is on Sepolia: [`0xd2e041...`](h
 
 ## The 5 Supporting CRE Workflows
 
-Each workflow is a standalone CRE project that reads live Ethereum mainnet data and writes its own on-chain proof. Together, they form the ecosystem intelligence layer that feeds the LAA composite analysis.
+Each workflow is a standalone CRE project that reads live Ethereum mainnet data and writes its own on-chain proof. Together, they form the ecosystem intelligence layer that feeds the LAA composite analysis. All workflows are CRE-compatible and ready for DON deployment.
 
 ### 1. `price-feeds` : Chainlink Oracle Price Monitoring
 Reads LINK/USD, ETH/USD from Chainlink AggregatorV3 Data Feed contracts. Computes stLINK/LINK depeg basis points. Provides USD-denominated context for arb profitability.
@@ -182,27 +183,22 @@ function recorded(bytes32) external view returns (bool)
 
 ---
 
-## Unified Cycle Schedule
+## CRE Deployment Status
 
-All workflows run together 7 times per day (~3h 25min apart). The master script `sentinel-unified-cycle.sh` orchestrates three phases:
+The LAA workflow is **live on the CRE mainnet DON**. The other 7 workflows run locally via `cre simulate` in the unified cycle and are ready for CRE deployment.
 
-| Phase | What Happens |
-|-------|-------------|
-| 1 | 7 CRE simulations run in parallel (mainnet reads) |
-| 1.5 | Composite intelligence: cross-workflow AI analysis of LAA decision |
-| 2 | 8 on-chain proof writes (7 workflows + 1 composite) |
+| Workflow | Status | Schedule |
+|----------|--------|----------|
+| **LINK AI Arbitrage (LAA)** | **ACTIVE on CRE DON** | 7x/day |
+| treasury-risk | Local simulate | 7x/day (unified cycle) |
+| price-feeds | Local simulate | 7x/day (unified cycle) |
+| morpho-vault-health | Local simulate | 7x/day (unified cycle) |
+| curve-pool | Local simulate | 7x/day (unified cycle) |
+| ccip-lane-health | Local simulate | 7x/day (unified cycle) |
+| governance-monitor | Local simulate | 7x/day (unified cycle) |
+| token-flows | Local simulate | Not in unified cycle |
 
-| Cycle | UTC Time |
-|-------|----------|
-| 1 | 00:00 |
-| 2 | 03:25 |
-| 3 | 06:50 |
-| 4 | 10:15 |
-| 5 | 13:40 |
-| 6 | 17:05 |
-| 7 | 20:30 |
-
-**Per cycle:** 7 simulations + 1 composite AI call + 8 on-chain writes. **Total: 56 on-chain proofs/day.**
+The unified cycle runs 7x/day: Phase 1 (CRE simulations in parallel), Phase 1.5 (composite AI analysis), Phase 2 (on-chain proof writes to SentinelRegistry on Sepolia). ~56 on-chain proofs/day.
 
 ---
 
@@ -229,7 +225,7 @@ Orbital Sentinel charges a **0.1% builder fee** (10 bps) on protocol-integrated 
 - `OPENAI_API_KEY` for composite + arb analysis
 - `ANTHROPIC_API_KEY` for treasury analysis
 
-### Simulate the LAA workflow
+### Run a workflow locally (for testing)
 
 ```bash
 cd workflows/link-ai-arbitrage
@@ -237,6 +233,8 @@ bun install
 cp my-workflow/config.example.json my-workflow/config.staging.json
 ./run_snapshot.sh staging-settings
 ```
+
+> The LAA workflow is deployed on the CRE mainnet DON. Other workflows run locally via `cre simulate` and are ready for CRE deployment.
 
 ### Run composite intelligence
 
@@ -381,6 +379,10 @@ See [CHAINLINK.md](./CHAINLINK.md) for detailed per-file documentation of every 
 **Video:** *Coming soon*
 
 ---
+
+## Deployment Status
+
+**LAA workflow live on CRE mainnet** since March 2026. 8 workflows implemented (1 on DON, 7 local simulate), 56+ on-chain proofs/day written to SentinelRegistry on Sepolia.
 
 ## Built For
 

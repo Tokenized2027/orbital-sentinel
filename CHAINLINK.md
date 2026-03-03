@@ -125,15 +125,15 @@ const cron = new cre.capabilities.CronCapability();
 return [cre.handler(cron.trigger({ schedule: config.schedule }), onCron)];
 ```
 
-Schedules:
-- `treasury-risk`: every 15 minutes (`0 */15 * * * *`)
-- `governance-monitor`: every 30 minutes (`0 */30 * * * *`)
-- `price-feeds`: every 15 minutes
-- `morpho-vault-health`: every 15 minutes
-- `token-flows`: every 30 minutes
-- `ccip-lane-health`: every 30 minutes
-- `curve-pool`: every 15 minutes
-- `link-ai-arbitrage`: every 15 minutes
+Schedules (per workflow config):
+- `link-ai-arbitrage`: 7x/day (`0 0 0,3,7,10,14,17,21 * * *`) — **ACTIVE on CRE mainnet DON**
+- `treasury-risk`: every 15 minutes (`0 */15 * * * *`) — local simulate
+- `price-feeds`: every 15 minutes (`0 */15 * * * *`) — local simulate
+- `morpho-vault-health`: every 15 minutes (`0 */15 * * * *`) — local simulate
+- `curve-pool`: every 15 minutes (`0 */15 * * * *`) — local simulate
+- `governance-monitor`: every 30 minutes (`0 */30 * * * *`) — local simulate
+- `ccip-lane-health`: every 30 minutes (`0 */30 * * * *`) — local simulate
+- `token-flows`: every 30 minutes (`0 */30 * * * *`) — local simulate
 
 ---
 
