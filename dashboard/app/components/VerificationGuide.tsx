@@ -67,7 +67,7 @@ export default function VerificationGuide() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 700,
               fontFamily: 'var(--mono)',
             }}>
@@ -119,27 +119,27 @@ export default function VerificationGuide() {
           borderRadius: 'var(--r-sm)',
           padding: 18,
         }}>
-          <div style={{ fontWeight: 600, color: 'var(--amber)', fontSize: 14, marginBottom: 8 }}>
-            Current: Hackathon Demo
+          <div style={{ fontWeight: 600, color: 'var(--green)', fontSize: 14, marginBottom: 8 }}>
+            LAA: Live on CRE Mainnet DON
           </div>
           <div style={{ color: 'var(--t3)', fontSize: 13, lineHeight: 1.6 }}>
-            CRE workflows run via <span style={{ fontFamily: 'var(--mono)', color: 'var(--t2)' }}>cre simulate</span> on
-            a single operator node. The snapshot data is real (live mainnet reads), but a single key signs all proofs.
-            Trust assumption: the operator is honest.
+            The LINK AI Arbitrage workflow runs on Chainlink&apos;s Decentralized Oracle Network, 7x/day.
+            Multiple independent nodes execute the workflow and reach consensus.
+            Real mainnet data, real AI analysis, real on-chain proofs.
           </div>
         </div>
         <div style={{
           background: 'var(--bg-surface)',
-          border: '1px solid rgba(120, 80, 255, 0.2)',
+          border: '1px solid var(--border)',
           borderRadius: 'var(--r-sm)',
           padding: 18,
         }}>
-          <div style={{ fontWeight: 600, color: 'var(--cl-purple)', fontSize: 14, marginBottom: 8 }}>
-            Production: DON Attestation
+          <div style={{ fontWeight: 600, color: 'var(--t2)', fontSize: 14, marginBottom: 8 }}>
+            Other Workflows: Local Simulate
           </div>
           <div style={{ color: 'var(--t3)', fontSize: 13, lineHeight: 1.6 }}>
-            On Chainlink&apos;s Decentralized Oracle Network, multiple independent nodes execute the same workflow
-            and reach consensus. The proof hash is attested by the network — no single party can fabricate results.
+            The remaining 7 workflows run via <span style={{ fontFamily: 'var(--mono)', color: 'var(--t2)' }}>cre simulate</span> locally.
+            Snapshot data is real (live mainnet reads via EVMClient), but proofs are signed by a single operator key.
           </div>
         </div>
       </div>

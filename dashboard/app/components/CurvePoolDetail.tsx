@@ -160,7 +160,7 @@ export default function CurvePoolDetail({ workflow }: { workflow: Workflow | nul
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 14, color: r.isActive ? '#4FD4E5' : 'var(--t3)' }}>
                     {daily < 1 ? daily.toFixed(4) : daily.toFixed(1)}/day
                   </div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--t3)' }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--t3)' }}>
                     {r.token.slice(0, 8)}...
                   </div>
                 </div>

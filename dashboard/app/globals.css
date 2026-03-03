@@ -1,36 +1,36 @@
 :root {
-  /* ── Chainlink Convergence palette ── */
-  --bg:            #060B78;        /* Navy — lifted for more depth visibility */
-  --bg-surface:    #0A0F6E;        /* Slightly lighter navy */
-  --bg-card:       #0C1168;        /* Card backgrounds */
-  --bg-card-hover: #12177A;        /* Card hover state */
+  /* ── Lighter dark palette ── */
+  --bg:            #151519;
+  --bg-surface:    #1c1c22;
+  --bg-card:       #222228;
+  --bg-card-hover: #2a2a30;
 
-  --border:        rgba(46, 123, 255, 0.15);
-  --border-bright: rgba(46, 123, 255, 0.35);
-  --border-glow:   rgba(46, 123, 255, 0.5);
+  --border:        rgba(255, 255, 255, 0.10);
+  --border-bright: rgba(255, 255, 255, 0.18);
+  --border-glow:   rgba(255, 255, 255, 0.25);
 
-  --cl-blue:       #2E7BFF;        /* Primary electric blue */
-  --cl-blue-bright:#4d65ff;        /* Brighter accent */
-  --cl-brand:      #0847F7;        /* Chainlink brand blue (logo) */
-  --cl-blue-dim:   rgba(46, 123, 255, 0.08);
-  --cl-glow:       rgba(46, 123, 255, 0.2);
-  --cl-purple:     #7850FF;        /* Convergence purple accent */
-  --cl-purple-dim: rgba(120, 80, 255, 0.12);
+  --cl-blue:       #5b9aff;
+  --cl-blue-bright:#7bb3ff;
+  --cl-brand:      #2E7BFF;
+  --cl-blue-dim:   rgba(91, 154, 255, 0.06);
+  --cl-glow:       rgba(91, 154, 255, 0.1);
+  --cl-purple:     #a78bfa;
+  --cl-purple-dim: rgba(167, 139, 250, 0.06);
 
   --green:         #22c55e;
-  --amber:         #f59e0b;
+  --amber:         #eab308;
   --red:           #ef4444;
 
-  --t1:            #ffffff;        /* Primary text — white */
-  --t2:            #e0e6f0;        /* Secondary — near-white */
-  --t3:            #c0c8d8;        /* Muted — light gray (still readable) */
+  --t1:            #ffffff;
+  --t2:            #f0f0f3;
+  --t3:            #dddde3;
 
   --mono:          'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
   --sans:          var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
 
-  --r-sm:          8px;
-  --r-md:          12px;
-  --r-lg:          16px;
+  --r-sm:          4px;
+  --r-md:          6px;
+  --r-lg:          8px;
 }
 
 *,
@@ -52,28 +52,11 @@ html {
 body {
   min-height: 100vh;
   background: var(--bg);
-  /* Multi-zone depth — boosted gradient pools for softer, lighter atmosphere */
-  background-image:
-    /* Top center: bright blue hero glow */
-    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(46, 123, 255, 0.28) 0%, transparent 65%),
-    /* Upper left: purple wash */
-    radial-gradient(ellipse 50% 45% at 8% 18%, rgba(120, 80, 255, 0.18) 0%, transparent 55%),
-    /* Mid right: blue accent */
-    radial-gradient(circle 450px at 92% 42%, rgba(46, 123, 255, 0.15) 0%, transparent 65%),
-    /* Center: lighter zone behind cards */
-    radial-gradient(ellipse 60% 25% at 50% 48%, rgba(20, 30, 120, 0.5) 0%, transparent 75%),
-    /* Lower left: purple pool */
-    radial-gradient(circle 400px at 12% 78%, rgba(120, 80, 255, 0.14) 0%, transparent 55%),
-    /* Bottom right: blue glow */
-    radial-gradient(ellipse 45% 35% at 88% 82%, rgba(46, 123, 255, 0.16) 0%, transparent 55%),
-    /* Conic sweep for subtle texture */
-    conic-gradient(from 180deg at 50% 50%, rgba(6, 11, 120, 0) 0%, rgba(12, 17, 104, 0.35) 25%, rgba(6, 11, 120, 0) 50%, rgba(12, 17, 104, 0.25) 75%, rgba(6, 11, 120, 0) 100%);
-  background-attachment: fixed;
 }
 
 :focus-visible {
-  outline: 2px solid rgba(79, 212, 229, 0.5);
-  outline-offset: 2px;
+  outline: 1px solid rgba(91, 154, 255, 0.4);
+  outline-offset: 1px;
 }
 
 a {
@@ -90,56 +73,31 @@ a:hover {
 .page-wrap {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 48px 24px 64px;
+  padding: 32px 24px 48px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 20px;
 }
 
-/* ── Neon glow border — Convergence hackathon style ── */
-/* Animated gradient border using a pseudo-element overlay */
+/* ── Neon border: disabled ── */
 
 .neon-border {
   position: relative;
   border-radius: var(--r-md);
-  padding: 1px; /* The border width */
-  background: linear-gradient(
-    135deg,
-    rgba(46, 123, 255, 0.4) 0%,
-    rgba(120, 80, 255, 0.3) 25%,
-    rgba(46, 123, 255, 0.15) 50%,
-    rgba(120, 80, 255, 0.3) 75%,
-    rgba(46, 123, 255, 0.4) 100%
-  );
-  background-size: 300% 300%;
-  animation: neon-shift 8s ease infinite;
-}
-.neon-border > * {
-  background: var(--bg-card);
-  border-radius: calc(var(--r-md) - 1px);
 }
 
-@keyframes neon-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-/* ── Cards — Convergence style ── */
+/* ── Cards ── */
 
 .card {
   background: var(--bg-card);
-  border: 1px solid rgba(120, 80, 255, 0.12);
+  border: 1px solid var(--border);
   border-radius: var(--r-md);
-  padding: 24px;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  padding: 20px;
+  transition: border-color 0.15s ease, background 0.15s ease;
   position: relative;
 }
 .card:hover {
-  border-color: rgba(120, 80, 255, 0.35);
-  box-shadow:
-    0 0 15px rgba(46, 123, 255, 0.12),
-    0 0 30px rgba(120, 80, 255, 0.08),
-    0 8px 32px rgba(0, 0, 0, 0.3);
+  border-color: var(--border-bright);
   background: var(--bg-card-hover);
 }
 
@@ -147,20 +105,21 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 /* ── Section headers ── */
 
 .section-title {
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--t1);
-  letter-spacing: 0.02em;
-  margin-bottom: 16px;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* ── Grid layouts ── */
@@ -168,32 +127,20 @@ a:hover {
 .workflow-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
-/* Workflow grid cards get neon border on hover */
 .workflow-grid .card {
-  border-color: rgba(120, 80, 255, 0.12);
+  border-color: var(--border);
 }
 .workflow-grid .card:hover {
-  border-color: rgba(120, 80, 255, 0.4);
-  box-shadow:
-    0 0 12px rgba(120, 80, 255, 0.15),
-    0 0 24px rgba(46, 123, 255, 0.08),
-    inset 0 0 12px rgba(120, 80, 255, 0.03);
-}
-
-/* Selected card gets persistent neon glow */
-.workflow-grid .card[style*="border-glow"] {
-  box-shadow:
-    0 0 15px rgba(120, 80, 255, 0.2),
-    0 0 30px rgba(46, 123, 255, 0.1);
+  border-color: var(--border-bright);
 }
 
 .two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 16px;
 }
 
 @media (max-width: 768px) {
@@ -204,15 +151,15 @@ a:hover {
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
   .page-wrap {
-    padding: 24px 16px 48px;
+    padding: 16px 12px 32px;
   }
 }
 
 /* ── Status dots ── */
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;
@@ -224,9 +171,9 @@ a:hover {
 .status-dot.unknown     { background: var(--t3); }
 .status-dot.unavailable { background: var(--t3); }
 
-.status-dot.ok.pulse      { animation: pulse-green 2s ease-in-out infinite; }
-.status-dot.warning.pulse  { animation: pulse-amber 2s ease-in-out infinite; }
-.status-dot.critical.pulse { animation: pulse-red 2s ease-in-out infinite; }
+.status-dot.ok.pulse      { animation: pulse-green 2.5s ease-in-out infinite; }
+.status-dot.warning.pulse  { animation: pulse-amber 2.5s ease-in-out infinite; }
+.status-dot.critical.pulse { animation: pulse-red 2.5s ease-in-out infinite; }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -234,16 +181,16 @@ a:hover {
 }
 
 @keyframes pulse-green {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
-  50%      { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  50%      { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0); }
 }
 @keyframes pulse-amber {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
-  50%      { box-shadow: 0 0 0 5px rgba(245, 158, 11, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); }
+  50%      { box-shadow: 0 0 0 3px rgba(234, 179, 8, 0); }
 }
 @keyframes pulse-red {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
-  50%      { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50%      { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0); }
 }
 
 /* ── Badge ── */
@@ -251,33 +198,36 @@ a:hover {
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 100px;
-  font-size: 14px;
-  font-weight: 500;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   line-height: 1;
   border: 1px solid transparent;
 }
 .badge.ok       { background: rgba(34, 197, 94, 0.1); color: var(--green); border-color: rgba(34, 197, 94, 0.2); }
-.badge.warning  { background: rgba(245, 158, 11, 0.1); color: var(--amber); border-color: rgba(245, 158, 11, 0.2); }
+.badge.warning  { background: rgba(234, 179, 8, 0.1); color: var(--amber); border-color: rgba(234, 179, 8, 0.2); }
 .badge.critical { background: rgba(239, 68, 68, 0.1); color: var(--red); border-color: rgba(239, 68, 68, 0.2); }
-.badge.stale    { background: rgba(107, 125, 179, 0.1); color: var(--t3); border-color: rgba(107, 125, 179, 0.2); }
-.badge.info     { background: rgba(46, 123, 255, 0.1); color: var(--cl-blue); border-color: rgba(46, 123, 255, 0.2); }
+.badge.stale    { background: rgba(113, 113, 122, 0.1); color: var(--t3); border-color: rgba(113, 113, 122, 0.2); }
+.badge.info     { background: rgba(91, 154, 255, 0.08); color: var(--cl-blue); border-color: rgba(91, 154, 255, 0.15); }
 
 /* ── Progress bar ── */
 
 .progress-track {
   width: 100%;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 3px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 2px;
   overflow: hidden;
 }
 .progress-fill {
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.6s ease;
+  border-radius: 2px;
+  transition: width 0.4s ease;
 }
 .progress-fill.ok       { background: var(--green); }
 .progress-fill.warning  { background: var(--amber); }
@@ -287,20 +237,20 @@ a:hover {
 
 .metric-value {
   font-family: var(--mono);
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--t1);
   line-height: 1.2;
 }
 .metric-label {
-  font-size: 14px;
+  font-size: 13px;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.08em;
   color: var(--t3);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 .metric-sub {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--t2);
   margin-top: 2px;
 }
@@ -310,32 +260,34 @@ a:hover {
 .compact-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13px;
 }
 .compact-table th {
   text-align: left;
-  font-size: 14px;
+  font-size: 13px;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.08em;
   color: var(--t3);
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
-  font-weight: 500;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-bright);
+  font-weight: 600;
 }
 .compact-table td {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--border);
   color: var(--t2);
+  font-family: var(--mono);
+  font-size: 13px;
 }
 .compact-table tr:last-child td {
   border-bottom: none;
 }
 .compact-table tr:hover td {
-  background: rgba(46, 123, 255, 0.04);
+  background: rgba(255, 255, 255, 0.02);
 }
 .compact-table .mono {
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 /* ── External link ── */
@@ -343,10 +295,10 @@ a:hover {
 .ext-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   color: var(--cl-blue);
-  font-size: 14px;
-  transition: color 0.2s;
+  font-size: 13px;
+  transition: color 0.15s;
 }
 .ext-link:hover {
   color: var(--cl-blue-bright);
@@ -354,19 +306,21 @@ a:hover {
 }
 .ext-link::after {
   content: '↗';
-  font-size: 10px;
+  font-size: 9px;
+  opacity: 0.6;
 }
 
 /* ── Quote box (AI analysis) ── */
 
 .quote-box {
-  background: rgba(46, 123, 255, 0.05);
-  border-left: 3px solid var(--cl-blue);
-  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 2px solid var(--t3);
+  padding: 10px 14px;
   border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--t2);
   line-height: 1.5;
+  font-family: var(--mono);
 }
 
 /* ── Architecture diagram ── */
@@ -383,30 +337,30 @@ a:hover {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 14px 18px;
+  padding: 10px 14px;
   text-align: center;
-  min-width: 140px;
-  transition: border-color 0.3s, box-shadow 0.3s;
+  min-width: 130px;
+  transition: border-color 0.15s;
 }
 .arch-node:hover {
   border-color: var(--border-bright);
-  box-shadow: 0 0 12px rgba(46, 123, 255, 0.1);
 }
 .arch-node-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--cl-blue);
-  margin-bottom: 4px;
+  color: var(--t1);
+  margin-bottom: 2px;
+  font-family: var(--mono);
 }
 .arch-node-desc {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--t3);
 }
 .arch-arrow {
-  color: var(--cl-blue);
-  font-size: 18px;
-  padding: 0 8px;
-  opacity: 0.5;
+  color: var(--t3);
+  font-size: 14px;
+  padding: 0 6px;
+  opacity: 0.4;
 }
 
 @media (max-width: 768px) {
@@ -415,7 +369,7 @@ a:hover {
   }
   .arch-arrow {
     transform: rotate(90deg);
-    padding: 4px 0;
+    padding: 2px 0;
   }
 }
 
@@ -423,17 +377,17 @@ a:hover {
 
 .footer {
   text-align: center;
-  padding: 32px 0;
+  padding: 24px 0;
   color: var(--t3);
-  font-size: 14px;
+  font-size: 13px;
   border-top: 1px solid var(--border);
 }
 .footer a {
   color: var(--t3);
-  transition: color 0.2s;
+  transition: color 0.15s;
 }
 .footer a:hover {
-  color: var(--cl-blue);
+  color: var(--t1);
 }
 
 /* ── Vote bar ── */
@@ -441,20 +395,20 @@ a:hover {
 .vote-bar-track {
   display: flex;
   width: 100%;
-  height: 8px;
-  border-radius: 4px;
+  height: 4px;
+  border-radius: 2px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
 }
 .vote-bar-yes {
   background: var(--green);
   height: 100%;
-  transition: width 0.4s ease;
+  transition: width 0.3s ease;
 }
 .vote-bar-no {
   background: var(--red);
   height: 100%;
-  transition: width 0.4s ease;
+  transition: width 0.3s ease;
 }
 
 /* ── Lane card ── */
@@ -462,19 +416,18 @@ a:hover {
 .lane-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: 12px;
+  padding: 12px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  transition: border-color 0.3s, background 0.3s;
+  transition: border-color 0.15s;
 }
 .lane-card:hover {
   border-color: var(--border-bright);
-  background: var(--bg-card);
 }
 .lane-card + .lane-card {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 /* ── Chainlink badge ── */
@@ -482,19 +435,15 @@ a:hover {
 .cl-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 100px;
-  background: rgba(8, 71, 247, 0.1);
-  border: 1px solid rgba(8, 71, 247, 0.25);
-  font-size: 14px;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 3px;
+  background: rgba(91, 154, 255, 0.06);
+  border: 1px solid rgba(91, 154, 255, 0.12);
+  font-size: 13px;
   color: var(--cl-blue);
   font-weight: 500;
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-.cl-badge:hover {
-  border-color: rgba(8, 71, 247, 0.5);
-  box-shadow: 0 0 12px rgba(8, 71, 247, 0.15);
+  font-family: var(--mono);
 }
 
 /* ── Gauge (runway) ── */
@@ -502,123 +451,87 @@ a:hover {
 .gauge-track {
   position: relative;
   width: 100%;
-  height: 10px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 5px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 2px;
   overflow: hidden;
 }
 .gauge-fill {
   height: 100%;
-  border-radius: 5px;
-  transition: width 0.6s ease;
+  border-radius: 2px;
+  transition: width 0.4s ease;
 }
 
 /* ── Empty state ── */
 
 .empty-state {
   text-align: center;
-  padding: 32px;
+  padding: 24px;
   color: var(--t3);
-  font-size: 14px;
+  font-size: 13px;
+  font-family: var(--mono);
 }
 
 /* ── Hero section ── */
 
 .hero-title {
-  font-size: 36px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 600;
   color: var(--t1);
-  letter-spacing: -0.02em;
-  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
 }
 
 .hero-subtitle {
-  font-size: 16px;
-  color: var(--t2);
-  max-width: 560px;
-  margin: 0 auto 24px;
+  font-size: 13px;
+  color: var(--t3);
+  max-width: 480px;
+  margin: 0 auto 16px;
   line-height: 1.5;
 }
 
-/* ── Neon top-edge glow for major sections ── */
-/* Mimics the Convergence hackathon navbar glow */
+/* ── Neon glow: stripped for professional look ── */
 
 .card-neon {
   position: relative;
-  overflow: hidden;
 }
-.card-neon::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 5%;
-  right: 5%;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(120, 80, 255, 0.8) 15%,
-    rgba(46, 123, 255, 1) 50%,
-    rgba(120, 80, 255, 0.8) 85%,
-    transparent 100%
-  );
-}
+.card-neon::before,
 .card-neon::after {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: 10%;
-  right: 10%;
-  height: 12px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(120, 80, 255, 0.25) 25%,
-    rgba(46, 123, 255, 0.35) 50%,
-    rgba(120, 80, 255, 0.25) 75%,
-    transparent 100%
-  );
-  filter: blur(8px);
-  pointer-events: none;
+  display: none;
 }
 
-/* ── Glow ring for status ── */
+/* ── Status ring ── */
 
 .status-ring {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 16px;
-  border-radius: 100px;
-  border: 1px solid var(--border-bright);
-  background: rgba(46, 123, 255, 0.06);
-  box-shadow: 0 0 16px rgba(46, 123, 255, 0.1);
-  transition: box-shadow 0.3s;
-}
-.status-ring:hover {
-  box-shadow: 0 0 24px rgba(46, 123, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
 }
 
-/* ── Convergence-style outlined button ── */
+/* ── Button ── */
 
 .btn-outline {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 20px;
-  border-radius: 100px;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border-bright);
   background: transparent;
-  color: var(--t1);
-  font-size: 14px;
+  color: var(--t2);
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   text-decoration: none;
+  font-family: var(--mono);
 }
 .btn-outline:hover {
-  border-color: var(--cl-blue);
-  background: rgba(46, 123, 255, 0.08);
-  box-shadow: 0 0 16px rgba(46, 123, 255, 0.12);
+  border-color: var(--t3);
+  background: rgba(255, 255, 255, 0.03);
   text-decoration: none;
 }

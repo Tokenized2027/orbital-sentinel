@@ -82,7 +82,7 @@ export default function GenericDetail({ workflow, label }: { workflow: Workflow;
               <div className="metric-label">Borrow APY</div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--t1)' }}>{borrowApy.toFixed(2)}%</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', fontSize: 12, color: 'var(--t3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', fontSize: 13, color: 'var(--t3)' }}>
               From on-chain IRM
             </div>
           </div>

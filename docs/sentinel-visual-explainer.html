@@ -1,0 +1,1989 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orbital Sentinel: Visual Architecture Explainer</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES (THEME)
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --chainlink-blue: #375BD2;
+  --accent-teal: #4FD4E5;
+  --success: #00C853;
+  --warning: #FFB300;
+  --critical: #FF5252;
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --sidebar-width: 260px;
+  --header-height: 60px;
+  --transition: 0.3s ease;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #0F1117;
+  --bg-secondary: #1A1D27;
+  --bg-tertiary: #252830;
+  --bg-hover: #2D3140;
+  --text-primary: #E1E4E8;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --border-color: #2D3140;
+  --card-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --code-bg: #161B22;
+  --badge-bg: rgba(55, 91, 210, 0.15);
+  --hero-gradient: linear-gradient(135deg, #0F1117 0%, #1a1f3a 50%, #0F1117 100%);
+  --mermaid-theme: dark;
+}
+
+[data-theme="light"] {
+  --bg-primary: #F7F8FA;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #F0F1F3;
+  --bg-hover: #E8E9EB;
+  --text-primary: #1F2937;
+  --text-secondary: #4B5563;
+  --text-muted: #9CA3AF;
+  --border-color: #E5E7EB;
+  --card-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  --code-bg: #F6F8FA;
+  --badge-bg: rgba(55, 91, 210, 0.08);
+  --hero-gradient: linear-gradient(135deg, #F7F8FA 0%, #E8EDF8 50%, #F7F8FA 100%);
+  --mermaid-theme: default;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESET + BASE
+   ═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-height) + 20px); }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.7;
+  transition: background var(--transition), color var(--transition);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER
+   ═══════════════════════════════════════════════════════════════ */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 1000;
+  backdrop-filter: blur(12px);
+  transition: background var(--transition);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.header-brand .logo-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--chainlink-blue);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 900;
+  font-size: 0.9rem;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-toggle {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  transition: all var(--transition);
+}
+
+.theme-toggle:hover { background: var(--bg-hover); }
+
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════════════════════════════ */
+.sidebar {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  width: var(--sidebar-width);
+  height: calc(100vh - var(--header-height));
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  padding: 20px 0;
+  z-index: 900;
+  transition: transform var(--transition), background var(--transition);
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.85rem;
+  border-left: 3px solid transparent;
+  transition: all var(--transition);
+}
+
+.sidebar-nav a:hover,
+.sidebar-nav a.active {
+  color: var(--accent-teal);
+  background: var(--bg-hover);
+  border-left-color: var(--accent-teal);
+}
+
+.sidebar-nav .nav-number {
+  width: 22px;
+  height: 22px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.sidebar-nav a.active .nav-number {
+  background: var(--chainlink-blue);
+  color: white;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN CONTENT
+   ═══════════════════════════════════════════════════════════════ */
+.main-content {
+  margin-left: var(--sidebar-width);
+  margin-top: var(--header-height);
+  min-height: calc(100vh - var(--header-height));
+}
+
+section {
+  padding: 60px 48px;
+  border-bottom: 1px solid var(--border-color);
+  max-width: 1100px;
+}
+
+section:last-child { border-bottom: none; }
+
+h2 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-top: 28px;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.section-subtitle {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  margin-bottom: 32px;
+}
+
+p { margin-bottom: 16px; color: var(--text-secondary); }
+
+a { color: var(--accent-teal); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ═══════════════════════════════════════════════════════════════
+   HERO
+   ═══════════════════════════════════════════════════════════════ */
+.hero {
+  background: var(--hero-gradient);
+  padding: 80px 48px !important;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  max-width: 100% !important;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at 30% 50%, rgba(55,91,210,0.08) 0%, transparent 60%),
+              radial-gradient(circle at 70% 50%, rgba(79,212,229,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.hero h1 {
+  font-size: 2.8rem;
+  font-weight: 900;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, var(--chainlink-blue), var(--accent-teal));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+}
+
+.hero .tagline {
+  font-size: 1.15rem;
+  color: var(--text-secondary);
+  max-width: 700px;
+  margin: 0 auto 40px;
+  position: relative;
+}
+
+.hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+  position: relative;
+}
+
+.stat-card {
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: var(--accent-teal);
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 6px;
+}
+
+.hero-links {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.hero-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all var(--transition);
+}
+
+.hero-link.primary {
+  background: var(--chainlink-blue);
+  color: white;
+}
+
+.hero-link.primary:hover { background: #2a4ab8; text-decoration: none; }
+
+.hero-link.secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.hero-link.secondary:hover { background: var(--bg-hover); text-decoration: none; }
+
+/* ═══════════════════════════════════════════════════════════════
+   CARDS + GRID
+   ═══════════════════════════════════════════════════════════════ */
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--card-shadow);
+  transition: all var(--transition);
+}
+
+.card:hover {
+  border-color: var(--chainlink-blue);
+  transform: translateY(-2px);
+}
+
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.workflow-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all var(--transition);
+}
+
+.workflow-card:hover {
+  border-color: var(--chainlink-blue);
+  box-shadow: var(--card-shadow);
+}
+
+.workflow-card-header {
+  padding: 20px 20px 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workflow-card-header h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.workflow-card-body {
+  padding: 0 20px 20px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.badge.active {
+  background: rgba(0, 200, 83, 0.15);
+  color: var(--success);
+}
+
+.badge.simulate {
+  background: var(--badge-bg);
+  color: var(--chainlink-blue);
+}
+
+.badge.warning {
+  background: rgba(255, 179, 0, 0.15);
+  color: var(--warning);
+}
+
+.badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.badge.active .dot {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.85rem;
+}
+
+.metric-row:last-child { border-bottom: none; }
+
+.metric-label { color: var(--text-muted); }
+.metric-value { color: var(--text-primary); font-weight: 600; font-family: var(--font-mono); font-size: 0.82rem; }
+
+.cre-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.cre-tag {
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Collapsible */
+.collapsible-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--accent-teal);
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 8px 0 0;
+  font-family: var(--font-sans);
+}
+
+.collapsible-trigger::before {
+  content: '+';
+  font-family: var(--font-mono);
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  transition: transform var(--transition);
+}
+
+.collapsible-trigger.open::before { content: '-'; }
+
+.collapsible-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+}
+
+.collapsible-content.open {
+  max-height: 800px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MERMAID + CODE
+   ═══════════════════════════════════════════════════════════════ */
+.diagram-container {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 24px 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.diagram-container .mermaid {
+  display: flex;
+  justify-content: center;
+}
+
+.diagram-container .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+pre.code-block {
+  background: var(--code-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 20px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  margin: 16px 0;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TABLES
+   ═══════════════════════════════════════════════════════════════ */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.88rem;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.data-table th:first-child { border-radius: 8px 0 0 0; }
+.data-table th:last-child { border-radius: 0 8px 0 0; }
+
+.data-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.data-table tr:last-child td { border-bottom: none; }
+
+.data-table .mono {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COPY BUTTON (addresses/code)
+   ═══════════════════════════════════════════════════════════════ */
+.copyable {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background var(--transition);
+}
+
+.copyable:hover { background: var(--bg-hover); }
+
+.copy-icon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.4;
+  transition: opacity var(--transition);
+}
+
+.copyable:hover .copy-icon { opacity: 0.8; }
+
+.copy-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--success);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 2000;
+}
+
+.copy-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLL REVEAL
+   ═══════════════════════════════════════════════════════════════ */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CALLOUT BOX
+   ═══════════════════════════════════════════════════════════════ */
+.callout {
+  padding: 16px 20px;
+  border-radius: 10px;
+  border-left: 4px solid;
+  margin: 20px 0;
+  font-size: 0.9rem;
+}
+
+.callout.info {
+  background: rgba(55, 91, 210, 0.08);
+  border-color: var(--chainlink-blue);
+}
+
+.callout.success {
+  background: rgba(0, 200, 83, 0.08);
+  border-color: var(--success);
+}
+
+.callout.warning {
+  background: rgba(255, 179, 0, 0.08);
+  border-color: var(--warning);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPARISON BOXES
+   ═══════════════════════════════════════════════════════════════ */
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 24px 0;
+}
+
+.comparison-box {
+  padding: 24px;
+  border-radius: 12px;
+  border: 2px solid;
+}
+
+.comparison-box.bad {
+  border-color: var(--critical);
+  background: rgba(255, 82, 82, 0.04);
+}
+
+.comparison-box.good {
+  border-color: var(--success);
+  background: rgba(0, 200, 83, 0.04);
+}
+
+.comparison-box h4 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+
+.comparison-box.bad h4 { color: var(--critical); }
+.comparison-box.good h4 { color: var(--success); }
+
+.comparison-box ul {
+  list-style: none;
+  padding: 0;
+}
+
+.comparison-box li {
+  padding: 4px 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.comparison-box li::before {
+  margin-right: 8px;
+  font-weight: 700;
+}
+
+.comparison-box.bad li::before { content: '✗'; color: var(--critical); }
+.comparison-box.good li::before { content: '✓'; color: var(--success); }
+
+/* ═══════════════════════════════════════════════════════════════
+   CHART CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+.chart-container {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 24px 0;
+  max-width: 500px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════════════════════════ */
+.site-footer {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 950;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  section {
+    padding: 40px 20px;
+  }
+
+  .hero {
+    padding: 50px 20px !important;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .hero-stats {
+    gap: 24px;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+  }
+
+  .workflow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hamburger {
+    display: block;
+  }
+
+  .diagram-container {
+    padding: 12px;
+  }
+
+  h2 {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 500px) {
+  .hero h1 { font-size: 1.6rem; }
+  .hero-stats { gap: 16px; }
+  .stat-number { font-size: 1.6rem; }
+  .hero-links { flex-direction: column; align-items: center; }
+}
+
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 940;
+}
+
+.sidebar-overlay.show {
+  display: block;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HEADER
+     ═══════════════════════════════════════════════════════════════ -->
+<header class="site-header">
+  <div class="header-brand">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+    <div class="logo-icon">OS</div>
+    <span>Orbital Sentinel</span>
+  </div>
+  <div class="header-controls">
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <span id="theme-icon">Light Mode</span>
+    </button>
+    <a href="https://sentinel.schuna.co.il" target="_blank" class="hero-link secondary" style="padding:6px 14px;font-size:0.8rem;">Live Dashboard</a>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SIDEBAR
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-nav">
+    <a href="#hero"><span class="nav-number">0</span>Overview</a>
+    <a href="#problem"><span class="nav-number">1</span>The Problem</a>
+    <a href="#architecture"><span class="nav-number">2</span>Architecture</a>
+    <a href="#unified-cycle"><span class="nav-number">3</span>Unified Cycle</a>
+    <a href="#workflows"><span class="nav-number">4</span>8 Workflows</a>
+    <a href="#composite"><span class="nav-number">5</span>Composite Intelligence</a>
+    <a href="#contract-network"><span class="nav-number">6</span>Contract Network</a>
+    <a href="#proof-encoding"><span class="nav-number">7</span>Proof Encoding</a>
+    <a href="#registry"><span class="nav-number">8</span>SentinelRegistry</a>
+    <a href="#cre-deployment"><span class="nav-number">9</span>CRE Deployment</a>
+    <a href="#try-it"><span class="nav-number">10</span>Try It Yourself</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MAIN CONTENT
+     ═══════════════════════════════════════════════════════════════ -->
+<main class="main-content">
+
+<!-- ──────────────── SECTION 0: HERO ──────────────── -->
+<section class="hero" id="hero">
+  <h1>Orbital Sentinel</h1>
+  <p class="tagline">
+    AI-powered DeFi health monitoring with verifiable on-chain proofs.
+    Built on Chainlink CRE for the Convergence Hackathon 2026.
+  </p>
+  <div class="hero-stats">
+    <div class="stat-card">
+      <div class="stat-number" data-target="8">0</div>
+      <div class="stat-label">CRE Workflows</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" data-target="73">0</div>
+      <div class="stat-label">On-Chain Proofs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" data-target="7">0</div>
+      <div class="stat-label">Cycles / Day</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" data-target="1">0</div>
+      <div class="stat-label">Live on DON</div>
+    </div>
+  </div>
+  <div class="hero-links">
+    <a href="https://sentinel.schuna.co.il" target="_blank" class="hero-link primary">Live Dashboard</a>
+    <a href="https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40" target="_blank" class="hero-link secondary">SentinelRegistry on Etherscan</a>
+    <a href="https://github.com/Tokenized2027/orbital-sentinel" target="_blank" class="hero-link secondary">GitHub Repository</a>
+  </div>
+</section>
+
+<!-- ──────────────── SECTION 1: THE PROBLEM ──────────────── -->
+<section id="problem">
+  <h2>The Problem</h2>
+  <p class="section-subtitle">Why existing DeFi dashboards can't prove their own data.</p>
+
+  <div class="comparison-grid reveal">
+    <div class="comparison-box bad">
+      <h4>Traditional Dashboards</h4>
+      <ul>
+        <li>Pull from APIs or databases</li>
+        <li>No proof data is authentic</li>
+        <li>Backend can alter numbers silently</li>
+        <li>Users must "trust the server"</li>
+        <li>No audit trail of historical accuracy</li>
+      </ul>
+    </div>
+    <div class="comparison-box good">
+      <h4>Orbital Sentinel</h4>
+      <ul>
+        <li>Reads smart contracts directly via CRE</li>
+        <li>keccak256 proof hash per snapshot</li>
+        <li>Proofs immutable on Sepolia</li>
+        <li>Anyone can verify by re-running</li>
+        <li>Permanent audit trail on-chain</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="diagram-container reveal">
+    <div class="mermaid">
+graph LR
+    subgraph T["Traditional Dashboard"]
+        direction LR
+        A["Protocol API"] -->|"JSON"| B["Backend Server"]
+        B -->|"Formatted"| C["Dashboard UI"]
+        C -.->|"Trust me"| D(("User"))
+    end
+    subgraph S["Orbital Sentinel"]
+        direction LR
+        E["Smart Contracts"] -->|"CRE EVMClient"| F["CRE Workflow"]
+        F -->|"keccak256"| G["SentinelRegistry"]
+        G -->|"Etherscan"| H(("User"))
+    end
+
+    style T fill:#1a0a0a,stroke:#FF5252,stroke-width:2px
+    style S fill:#0a1a0a,stroke:#00C853,stroke-width:2px
+    style A fill:#2D3140,stroke:#FF5252,color:#E1E4E8
+    style B fill:#2D3140,stroke:#FF5252,color:#E1E4E8
+    style C fill:#2D3140,stroke:#FF5252,color:#E1E4E8
+    style E fill:#2D3140,stroke:#00C853,color:#E1E4E8
+    style F fill:#2D3140,stroke:#375BD2,color:#E1E4E8
+    style G fill:#375BD2,stroke:#4FD4E5,color:#FFFFFF
+    </div>
+  </div>
+
+  <div class="callout info reveal">
+    <strong>The key innovation:</strong> every number on the dashboard has a cryptographic receipt on-chain.
+    Not "trust us, the API said so," but "here's the hash, run it yourself."
+  </div>
+</section>
+
+<!-- ──────────────── SECTION 2: ARCHITECTURE ──────────────── -->
+<section id="architecture">
+  <h2>Overall Architecture</h2>
+  <p class="section-subtitle">Four layers: CRE workflows read data, AI analyzes risk, proofs anchor on-chain, dashboard displays results.</p>
+
+  <div class="diagram-container reveal">
+    <div class="mermaid">
+graph TD
+    subgraph CRE["CRE Workflows &mdash; Phase 1"]
+        direction LR
+        W1["Treasury Risk"]
+        W2["Price Feeds"]
+        W3["Morpho Vault"]
+        W4["Curve Pool"]
+        W5["CCIP Lanes"]
+        W6["Governance"]
+        W7["Token Flows"]
+        W8["LAA"]
+    end
+
+    subgraph AIL["AI Analysis Layer &mdash; Phase 1.5"]
+        direction LR
+        AI1["Claude Haiku
+        Treasury Risk"]
+        AI2["GPT-5.3-Codex
+        Arb + Composite"]
+    end
+
+    subgraph OC["On-Chain Proofs &mdash; Phase 2"]
+        REG["SentinelRegistry
+        Sepolia"]
+    end
+
+    subgraph DB["Dashboard"]
+        DASH["Next.js 15
+        sentinel.schuna.co.il"]
+    end
+
+    CRE -->|"HTTP + consensus"| AIL
+    CRE -->|"JSON snapshots"| OC
+    AIL -->|"composite proof"| OC
+    OC -->|"HealthRecorded events"| DB
+
+    style CRE fill:#0d1a3d,stroke:#375BD2,stroke-width:2px,color:#E1E4E8
+    style AIL fill:#1a2040,stroke:#4FD4E5,stroke-width:2px,color:#E1E4E8
+    style OC fill:#0d2818,stroke:#00C853,stroke-width:2px,color:#E1E4E8
+    style DB fill:#1a1a2e,stroke:#9CA3AF,stroke-width:1px,color:#E1E4E8
+    style REG fill:#375BD2,stroke:#4FD4E5,color:#FFFFFF
+    style DASH fill:#252830,stroke:#4FD4E5,color:#E1E4E8
+    </div>
+  </div>
+
+  <div class="callout info reveal">
+    <strong>Ethereum Mainnet reads only.</strong> All 8 workflows read live contract state from Ethereum mainnet.
+    All writes go exclusively to Sepolia testnet. Zero mainnet write operations, ever.
+  </div>
+</section>
+
+<!-- ──────────────── SECTION 3: UNIFIED CYCLE ──────────────── -->
+<section id="unified-cycle">
+  <h2>Unified Cycle</h2>
+  <p class="section-subtitle">Three phases, seven times per day: simulate, synthesize, anchor.</p>
+
+  <div class="diagram-container reveal">
+    <div class="mermaid">
+sequenceDiagram
+    participant CRON as Unified Cycle<br/>7x/day
+    participant CRE as 7 CRE Workflows
+    participant LAA as LAA on CRE DON
+    participant AI as AI Endpoint<br/>GPT-5.3-Codex
+    participant SR as SentinelRegistry<br/>Sepolia
+
+    rect rgba(55, 91, 210, 0.15)
+    Note over CRON,LAA: Phase 1: Parallel CRE Execution
+    CRON->>CRE: Trigger 7 local simulations
+    CRE->>CRE: Read Ethereum mainnet contracts
+    Note over LAA: LAA runs independently on DON
+    CRE-->>CRON: 7 JSON snapshots saved
+    end
+
+    rect rgba(79, 212, 229, 0.15)
+    Note over CRON,AI: Phase 1.5: Composite Intelligence
+    CRON->>AI: Send 6 snapshots for cross-workflow analysis
+    AI->>AI: Evaluate ecosystem context
+    AI-->>CRON: Ecosystem-aware recommendation
+    Note over CRON: cre_composite_snapshot.json
+    end
+
+    rect rgba(0, 200, 83, 0.15)
+    Note over CRON,SR: Phase 2: On-Chain Proof Anchoring
+    CRON->>SR: Write 8 workflow proofs + 1 composite
+    SR-->>CRON: TX confirmed, hashes immutable
+    end
+    </div>
+  </div>
+
+  <h3>Schedule (UTC)</h3>
+  <table class="data-table reveal">
+    <thead>
+      <tr><th>Time</th><th>Phase 1</th><th>Phase 1.5</th><th>Phase 2</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>00:00</td><td>7 CRE sims</td><td>Composite AI</td><td>9 proofs to Sepolia</td></tr>
+      <tr><td>03:00</td><td>7 CRE sims</td><td>Composite AI</td><td>9 proofs to Sepolia</td></tr>
+      <tr><td>07:00</td><td>7 CRE sims</td><td>Composite AI</td><td>9 proofs to Sepolia</td></tr>
+      <tr><td>10:00</td><td>7 CRE sims</td><td>Composite AI</td><td>9 proofs to Sepolia</td></tr>
+      <tr><td>14:00</td><td>7 CRE sims</td><td>Composite AI</td><td>9 proofs to Sepolia</td></tr>
+      <tr><td>17:00</td><td>7 CRE sims</td><td>Composite AI</td><td>9 proofs to Sepolia</td></tr>
+      <tr><td>21:00</td><td>7 CRE sims</td><td>Composite AI</td><td>9 proofs to Sepolia</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout success reveal">
+    On-chain proofs are deduplicated by contract: if a workflow's risk assessment hasn't changed since the last write,
+    the <code>AlreadyRecorded</code> guard skips it. Only changed assessments create new records.
+  </div>
+</section>
+
+<!-- ──────────────── SECTION 4: 8 WORKFLOWS ──────────────── -->
+<section id="workflows">
+  <h2>The 8 CRE Workflows</h2>
+  <p class="section-subtitle">Each workflow is an independent CRE project reading live Ethereum mainnet data.</p>
+
+  <div class="workflow-grid">
+
+    <!-- 1. Treasury Risk -->
+    <div class="workflow-card reveal">
+      <div class="workflow-card-header">
+        <h4>1. Treasury Risk</h4>
+        <span class="badge simulate"><span class="dot"></span>Local Sim</span>
+      </div>
+      <div class="workflow-card-body">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">Staking pool health, reward runway, queue depth. Claude Haiku AI risk assessment.</p>
+        <div class="metric-row"><span class="metric-label">Community Staked</span><span class="metric-value">40,875,000 LINK</span></div>
+        <div class="metric-row"><span class="metric-label">Community Fill</span><span class="metric-value">100%</span></div>
+        <div class="metric-row"><span class="metric-label">Operator Fill</span><span class="metric-value">42%</span></div>
+        <div class="metric-row"><span class="metric-label">Queue</span><span class="metric-value">361,030 LINK</span></div>
+        <div class="metric-row"><span class="metric-label">Reward Runway</span><span class="metric-value">572 days</span></div>
+        <div class="cre-tags">
+          <span class="cre-tag">EVMClient</span>
+          <span class="cre-tag">HTTPClient</span>
+          <span class="cre-tag">CronCapability</span>
+          <span class="cre-tag">consensus</span>
+        </div>
+        <button class="collapsible-trigger" onclick="toggleCollapsible(this)">Proof hash fields</button>
+        <div class="collapsible-content">
+          <div style="padding-top:8px;font-size:0.82rem;color:var(--text-muted);">
+            <code>keccak256(abi.encode(ts, "treasury", risk, communityFillPct, runwayDays))</code>
+            <br><br>Contracts read: StakingPool (community + operator), RewardVault, LINK ERC20
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Price Feeds -->
+    <div class="workflow-card reveal">
+      <div class="workflow-card-header">
+        <h4>2. stLINK Peg Monitor</h4>
+        <span class="badge simulate"><span class="dot"></span>Local Sim</span>
+      </div>
+      <div class="workflow-card-body">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">Chainlink Data Feed reads for stLINK/LINK ratio, LINK/USD, ETH/USD.</p>
+        <div class="metric-row"><span class="metric-label">stLINK/LINK</span><span class="metric-value">1.0091</span></div>
+        <div class="metric-row"><span class="metric-label">Depeg</span><span class="metric-value">91.3 bps</span></div>
+        <div class="metric-row"><span class="metric-label">LINK/USD</span><span class="metric-value">$9.12</span></div>
+        <div class="metric-row"><span class="metric-label">ETH/USD</span><span class="metric-value">$2,037.05</span></div>
+        <div class="cre-tags">
+          <span class="cre-tag">EVMClient</span>
+          <span class="cre-tag">CronCapability</span>
+          <span class="cre-tag">Data Feeds</span>
+        </div>
+        <button class="collapsible-trigger" onclick="toggleCollapsible(this)">Proof hash fields</button>
+        <div class="collapsible-content">
+          <div style="padding-top:8px;font-size:0.82rem;color:var(--text-muted);">
+            <code>keccak256(abi.encode(ts, "feeds", risk, stlinkLinkRatio * 1e6, depegBps * 100))</code>
+            <br><br>Feeds: <span class="copyable" onclick="copyText('0x2c1d072e956affc0d435cb7ac38ef18d24d9127c')"><code>LINK/USD</code><svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></span>,
+            <span class="copyable" onclick="copyText('0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419')"><code>ETH/USD</code><svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Morpho Vault -->
+    <div class="workflow-card reveal">
+      <div class="workflow-card-header">
+        <h4>3. Morpho Vault Health</h4>
+        <span class="badge simulate"><span class="dot"></span>Local Sim</span>
+      </div>
+      <div class="workflow-card-body">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">Morpho Blue utilization, on-chain IRM APY calculation, ERC4626 vault TVL.</p>
+        <div class="metric-row"><span class="metric-label">Utilization</span><span class="metric-value">89.38%</span></div>
+        <div class="metric-row"><span class="metric-label">Total Supplied</span><span class="metric-value">142,824 LINK</span></div>
+        <div class="metric-row"><span class="metric-label">Total Borrowed</span><span class="metric-value">127,665 LINK</span></div>
+        <div class="metric-row"><span class="metric-label">Borrow APY</span><span class="metric-value">3.43%</span></div>
+        <div class="metric-row"><span class="metric-label">Supply APY</span><span class="metric-value">3.06%</span></div>
+        <div class="cre-tags">
+          <span class="cre-tag">EVMClient</span>
+          <span class="cre-tag">CronCapability</span>
+        </div>
+        <button class="collapsible-trigger" onclick="toggleCollapsible(this)">Proof hash fields</button>
+        <div class="collapsible-content">
+          <div style="padding-top:8px;font-size:0.82rem;color:var(--text-muted);">
+            <code>keccak256(abi.encode(ts, "morpho", risk, utilization * 1e6, totalSupply))</code>
+            <br><br>APY from on-chain IRM: <code>borrowRateView()</code> * seconds/year. No APIs.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Curve Pool -->
+    <div class="workflow-card reveal">
+      <div class="workflow-card-header">
+        <h4>4. Curve Pool Composition</h4>
+        <span class="badge simulate"><span class="dot"></span>Local Sim</span>
+      </div>
+      <div class="workflow-card-body">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">Curve stLINK/LINK pool balances, TVL, virtual price, gauge incentives.</p>
+        <div class="metric-row"><span class="metric-label">LINK Balance</span><span class="metric-value">179,134 LINK</span></div>
+        <div class="metric-row"><span class="metric-label">stLINK Balance</span><span class="metric-value">376,230 stLINK</span></div>
+        <div class="metric-row"><span class="metric-label">Imbalance</span><span class="metric-value">17.7%</span></div>
+        <div class="metric-row"><span class="metric-label">TVL</span><span class="metric-value">$5.06M</span></div>
+        <div class="metric-row"><span class="metric-label">Gauge Staked</span><span class="metric-value">545,258 LP</span></div>
+        <div class="cre-tags">
+          <span class="cre-tag">EVMClient</span>
+          <span class="cre-tag">CronCapability</span>
+          <span class="cre-tag">LINK/USD Feed</span>
+        </div>
+        <button class="collapsible-trigger" onclick="toggleCollapsible(this)">Proof hash fields</button>
+        <div class="collapsible-content">
+          <div style="padding-top:8px;font-size:0.82rem;color:var(--text-muted);">
+            <code>keccak256(abi.encode(ts, "curve", risk, imbalancePct, tvlUsd))</code>
+            <br><br>Gauge rewards: 2 active streams, total 16.7e15 wei/sec emission rate.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Governance -->
+    <div class="workflow-card reveal">
+      <div class="workflow-card-header">
+        <h4>5. Governance (SLURPs)</h4>
+        <span class="badge simulate"><span class="dot"></span>Local Sim</span>
+      </div>
+      <div class="workflow-card-body">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">Snapshot proposals with bit-packed encoding for 7 recent SLURPs.</p>
+        <div class="metric-row"><span class="metric-label">Active Proposals</span><span class="metric-value">1</span></div>
+        <div class="metric-row"><span class="metric-label">Urgent (24h)</span><span class="metric-value">0</span></div>
+        <div class="metric-row"><span class="metric-label">Latest SLURP</span><span class="metric-value">SLURP-61</span></div>
+        <div class="metric-row"><span class="metric-label">Recent Pass Rate</span><span class="metric-value">100%</span></div>
+        <div class="cre-tags">
+          <span class="cre-tag">HTTPClient</span>
+          <span class="cre-tag">consensus</span>
+          <span class="cre-tag">CronCapability</span>
+        </div>
+        <button class="collapsible-trigger" onclick="toggleCollapsible(this)">Proof hash fields</button>
+        <div class="collapsible-content">
+          <div style="padding-top:8px;font-size:0.82rem;color:var(--text-muted);">
+            <code>keccak256(abi.encode(ts, "governance", risk, activeProposals, urgentProposals))</code>
+            <br><br>7 SLURPs bit-packed into 4 uint256s: numbers, YES%, vote counts, pass/fail.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. CCIP Lanes -->
+    <div class="workflow-card reveal">
+      <div class="workflow-card-header">
+        <h4>6. CCIP Lane Health</h4>
+        <span class="badge simulate"><span class="dot"></span>Local Sim</span>
+      </div>
+      <div class="workflow-card-body">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">CCIP Router, OnRamp paused state, and TokenPool rate limiters per chain.</p>
+        <div class="metric-row"><span class="metric-label">OK Lanes</span><span class="metric-value">4 / 4</span></div>
+        <div class="metric-row"><span class="metric-label">Destinations</span><span class="metric-value">Arb, Base, Polygon</span></div>
+        <div class="metric-row"><span class="metric-label">Paused Lanes</span><span class="metric-value">0</span></div>
+        <div class="cre-tags">
+          <span class="cre-tag">EVMClient</span>
+          <span class="cre-tag">CronCapability</span>
+          <span class="cre-tag">CCIP Router</span>
+          <span class="cre-tag">OnRamp</span>
+          <span class="cre-tag">TokenPool</span>
+        </div>
+        <button class="collapsible-trigger" onclick="toggleCollapsible(this)">Proof hash fields</button>
+        <div class="collapsible-content">
+          <div style="padding-top:8px;font-size:0.82rem;color:var(--text-muted);">
+            <code>keccak256(abi.encode(ts, "ccip", risk, okLanes, totalLanes))</code>
+            <br><br>Checks: <code>getOnRamp()</code>, <code>paused()</code>, <code>getCurrentOutboundRateLimiterState()</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Token Flows -->
+    <div class="workflow-card reveal">
+      <div class="workflow-card-header">
+        <h4>7. Token Flows</h4>
+        <span class="badge simulate"><span class="dot"></span>Local Sim</span>
+      </div>
+      <div class="workflow-card-body">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">ERC20 balances across 50+ classified addresses: whales, operators, vesting, team.</p>
+        <div class="metric-row"><span class="metric-label">Total Tracked</span><span class="metric-value">12,450,000 LINK</span></div>
+        <div class="metric-row"><span class="metric-label">Addresses</span><span class="metric-value">54</span></div>
+        <div class="cre-tags">
+          <span class="cre-tag">EVMClient</span>
+          <span class="cre-tag">CronCapability</span>
+        </div>
+        <button class="collapsible-trigger" onclick="toggleCollapsible(this)">Proof hash fields</button>
+        <div class="collapsible-content">
+          <div style="padding-top:8px;font-size:0.82rem;color:var(--text-muted);">
+            <code>keccak256(abi.encode(ts, "flows", risk, totalSdlTracked, addressCount))</code>
+            <br><br>Classifications: validators, whales, DEX pools, vesting contracts, team.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. LAA -->
+    <div class="workflow-card reveal" style="border-color: var(--success);">
+      <div class="workflow-card-header">
+        <h4>8. LINK AI Arbitrage (LAA)</h4>
+        <span class="badge active"><span class="dot"></span>Active on DON</span>
+      </div>
+      <div class="workflow-card-body">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">Core product. Detects stLINK/LINK arb on Curve. AI-powered signal evaluation via GPT-5.3-Codex.</p>
+        <div class="metric-row"><span class="metric-label">Signal</span><span class="metric-value">ok</span></div>
+        <div class="metric-row"><span class="metric-label">Premium</span><span class="metric-value">17 bps</span></div>
+        <div class="metric-row"><span class="metric-label">Priority Pool</span><span class="metric-value">Open</span></div>
+        <div class="metric-row"><span class="metric-label">Schedule</span><span class="metric-value">7x/day on DON</span></div>
+        <div class="cre-tags">
+          <span class="cre-tag">EVMClient</span>
+          <span class="cre-tag">HTTPClient</span>
+          <span class="cre-tag">CronCapability</span>
+          <span class="cre-tag">consensus</span>
+        </div>
+        <button class="collapsible-trigger" onclick="toggleCollapsible(this)">Proof hash fields</button>
+        <div class="collapsible-content">
+          <div style="padding-top:8px;font-size:0.82rem;color:var(--text-muted);">
+            <code>keccak256(abi.encode(ts, "laa", risk, premiumBps, linkBalance))</code>
+            <br><br>Reads: Curve StableSwap NG (<code>balances()</code>, <code>get_dy()</code> at 4 sizes), Priority Pool (<code>poolStatus()</code>, <code>totalQueued()</code>)
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ──────────────── SECTION 5: COMPOSITE INTELLIGENCE ──────────────── -->
+<section id="composite">
+  <h2>Composite Intelligence</h2>
+  <p class="section-subtitle">Five context workflows feed the LAA override decision. The whole is greater than the parts.</p>
+
+  <div class="diagram-container reveal">
+    <div class="mermaid">
+graph TD
+    PF["Price Feeds
+    stLINK/LINK: 1.0091
+    Depeg: 91 bps"]
+    TR["Treasury Risk
+    100% community fill
+    361K LINK queued"]
+    MV["Morpho Vault
+    89.38% utilization
+    142K LINK supplied"]
+    CP["Curve Pool
+    17.7% imbalance
+    $5.06M TVL"]
+    CC["CCIP Lanes
+    4/4 OK"]
+    LAA["LAA Isolated
+    Signal: EXECUTE
+    Premium: 17 bps"]
+
+    COMP["Composite AI
+    GPT-5.3-Codex
+    Cross-workflow synthesis"]
+
+    PF --> COMP
+    TR --> COMP
+    MV --> COMP
+    CP --> COMP
+    CC --> COMP
+    LAA --> COMP
+
+    COMP --> RES["Final Decision: WAIT
+    Confidence: 0.94
+    Optimal size: 500 stLINK"]
+
+    style PF fill:#1a2040,stroke:#375BD2,color:#E1E4E8
+    style TR fill:#1a2040,stroke:#375BD2,color:#E1E4E8
+    style MV fill:#1a2040,stroke:#375BD2,color:#E1E4E8
+    style CP fill:#1a2040,stroke:#375BD2,color:#E1E4E8
+    style CC fill:#1a2040,stroke:#375BD2,color:#E1E4E8
+    style LAA fill:#2a1a0a,stroke:#FFB300,color:#E1E4E8
+    style COMP fill:#375BD2,stroke:#4FD4E5,color:#FFFFFF
+    style RES fill:#0d2818,stroke:#00C853,color:#E1E4E8
+    </div>
+  </div>
+
+  <h3>Real Example (Live Mainnet Data, March 2026)</h3>
+  <div class="card reveal" style="margin-top:12px;">
+    <table class="data-table" style="margin:0;">
+      <tbody>
+        <tr><td><strong>Isolated LAA signal</strong></td><td class="mono" style="color:var(--warning);">EXECUTE (17 bps premium, pool open)</td></tr>
+        <tr><td><strong>Composite recommendation</strong></td><td class="mono" style="color:var(--accent-teal);">WAIT (ecosystem under stress)</td></tr>
+        <tr><td><strong>Confidence</strong></td><td class="mono">0.94 (all 5 context workflows loaded)</td></tr>
+        <tr><td><strong>Optimal swap size</strong></td><td class="mono">500 stLINK (reduced from 5,000)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warning reveal" style="margin-top:20px;">
+    <strong>Why WAIT?</strong> "Premium is real and likely to persist (100% community pool fill, 89.65% Morpho utilization),
+    but Priority Pool queue is 365K LINK (slow recycling), stLINK/LINK depeg at 95 bps (basis instability),
+    and premium is thin (16-17 bps). Wait for queue normalization or probe with small size."
+  </div>
+
+  <h3>How Each Workflow Influences LAA</h3>
+  <table class="data-table reveal">
+    <thead>
+      <tr><th>Workflow</th><th>Signal</th><th>Impact on LAA</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>price-feeds</td><td>LINK/USD, depeg bps</td><td>17 bps arb means nothing if LINK drops 5% during cycle</td></tr>
+      <tr><td>treasury-risk</td><td>Pool fill, queue depth</td><td>100% fill = premium persists. 365K queue = slow recycling</td></tr>
+      <tr><td>morpho-vault</td><td>Utilization %</td><td>89.38% = wstLINK locked as collateral = less sell pressure</td></tr>
+      <tr><td>ccip-lanes</td><td>Lane status</td><td>Degraded lanes restrict cross-chain LINK flows</td></tr>
+      <tr><td>curve-pool</td><td>Imbalance, TVL</td><td>Deep imbalance + active gauge = structural premium</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ──────────────── SECTION 6: CONTRACT NETWORK ──────────────── -->
+<section id="contract-network">
+  <h2>Contract Interaction Network</h2>
+  <p class="section-subtitle">Green arrows: mainnet reads. Red arrow: Sepolia writes. Every workflow reads mainnet, writes Sepolia.</p>
+
+  <div class="diagram-container reveal">
+    <div class="mermaid">
+graph LR
+    subgraph MN["Ethereum Mainnet (Reads)"]
+        SP["StakingPool
+        Community + Operator"]
+        RV["RewardVault"]
+        LF["LINK/USD Feed
+        0x2c1d...9127c"]
+        EF["ETH/USD Feed
+        0x5f4e...b8419"]
+        MB["MorphoBlue
+        Market + IRM"]
+        CV["Curve StableSwap NG
+        stLINK/LINK Pool"]
+        CR["CCIP Router
+        OnRamp + TokenPool"]
+        PP["Priority Pool"]
+        ERC["50+ ERC20 Addresses"]
+    end
+
+    subgraph WF["CRE Workflows"]
+        W1["Treasury"]
+        W2["Price Feeds"]
+        W3["Morpho"]
+        W4["Curve"]
+        W5["CCIP"]
+        W6["Governance"]
+        W7["Token Flows"]
+        W8["LAA"]
+    end
+
+    subgraph SEP["Sepolia (Writes)"]
+        SR["SentinelRegistry
+        0xE5B1...1d40"]
+    end
+
+    SP -->|"green"| W1
+    RV -->|"green"| W1
+    LF -->|"green"| W2
+    EF -->|"green"| W2
+    MB -->|"green"| W3
+    CV -->|"green"| W4
+    LF -->|"green"| W4
+    CR -->|"green"| W5
+    CV -->|"green"| W8
+    PP -->|"green"| W8
+    ERC -->|"green"| W7
+
+    W1 -->|"proof"| SR
+    W2 -->|"proof"| SR
+    W3 -->|"proof"| SR
+    W4 -->|"proof"| SR
+    W5 -->|"proof"| SR
+    W6 -->|"proof"| SR
+    W7 -->|"proof"| SR
+    W8 -->|"proof"| SR
+
+    style MN fill:#0d1a3d,stroke:#00C853,stroke-width:2px,color:#E1E4E8
+    style WF fill:#1a1a2e,stroke:#375BD2,stroke-width:2px,color:#E1E4E8
+    style SEP fill:#2a0a0a,stroke:#FF5252,stroke-width:2px,color:#E1E4E8
+    style SR fill:#FF5252,stroke:#FF5252,color:#FFFFFF
+    </div>
+  </div>
+
+  <h3>Contract Addresses</h3>
+  <table class="data-table reveal">
+    <thead>
+      <tr><th>Contract</th><th>Network</th><th>Address</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>SentinelRegistry</td>
+        <td>Sepolia</td>
+        <td><span class="copyable mono" onclick="copyText('0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40')">0xE5B1...1d40 <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></span></td>
+      </tr>
+      <tr>
+        <td>LINK/USD Data Feed</td>
+        <td>Mainnet</td>
+        <td><span class="copyable mono" onclick="copyText('0x2c1d072e956affc0d435cb7ac38ef18d24d9127c')">0x2c1d...9127c <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></span></td>
+      </tr>
+      <tr>
+        <td>ETH/USD Data Feed</td>
+        <td>Mainnet</td>
+        <td><span class="copyable mono" onclick="copyText('0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419')">0x5f4e...b8419 <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></span></td>
+      </tr>
+      <tr>
+        <td>Workflow Registry (LAA)</td>
+        <td>Mainnet</td>
+        <td><span class="copyable mono" onclick="copyText('0x4Ac54353FA4Fa961AfcC5ec4B118596d3305E7e5')">0x4Ac5...E7e5 <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ──────────────── SECTION 7: PROOF ENCODING ──────────────── -->
+<section id="proof-encoding">
+  <h2>Proof Hash Encoding</h2>
+  <p class="section-subtitle">Each workflow encodes domain-specific metrics into a single keccak256 hash written to Sepolia.</p>
+
+  <div class="diagram-container reveal">
+    <div class="mermaid">
+graph LR
+    A["Raw Metrics
+    from CRE Workflow"] --> B["ABI Encode
+    abi.encode(ts, wf, risk, m1, m2...)"]
+    B --> C["keccak256
+    32 bytes"]
+    C --> D["SentinelRegistry
+    recordHealth(hash, riskLevel)"]
+
+    style A fill:#1a2040,stroke:#375BD2,color:#E1E4E8
+    style B fill:#252830,stroke:#4FD4E5,color:#E1E4E8
+    style C fill:#375BD2,stroke:#4FD4E5,color:#FFFFFF
+    style D fill:#0d2818,stroke:#00C853,color:#E1E4E8
+    </div>
+  </div>
+
+  <h3>Per-Workflow Hash Fields</h3>
+  <table class="data-table reveal">
+    <thead>
+      <tr><th>Workflow</th><th>Encoded Fields</th><th>Risk Level Format</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>treasury</td><td class="mono">ts, "treasury", risk, communityFillPct, runwayDays</td><td class="mono">treasury:ok|warning|critical</td></tr>
+      <tr><td>feeds</td><td class="mono">ts, "feeds", risk, stlinkLinkRatio*1e6, depegBps*100</td><td class="mono">feeds:ok|warning|critical</td></tr>
+      <tr><td>morpho</td><td class="mono">ts, "morpho", risk, utilization*1e6, totalSupply</td><td class="mono">morpho:ok|warning|critical</td></tr>
+      <tr><td>curve</td><td class="mono">ts, "curve", risk, imbalancePct, tvlUsd</td><td class="mono">curve:ok|warning|critical</td></tr>
+      <tr><td>governance</td><td class="mono">ts, "governance", risk, activeProposals, urgentProposals</td><td class="mono">governance:ok|warning|critical</td></tr>
+      <tr><td>ccip</td><td class="mono">ts, "ccip", risk, okLanes, totalLanes</td><td class="mono">ccip:ok|warning|critical</td></tr>
+      <tr><td>flows</td><td class="mono">ts, "flows", risk, totalSdlTracked, addressCount</td><td class="mono">flows:ok|warning|critical</td></tr>
+      <tr><td>laa</td><td class="mono">ts, "laa", risk, premiumBps, linkBalance</td><td class="mono">laa:ok|warning|critical</td></tr>
+      <tr>
+        <td><strong>composite</strong></td>
+        <td class="mono" style="font-size:0.75rem;">ts, "composite", risk, premiumBps, linkUsd, communityFillPct, queueLink, morphoUtil, ccipOk, curveImbalance, confidence</td>
+        <td class="mono">composite:ok|warning|critical</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>TypeScript Implementation</h3>
+  <pre class="code-block reveal">const snapshotHash = keccak256(
+  encodeAbiParameters(
+    parseAbiParameters(
+      'uint256 ts, string wf, string risk, uint256 m1, uint256 m2'
+    ),
+    [timestampUnix, workflowType, risk, metric1, metric2],
+  ),
+);</pre>
+
+  <div class="callout info reveal">
+    <strong>Why hashes?</strong> Storing the full snapshot on-chain costs hundreds of dollars in gas.
+    A keccak256 hash is always 32 bytes regardless of input: ~21,000 gas (~$0.01 on Sepolia).
+    Anyone can verify by re-running the workflow against the same block.
+  </div>
+</section>
+
+<!-- ──────────────── SECTION 8: SENTINELREGISTRY ──────────────── -->
+<section id="registry">
+  <h2>SentinelRegistry Contract</h2>
+  <p class="section-subtitle">52 nSLOC. Append-only. Owner-gated. Deduplicated. Audited.</p>
+
+  <pre class="code-block reveal">// SPDX-License-Identifier: MIT
+pragma solidity 0.8.19;
+
+contract OrbitalSentinelRegistry {
+    struct Record {
+        bytes32 snapshotHash;
+        string  riskLevel;
+        uint256 timestamp;
+        address recorder;
+    }
+
+    Record[] public records;
+    mapping(bytes32 => bool) public recorded;
+    address public owner;
+    address public pendingOwner;
+
+    event HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 ts);
+
+    error NotOwner();
+    error AlreadyRecorded();
+    error EmptyRiskLevel();
+    error RiskLevelTooLong();
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert NotOwner();
+        _;
+    }
+
+    constructor() { owner = msg.sender; }
+
+    function recordHealth(bytes32 snapshotHash, string calldata riskLevel)
+        external onlyOwner
+    {
+        if (recorded[snapshotHash]) revert AlreadyRecorded();
+        if (bytes(riskLevel).length == 0) revert EmptyRiskLevel();
+        if (bytes(riskLevel).length > 256) revert RiskLevelTooLong();
+
+        recorded[snapshotHash] = true;
+        records.push(Record(snapshotHash, riskLevel, block.timestamp, msg.sender));
+        emit HealthRecorded(snapshotHash, riskLevel, block.timestamp);
+    }
+
+    function count() external view returns (uint256) { return records.length; }
+    function latest() external view returns (Record memory) {
+        require(records.length > 0);
+        return records[records.length - 1];
+    }
+}</pre>
+
+  <h3>Audit Summary</h3>
+  <div class="card reveal" style="margin-top:12px;">
+    <table class="data-table" style="margin:0;">
+      <tbody>
+        <tr><td><strong>Auditor</strong></td><td>Claude Opus 4.6 (automated + manual)</td></tr>
+        <tr><td><strong>Date</strong></td><td>2026-03-01</td></tr>
+        <tr><td><strong>Findings</strong></td><td>4 fixed (1 Medium, 2 Low, 1 Info), 3 acknowledged (Info)</td></tr>
+        <tr><td><strong>Tests</strong></td><td class="mono">31 total (17 unit + 7 fuzz + 7 deep audit)</td></tr>
+        <tr><td><strong>Fuzz Iterations</strong></td><td class="mono">80,000 (0 failures)</td></tr>
+        <tr><td><strong>Static Analysis</strong></td><td>Slither v0.11.5 (0 findings) + Aderyn v0.6.8 (2 Low, by-design)</td></tr>
+        <tr><td><strong>Etherscan</strong></td><td><a href="https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40" target="_blank">View Contract</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Key Security Properties</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px;" class="reveal">
+    <div class="card" style="padding:16px;text-align:center;">
+      <div style="font-size:1.6rem;color:var(--success);font-weight:900;">Owner-Gated</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);">Only deployer can write records</div>
+    </div>
+    <div class="card" style="padding:16px;text-align:center;">
+      <div style="font-size:1.6rem;color:var(--success);font-weight:900;">Deduplicated</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);">On-chain AlreadyRecorded guard</div>
+    </div>
+    <div class="card" style="padding:16px;text-align:center;">
+      <div style="font-size:1.6rem;color:var(--success);font-weight:900;">Ownable2Step</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);">Two-step ownership transfer</div>
+    </div>
+    <div class="card" style="padding:16px;text-align:center;">
+      <div style="font-size:1.6rem;color:var(--success);font-weight:900;">Validated</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);">Empty + 256-byte max riskLevel</div>
+    </div>
+  </div>
+</section>
+
+<!-- ──────────────── SECTION 9: CRE DEPLOYMENT ──────────────── -->
+<section id="cre-deployment">
+  <h2>CRE Deployment</h2>
+  <p class="section-subtitle">LAA is live on the Chainlink CRE mainnet DON. The other 7 workflows simulate locally.</p>
+
+  <div class="card reveal" style="border-color:var(--success);">
+    <h3 style="color:var(--success);margin-top:0;">LAA Workflow: Live on CRE Mainnet</h3>
+    <table class="data-table" style="margin:0;">
+      <tbody>
+        <tr><td><strong>Status</strong></td><td><span class="badge active" style="font-size:0.75rem;"><span class="dot"></span>ACTIVE ON DON</span></td></tr>
+        <tr><td><strong>Workflow ID</strong></td><td><span class="copyable mono" style="font-size:0.75rem;" onclick="copyText('005f8a760f4b41e09d4646bfeb7ae17d00140408fc9e7d89ae10d570ff62fe96')">005f8a76...fe96 <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></span></td></tr>
+        <tr><td><strong>Workflow Registry</strong></td><td><span class="copyable mono" style="font-size:0.75rem;" onclick="copyText('0x4Ac54353FA4Fa961AfcC5ec4B118596d3305E7e5')">0x4Ac5...E7e5 (Ethereum mainnet) <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></span></td></tr>
+        <tr><td><strong>Owner</strong></td><td><span class="copyable mono" style="font-size:0.75rem;" onclick="copyText('0xB250152756E2d6E3bD237a6875aE5E26e3D3877b')">0xB250...877b <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></span></td></tr>
+        <tr><td><strong>DON Family</strong></td><td class="mono">zone-a</td></tr>
+        <tr><td><strong>Schedule</strong></td><td class="mono">7x/day (00, 03, 07, 10, 14, 17, 21 UTC)</td></tr>
+        <tr><td><strong>AI Endpoint</strong></td><td class="mono" style="font-size:0.75rem;">sentinel-ai.schuna.co.il/api/cre/analyze-arb</td></tr>
+        <tr><td><strong>AI Cost</strong></td><td>~$0.004/call (GPT-5.3-Codex), ~$0.14 total through March 8</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Deployment Status</h3>
+  <table class="data-table reveal">
+    <thead>
+      <tr><th>Workflow</th><th>Status</th><th>Schedule</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>LINK AI Arbitrage (LAA)</strong></td>
+        <td><span class="badge active"><span class="dot"></span>Active on DON</span></td>
+        <td class="mono">7x/day</td>
+      </tr>
+      <tr><td>treasury-risk</td><td><span class="badge simulate"><span class="dot"></span>Local Simulate</span></td><td class="mono">7x/day (unified cycle)</td></tr>
+      <tr><td>price-feeds</td><td><span class="badge simulate"><span class="dot"></span>Local Simulate</span></td><td class="mono">7x/day (unified cycle)</td></tr>
+      <tr><td>morpho-vault-health</td><td><span class="badge simulate"><span class="dot"></span>Local Simulate</span></td><td class="mono">7x/day (unified cycle)</td></tr>
+      <tr><td>curve-pool</td><td><span class="badge simulate"><span class="dot"></span>Local Simulate</span></td><td class="mono">7x/day (unified cycle)</td></tr>
+      <tr><td>ccip-lane-health</td><td><span class="badge simulate"><span class="dot"></span>Local Simulate</span></td><td class="mono">7x/day (unified cycle)</td></tr>
+      <tr><td>governance-monitor</td><td><span class="badge simulate"><span class="dot"></span>Local Simulate</span></td><td class="mono">7x/day (unified cycle)</td></tr>
+      <tr><td>token-flows</td><td><span class="badge simulate"><span class="dot"></span>Local Simulate</span></td><td class="mono">Not in unified cycle</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Proof Record Distribution</h3>
+  <div class="chart-container reveal">
+    <canvas id="proofChart" width="460" height="300"></canvas>
+  </div>
+</section>
+
+<!-- ──────────────── SECTION 10: TRY IT ──────────────── -->
+<section id="try-it">
+  <h2>Try It Yourself</h2>
+  <p class="section-subtitle">Simulate any workflow locally, verify proofs on-chain, or explore the dashboard.</p>
+
+  <h3>1. Run a Workflow Locally</h3>
+  <pre class="code-block reveal"># Install CRE CLI (already at ~/.local/bin/cre)
+# Clone and install
+cd workflows/link-ai-arbitrage
+bun install
+cp my-workflow/config.example.json my-workflow/config.staging.json
+
+# Run the simulation
+./run_snapshot.sh staging-settings</pre>
+
+  <h3>2. Write Proofs to Sepolia</h3>
+  <pre class="code-block reveal">cd scripts
+node record-all-snapshots.mjs
+# Reads all 8 workflow snapshots + composite
+# Writes keccak256 proofs to SentinelRegistry</pre>
+
+  <h3>3. Verify a Proof</h3>
+  <pre class="code-block reveal"># 1. Get the proof hash from SentinelRegistry on Etherscan
+# 2. Run the same CRE workflow against the same block
+# 3. ABI-encode the same fields in the same order
+# 4. Hash the result
+# 5. Compare with on-chain record
+# If they match: data is proven authentic</pre>
+
+  <h3>Quick Links</h3>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;" class="reveal">
+    <a href="https://sentinel.schuna.co.il" target="_blank" class="hero-link primary">Live Dashboard</a>
+    <a href="https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40" target="_blank" class="hero-link secondary">SentinelRegistry</a>
+    <a href="https://github.com/Tokenized2027/orbital-sentinel" target="_blank" class="hero-link secondary">GitHub</a>
+  </div>
+</section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  Orbital Sentinel &middot; Chainlink Convergence Hackathon 2026 &middot;
+  Tracks: CRE & AI + DeFi & Tokenization + Autonomous Agents
+  <br>
+  Built by <a href="https://github.com/Tokenized2027">Orbital</a>
+</footer>
+
+<!-- COPY TOAST -->
+<div class="copy-toast" id="copyToast">Copied to clipboard</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+// ─── MERMAID INIT ───
+const mermaidSources = new Map();
+
+function initMermaid() {
+  const theme = document.documentElement.getAttribute('data-theme');
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: theme === 'dark' ? 'dark' : 'default',
+    themeVariables: theme === 'dark' ? {
+      primaryColor: '#375BD2',
+      primaryTextColor: '#E1E4E8',
+      primaryBorderColor: '#4FD4E5',
+      lineColor: '#4FD4E5',
+      secondaryColor: '#1A1D27',
+      tertiaryColor: '#252830',
+      background: '#0F1117',
+      mainBkg: '#1A1D27',
+      nodeBorder: '#375BD2',
+      clusterBkg: '#1A1D27',
+      clusterBorder: '#375BD2',
+      titleColor: '#E1E4E8',
+      edgeLabelBackground: '#1A1D27',
+      nodeTextColor: '#E1E4E8'
+    } : {
+      primaryColor: '#375BD2',
+      primaryTextColor: '#1F2937',
+      primaryBorderColor: '#375BD2',
+      lineColor: '#375BD2',
+      secondaryColor: '#F0F1F3',
+      tertiaryColor: '#E8E9EB'
+    },
+    flowchart: { curve: 'basis', padding: 16 },
+    sequence: { mirrorActors: false, actorMargin: 40 }
+  });
+}
+
+function storeMermaidSources() {
+  document.querySelectorAll('.mermaid').forEach((el, i) => {
+    if (!mermaidSources.has(i)) {
+      mermaidSources.set(i, el.textContent.trim());
+    }
+  });
+}
+
+async function renderMermaid() {
+  initMermaid();
+  try {
+    await mermaid.run({ querySelector: '.mermaid' });
+  } catch (e) {
+    console.warn('Mermaid render warning:', e);
+  }
+}
+
+async function rerenderMermaid() {
+  initMermaid();
+  const containers = document.querySelectorAll('.diagram-container');
+  containers.forEach((container, i) => {
+    const mermaidEl = container.querySelector('.mermaid, [data-mermaid-id]');
+    if (mermaidEl && mermaidSources.has(i)) {
+      const newEl = document.createElement('div');
+      newEl.className = 'mermaid';
+      newEl.textContent = mermaidSources.get(i);
+      mermaidEl.replaceWith(newEl);
+    }
+  });
+  try {
+    await mermaid.run({ querySelector: '.mermaid' });
+  } catch (e) {
+    console.warn('Mermaid re-render warning:', e);
+  }
+}
+
+// ─── THEME TOGGLE ───
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('theme-icon').textContent = next === 'dark' ? 'Light Mode' : 'Dark Mode';
+
+  // Re-render mermaid with new theme
+  rerenderMermaid();
+
+  // Update chart colors
+  if (window.proofChartInstance) {
+    updateChartTheme(window.proofChartInstance, next);
+  }
+}
+
+// ─── SIDEBAR ───
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show');
+}
+
+// Close sidebar on nav click (mobile)
+document.querySelectorAll('.sidebar-nav a').forEach(a => {
+  a.addEventListener('click', () => {
+    if (window.innerWidth <= 900) {
+      toggleSidebar();
+    }
+  });
+});
+
+// Active nav tracking
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.sidebar-nav a');
+
+const navObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(link => link.classList.remove('active'));
+      const activeLink = document.querySelector(`.sidebar-nav a[href="#${entry.target.id}"]`);
+      if (activeLink) activeLink.classList.add('active');
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px' });
+
+sections.forEach(section => navObserver.observe(section));
+
+// ─── SCROLL REVEAL ───
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('revealed');
+    }
+  });
+}, { threshold: 0.08 });
+
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+// ─── ANIMATED COUNTERS ───
+function animateCounters() {
+  document.querySelectorAll('.stat-number[data-target]').forEach(el => {
+    const target = parseInt(el.dataset.target);
+    const duration = 1500;
+    const startTime = performance.now();
+
+    function update(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(eased * target);
+      el.textContent = current + (target === 73 ? '+' : '');
+      if (progress < 1) requestAnimationFrame(update);
+    }
+
+    requestAnimationFrame(update);
+  });
+}
+
+// ─── COLLAPSIBLE ───
+function toggleCollapsible(trigger) {
+  trigger.classList.toggle('open');
+  const content = trigger.nextElementSibling;
+  content.classList.toggle('open');
+}
+
+// ─── COPY TO CLIPBOARD ───
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('copyToast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  });
+}
+
+// ─── CHART.JS ───
+function createProofChart() {
+  const ctx = document.getElementById('proofChart');
+  if (!ctx) return;
+
+  const theme = document.documentElement.getAttribute('data-theme');
+  const textColor = theme === 'dark' ? '#E1E4E8' : '#1F2937';
+  const gridColor = theme === 'dark' ? '#2D3140' : '#E5E7EB';
+
+  const chart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Treasury', 'Price Feeds', 'Morpho', 'Curve', 'CCIP', 'Governance', 'Token Flows', 'LAA', 'Composite'],
+      datasets: [{
+        data: [9, 9, 9, 9, 8, 8, 5, 9, 7],
+        backgroundColor: [
+          '#375BD2', '#4FD4E5', '#00C853', '#FFB300',
+          '#FF5252', '#9C27B0', '#795548', '#FF6D00', '#607D8B'
+        ],
+        borderWidth: 0,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: textColor, font: { size: 11 }, padding: 8, boxWidth: 12, boxHeight: 12 }
+        },
+        title: {
+          display: true,
+          text: '73+ Proof Records by Workflow',
+          color: textColor,
+          font: { size: 14, weight: 'bold' }
+        }
+      }
+    }
+  });
+
+  window.proofChartInstance = chart;
+}
+
+function updateChartTheme(chart, theme) {
+  const textColor = theme === 'dark' ? '#E1E4E8' : '#1F2937';
+  chart.options.plugins.legend.labels.color = textColor;
+  chart.options.plugins.title.color = textColor;
+  chart.update();
+}
+
+// ─── INIT ───
+document.addEventListener('DOMContentLoaded', async () => {
+  storeMermaidSources();
+  await renderMermaid();
+  animateCounters();
+  createProofChart();
+});
+</script>
+</body>
+</html>

@@ -193,13 +193,13 @@ export default function GovernancePanel({ workflow }: { workflow: Workflow | nul
                   }}>
                     {cleanTitle}
                   </span>
-                  <span style={{ color: 'var(--t3)', fontSize: 12, minWidth: 70, textAlign: 'right' }}>
+                  <span style={{ color: 'var(--t3)', fontSize: 13, minWidth: 70, textAlign: 'right' }}>
                     {formatDate(p.end)}
                   </span>
-                  <span style={{ color: 'var(--t3)', fontSize: 12, minWidth: 42, textAlign: 'right' }}>
+                  <span style={{ color: 'var(--t3)', fontSize: 13, minWidth: 42, textAlign: 'right' }}>
                     {council ? `${p.votes}/${COUNCIL_SIZE}` : `${p.votes}v`}
                   </span>
-                  <span style={{ color: 'var(--green)', fontSize: 12, minWidth: 32, textAlign: 'right' }}>
+                  <span style={{ color: 'var(--green)', fontSize: 13, minWidth: 32, textAlign: 'right' }}>
                     {yesPct.toFixed(0)}%
                   </span>
                   <Badge risk={outcome.risk}>{outcome.label}</Badge>

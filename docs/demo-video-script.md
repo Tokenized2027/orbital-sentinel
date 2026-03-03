@@ -1,94 +1,127 @@
-# Demo Video Script — Orbital Sentinel
+# Demo Video Script: Sentinel by Orbital
 
-**Target:** Under 5 minutes. Screen recording with voiceover.
-**Tool:** OBS, Loom, or any screen recorder. Upload to YouTube (public or unlisted).
-
----
-
-## Setup Before Recording
-
-1. Open these tabs in browser:
-   - Sentinel Dashboard: (Cloudflare tunnel URL or `http://localhost:3016`)
-   - Sepolia Etherscan contract: `https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`
-   - GitHub repo: `https://github.com/Tokenized2027/orbital-sentinel`
-
-2. Open terminal at: `cd ~/orbital-sentinel/scripts`
+**Format:** Screen recording with voiceover, 2-3 minutes.
+**Tone:** Conversational, authoritative, no jargon without explanation. Short sentences. One idea per line.
+**Visuals:** [SHOW] tags indicate what's on screen. Voiceover text is everything else.
 
 ---
 
-## Scene 1 — What It Is (0:00 - 0:30)
+## Scene 1: The Problem (0:00 - 0:30)
 
-**Show:** Sentinel Dashboard
+[SHOW: Sentinel Dashboard, zoomed out, all 8 workflow cards visible]
 
-**Say:** "This is Orbital Sentinel — an autonomous AI agent platform that monitors DeFi protocol health using Chainlink CRE workflows. What you're seeing is the dashboard for stake.link, the largest Chainlink liquid staking protocol. It shows 8 workflow cards with CRE capability tags, live risk status, and on-chain sentinel records — all automated, no human in the loop."
+DeFi protocols manage hundreds of millions in value.
+But most of them are flying blind.
 
-**Action:** Scroll down to show the On-Chain Sentinel section with per-workflow stats and transaction list.
+A staking pool fills up. Reward vaults run dry. A token depegs.
+Bridge lanes freeze. Liquidity crunches hit without warning.
+By the time anyone notices, it's already too late.
 
----
+The problem isn't data. Ethereum is an open book.
+The problem is that nobody's watching. Not continuously. Not autonomously.
 
-## Scene 2 — On-Chain Proof (0:30 - 1:30)
-
-**Show:** Sepolia Etherscan contract page
-
-**Say:** "Every monitoring run writes a verifiable proof to this SentinelRegistry contract on Sepolia. Each HealthRecorded event contains a keccak256 hash of workflow-specific metrics — with prefixed risk levels like 'treasury:ok' or 'feeds:warning' so you can see which workflow produced each proof."
-
-**Action:** Click on one transaction, show the HealthRecorded event in the logs tab. Point out the snapshotHash and prefixed riskLevel fields.
+That's what Sentinel does.
 
 ---
 
-## Scene 3 — Live Run (1:30 - 3:00)
+## Scene 2: What It Does (0:30 - 1:20)
 
-**Show:** Terminal
+[SHOW: Scroll down to reveal on-chain proof list, then back up to workflow cards]
 
-**Say:** "Let me fire live health records right now — one for each workflow with fresh data."
+Sentinel is an autonomous AI agent platform
+that monitors DeFi protocol health using Chainlink CRE workflows.
 
-**Run:**
-```bash
-node record-all-snapshots.mjs
-```
+CRE is Chainlink's Compute Runtime Environment.
+Think of it like a decentralized server
+that runs your code across Chainlink's oracle network,
+not on a single machine you control.
 
-**Say:** (while it runs) "This reads real CRE snapshot data for all 8 workflows — treasury risk, price feeds, governance, Morpho vault, CCIP lanes, Curve pool, and the LINK AI Arbitrage (LAA) monitor. For each fresh snapshot, it computes a keccak256 hash of key metrics and writes it to the Sepolia registry with a prefixed risk level."
+We built 8 monitoring workflows for stake.link,
+the largest Chainlink liquid staking protocol.
 
-**Action:** When it confirms, copy a TX hash. Switch to Etherscan. Show the new transaction(s) appearing.
+[SHOW: Click through workflow cards on dashboard]
 
-**Say:** "There they are — real data, real proofs, confirmed on-chain. No fake scenarios, no hardcoded data."
+Treasury health. Price feed tracking. Governance alerts.
+Morpho vault utilization. Whale token flows. CCIP bridge status.
+Curve pool balance. And the flagship: LINK AI Arbitrage,
+which monitors stLINK/LINK arb opportunities with GPT analysis.
 
----
+Every workflow reads live contract data from Ethereum mainnet,
+feeds it to an AI model for risk assessment,
+and writes a verifiable proof hash on-chain.
 
-## Scene 4 — The 8 Workflows (3:00 - 4:00)
-
-**Show:** GitHub repo
-
-**Say:** "Orbital Sentinel runs 8 CRE workflows, all using @chainlink/cre-sdk."
-
-**Action:** Click through the workflows/ directory. For each, briefly show main.ts.
-
-**Say:**
-- "Treasury Risk reads staking pool contracts via EVMClient — pool capacity, reward runway, Morpho utilization."
-- "Price Feeds reads Chainlink Data Feed contracts directly — LINK/USD, ETH/USD."
-- "Governance Monitor polls Snapshot and Discourse via HTTPClient."
-- "Morpho Vault Health reads Morpho Blue market structs."
-- "Token Flows tracks 50 classified addresses for whale movements."
-- "CCIP Lane Health monitors Chainlink CCIP Router, OnRamp paused state, and rate limiter buckets."
-- "Curve Pool reads the stLINK/LINK StableSwap pool balances and computes imbalance using the LINK/USD Chainlink feed."
-- "LINK AI Arbitrage — or LAA — monitors Curve pool premium quotes and Priority Pool status to find optimal arb timing, with GPT-5.3-Codex AI analysis."
-
-**Action:** Open CHAINLINK.md briefly. "Every Chainlink touchpoint is documented here."
+That's the key part.
+Every single assessment gets a cryptographic proof,
+written to a smart contract on Sepolia.
+Permanent. Immutable. Auditable.
 
 ---
 
-## Scene 5 — Wrap (4:00 - 4:30)
+## Scene 3: How It All Connects (1:20 - 2:10)
 
-**Show:** Sentinel Dashboard again
+[SHOW: Etherscan contract page, scroll through HealthRecorded events]
 
-**Say:** "Orbital Sentinel is the intelligence backbone of our stake.link deployment. CRE orchestrates the data reads, AI analyzes the risk, and Sepolia stores the proof — for all 8 workflows. Fully autonomous — running 24/7 with no human intervention. Built for the Chainlink Convergence Hackathon by Orbital."
+Each on-chain proof is a HealthRecorded event.
+It contains the keccak256 hash of the actual metrics
+and a prefixed risk level: "treasury:ok", "feeds:warning", "laa:ok".
+So every proof is tagged with its source workflow.
+
+[SHOW: Dashboard, on-chain sentinel section with per-workflow stats]
+
+New proofs every cycle, deduplicated on-chain. All automated.
+
+Here's the clever part.
+After all 8 workflows complete,
+a composite intelligence layer reads data from across them,
+combines it with the arb signal,
+and feeds everything to the AI as cross-workflow context.
+
+So the AI doesn't just see one workflow's data.
+It sees the whole ecosystem at once.
+And that composite assessment also gets its own on-chain proof.
+
+[SHOW: Dashboard composite record or Etherscan composite TX]
+
+The LINK AI Arbitrage workflow is live on the CRE mainnet DON right now.
+That means Chainlink's oracle nodes run it autonomously, 7 times a day.
+No server on my end. No cron job. It just runs.
 
 ---
 
-## After Recording
+## Scene 4: Wrap (2:10 - 2:40)
 
-1. Upload to YouTube (public or unlisted)
-2. Copy the YouTube link
-3. Paste into Airtable submission form + Moltbook post
-</content>
-</invoke>
+[SHOW: Dashboard, full view]
+
+Sentinel uses six Chainlink products:
+CRE SDK, EVMClient, HTTPClient, CronCapability, Data Feeds, and getNetwork.
+All coordinated through one SentinelRegistry contract.
+
+Built with TypeScript, Solidity, Next.js, Python, and viem.
+AI powered by Claude and GPT.
+Audited: 31 tests, 80,000 fuzz iterations.
+
+This isn't a prototype.
+It's live on the CRE mainnet DON right now,
+writing real proofs from real Ethereum data.
+
+DeFi protocols shouldn't fly blind.
+Sentinel gives them eyes.
+
+---
+
+## Recording Notes
+
+**Tabs to have open before recording:**
+1. Sentinel Dashboard (Cloudflare tunnel or localhost:3016)
+2. Sepolia Etherscan: `https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`
+
+**Pre-run checklist:**
+- Dashboard running (PM2 or `npm run dev` in dashboard/)
+- Recent on-chain proofs visible on Etherscan (run `record-all-snapshots.mjs` beforehand if needed)
+
+**Timing guide:**
+- Scene 1 (Problem): ~30 seconds
+- Scene 2 (What it does): ~50 seconds
+- Scene 3 (How it connects): ~50 seconds
+- Scene 4 (Wrap): ~30 seconds
+- Total: ~2 min 40 sec

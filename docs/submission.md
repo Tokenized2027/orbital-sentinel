@@ -17,7 +17,7 @@
 
 ## Project Description (copy-paste ready)
 
-Orbital Sentinel is an autonomous AI agent platform that monitors DeFi protocol health using Chainlink CRE workflows. The flagship LAA workflow is **live on the CRE mainnet DON**, running 7x/day autonomously. All 8 workflows read live Ethereum mainnet data, feed it through AI analysis (Claude Haiku + GPT-5.3-Codex), and write verifiable risk proofs on-chain to a Sepolia registry contract. 56+ on-chain proofs per day, fully autonomous.
+Orbital Sentinel is an autonomous AI agent platform that monitors DeFi protocol health using Chainlink CRE workflows. The flagship LAA workflow is **live on the CRE mainnet DON**, running 7x/day autonomously. All 8 workflows read live Ethereum mainnet data, feed it through AI analysis (Claude Haiku + GPT-5.3-Codex), and write verifiable risk proofs on-chain to a Sepolia registry contract. On-chain proofs written autonomously, with contract-level deduplication ensuring only changed assessments produce new records.
 
 We built 8 production CRE workflows for stake.link (the largest Chainlink liquid staking protocol):
 

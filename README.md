@@ -198,7 +198,7 @@ The LAA workflow is **live on the CRE mainnet DON**. The other 7 workflows run l
 | governance-monitor | Local simulate | 7x/day (unified cycle) |
 | token-flows | Local simulate | Not in unified cycle |
 
-The unified cycle runs 7x/day: Phase 1 (CRE simulations in parallel), Phase 1.5 (composite AI analysis), Phase 2 (on-chain proof writes to SentinelRegistry on Sepolia). ~56 on-chain proofs/day.
+The unified cycle runs 7x/day: Phase 1 (CRE simulations in parallel), Phase 1.5 (composite AI analysis), Phase 2 (on-chain proof writes to SentinelRegistry on Sepolia). on-chain proofs deduplicated by contract (only changed assessments create new records).
 
 ---
 
@@ -382,7 +382,11 @@ See [CHAINLINK.md](./CHAINLINK.md) for detailed per-file documentation of every 
 
 ## Deployment Status
 
-**LAA workflow live on CRE mainnet** since March 2026. 8 workflows implemented (1 on DON, 7 local simulate), 56+ on-chain proofs/day written to SentinelRegistry on Sepolia.
+**LAA workflow live on CRE mainnet** since March 2026. 8 workflows implemented (1 on DON, 7 local simulate), on-chain proofs written to SentinelRegistry on Sepolia (deduplicated, only changed assessments recorded).
+
+## Live Dashboard
+
+**[sentinel.schuna.co.il](https://sentinel.schuna.co.il)** — workflow status, on-chain proof history, CRE signals.
 
 ## Built For
 

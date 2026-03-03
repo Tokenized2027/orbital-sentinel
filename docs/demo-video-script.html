@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo Video Script: Sentinel by Orbital</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    line-height: 1.85;
+    padding: 2rem;
+  }
+  .container { max-width: 780px; margin: 0 auto; }
+
+  /* Header */
+  h1 { font-size: 1.8rem; font-weight: 700; color: #58a6ff; margin-bottom: 0.2rem; }
+  .subtitle { color: #8b949e; font-size: 0.9rem; margin-bottom: 0.3rem; }
+  .meta { color: #484f58; font-size: 0.8rem; margin-bottom: 2.5rem; }
+
+  /* Scenes */
+  .scene {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 1.6rem 1.8rem;
+    margin-bottom: 1.6rem;
+    border-left: 4px solid #30363d;
+    page-break-inside: avoid;
+  }
+  .scene-1 { border-left-color: #58a6ff; }
+  .scene-2 { border-left-color: #a371f7; }
+  .scene-3 { border-left-color: #3fb950; }
+  .scene-4 { border-left-color: #f0883e; }
+
+  .scene-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.2rem;
+  }
+  .scene-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #f0f6fc;
+  }
+  .scene-time {
+    font-size: 0.8rem;
+    color: #8b949e;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    background: #21262d;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+  }
+
+  /* Visual cues */
+  .show-tag {
+    background: #0d1117;
+    border: 1px solid #1f6feb44;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    margin: 0.8rem 0;
+    font-size: 0.85rem;
+    color: #58a6ff;
+  }
+  .show-tag::before {
+    content: 'SHOW';
+    display: inline-block;
+    background: #1f6feb;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    margin-right: 0.6rem;
+    vertical-align: middle;
+    letter-spacing: 0.05em;
+  }
+
+  /* Voiceover lines */
+  .voice {
+    font-size: 1.05rem;
+    color: #e6edf3;
+    margin: 0.6rem 0;
+  }
+  .voice.strong {
+    color: #f0f6fc;
+    font-weight: 500;
+  }
+  .voice.pause {
+    margin-top: 1rem;
+  }
+
+  /* Divider */
+  hr {
+    border: none;
+    border-top: 1px solid #21262d;
+    margin: 2rem 0;
+  }
+
+  /* Notes section */
+  .notes {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 1.4rem 1.6rem;
+    margin-bottom: 1.4rem;
+  }
+  .notes h3 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8b949e;
+    margin-bottom: 0.8rem;
+  }
+  .notes li {
+    color: #8b949e;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+    margin-left: 1.2rem;
+  }
+  .notes code {
+    background: #21262d;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #79c0ff;
+  }
+
+  /* Timing table */
+  .timing-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+  }
+  .timing-table td {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.85rem;
+    color: #8b949e;
+    border-bottom: 1px solid #21262d;
+  }
+  .timing-table td:last-child {
+    text-align: right;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+  }
+  .timing-table tr.total td {
+    color: #3fb950;
+    font-weight: 600;
+    border-top: 2px solid #30363d;
+    border-bottom: none;
+    padding-top: 0.6rem;
+  }
+
+  /* Print */
+  @media print {
+    body { background: #fff; color: #1a1a1a; padding: 1rem; font-size: 13pt; }
+    .container { max-width: 100%; }
+    h1 { color: #0550ae; }
+    .scene { background: #f6f8fa; border-color: #d0d7de; }
+    .scene-1 { border-left-color: #0550ae; }
+    .scene-2 { border-left-color: #6639ba; }
+    .scene-3 { border-left-color: #1a7f37; }
+    .scene-4 { border-left-color: #bc4c00; }
+    .scene-title { color: #1a1a1a; }
+    .voice { color: #1a1a1a; }
+    .show-tag { background: #f0f4f8; border-color: #d0d7de; color: #0550ae; }
+    .notes { background: #f6f8fa; border-color: #d0d7de; }
+    .notes li { color: #57606a; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Demo Video Script</h1>
+<p class="subtitle">Sentinel by Orbital</p>
+<p class="meta">Chainlink Convergence Hackathon 2026 &middot; Target: 2 min 40 sec &middot; Screen recording + voiceover</p>
+
+<!-- SCENE 1 -->
+<div class="scene scene-1">
+  <div class="scene-header">
+    <span class="scene-title">Scene 1: The Problem</span>
+    <span class="scene-time">0:00 &ndash; 0:30</span>
+  </div>
+
+  <div class="show-tag">Sentinel Dashboard, zoomed out, all 8 workflow cards visible</div>
+
+  <p class="voice strong">DeFi protocols manage hundreds of millions in value.</p>
+  <p class="voice">But most of them are flying blind.</p>
+
+  <p class="voice pause">A staking pool fills up. Reward vaults run dry. A token depegs.</p>
+  <p class="voice">Bridge lanes freeze. Liquidity crunches hit without warning.</p>
+  <p class="voice">By the time anyone notices, it's already too late.</p>
+
+  <p class="voice pause">The problem isn't data. Ethereum is an open book.</p>
+  <p class="voice strong">The problem is that nobody's watching. Not continuously. Not autonomously.</p>
+
+  <p class="voice pause strong">That's what Sentinel does.</p>
+</div>
+
+<!-- SCENE 2 -->
+<div class="scene scene-2">
+  <div class="scene-header">
+    <span class="scene-title">Scene 2: What It Does</span>
+    <span class="scene-time">0:30 &ndash; 1:20</span>
+  </div>
+
+  <div class="show-tag">Scroll down to reveal on-chain proof list, then back up to workflow cards</div>
+
+  <p class="voice">Sentinel is an autonomous AI agent platform</p>
+  <p class="voice">that monitors DeFi protocol health using Chainlink CRE workflows.</p>
+
+  <p class="voice pause">CRE is Chainlink's Compute Runtime Environment.</p>
+  <p class="voice">Think of it like a decentralized server</p>
+  <p class="voice">that runs your code across Chainlink's oracle network,</p>
+  <p class="voice">not on a single machine you control.</p>
+
+  <p class="voice pause">We built 8 monitoring workflows for stake.link,</p>
+  <p class="voice">the largest Chainlink liquid staking protocol.</p>
+
+  <div class="show-tag">Click through workflow cards on dashboard</div>
+
+  <p class="voice pause">Treasury health. Price feed tracking. Governance alerts.</p>
+  <p class="voice">Morpho vault utilization. Whale token flows. CCIP bridge status.</p>
+  <p class="voice">Curve pool balance. And the flagship: LINK AI Arbitrage,</p>
+  <p class="voice">which monitors stLINK/LINK arb opportunities with GPT analysis.</p>
+
+  <p class="voice pause">Every workflow reads live contract data from Ethereum mainnet,</p>
+  <p class="voice">feeds it to an AI model for risk assessment,</p>
+  <p class="voice">and writes a verifiable proof hash on-chain.</p>
+
+  <p class="voice pause strong">That's the key part.</p>
+  <p class="voice">Every single assessment gets a cryptographic proof,</p>
+  <p class="voice">written to a smart contract on Sepolia.</p>
+  <p class="voice strong">Permanent. Immutable. Auditable.</p>
+</div>
+
+<!-- SCENE 3 -->
+<div class="scene scene-3">
+  <div class="scene-header">
+    <span class="scene-title">Scene 3: How It All Connects</span>
+    <span class="scene-time">1:20 &ndash; 2:10</span>
+  </div>
+
+  <div class="show-tag">Etherscan contract page, scroll through HealthRecorded events</div>
+
+  <p class="voice">Each on-chain proof is a HealthRecorded event.</p>
+  <p class="voice">It contains the keccak256 hash of the actual metrics</p>
+  <p class="voice">and a prefixed risk level: "treasury:ok", "feeds:warning", "laa:ok".</p>
+  <p class="voice">So every proof is tagged with its source workflow.</p>
+
+  <div class="show-tag">Dashboard, on-chain sentinel section with per-workflow stats</div>
+
+  <p class="voice pause strong">56 or more proofs per day. All automated.</p>
+
+  <p class="voice pause">Here's the clever part.</p>
+  <p class="voice">After all 8 workflows complete,</p>
+  <p class="voice">a composite intelligence layer reads data from across them,</p>
+  <p class="voice">combines it with the arb signal,</p>
+  <p class="voice">and feeds everything to the AI as cross-workflow context.</p>
+
+  <p class="voice pause">So the AI doesn't just see one workflow's data.</p>
+  <p class="voice strong">It sees the whole ecosystem at once.</p>
+  <p class="voice">And that composite assessment also gets its own on-chain proof.</p>
+
+  <div class="show-tag">Dashboard composite record or Etherscan composite TX</div>
+
+  <p class="voice pause">The LINK AI Arbitrage workflow is live on the CRE mainnet DON right now.</p>
+  <p class="voice">That means Chainlink's oracle nodes run it autonomously, 7 times a day.</p>
+  <p class="voice strong">No server on my end. No cron job. It just runs.</p>
+</div>
+
+<!-- SCENE 4 -->
+<div class="scene scene-4">
+  <div class="scene-header">
+    <span class="scene-title">Scene 4: Wrap</span>
+    <span class="scene-time">2:10 &ndash; 2:40</span>
+  </div>
+
+  <div class="show-tag">Dashboard, full view</div>
+
+  <p class="voice">Sentinel uses six Chainlink products:</p>
+  <p class="voice">CRE SDK, EVMClient, HTTPClient, CronCapability, Data Feeds, and getNetwork.</p>
+  <p class="voice">All coordinated through one SentinelRegistry contract.</p>
+
+  <p class="voice pause">Built with TypeScript, Solidity, Next.js, Python, and viem.</p>
+  <p class="voice">AI powered by Claude and GPT.</p>
+  <p class="voice">Audited: 31 tests, 80,000 fuzz iterations.</p>
+
+  <p class="voice pause strong">This isn't a prototype.</p>
+  <p class="voice">It's live on the CRE mainnet DON right now,</p>
+  <p class="voice">writing real proofs from real Ethereum data.</p>
+
+  <p class="voice pause strong">DeFi protocols shouldn't fly blind.</p>
+  <p class="voice strong">Sentinel gives them eyes.</p>
+</div>
+
+<hr>
+
+<!-- RECORDING NOTES -->
+<div class="notes">
+  <h3>Tabs to Have Open</h3>
+  <ul>
+    <li>Sentinel Dashboard (Cloudflare tunnel or <code>localhost:3016</code>)</li>
+    <li>Sepolia Etherscan: <code>0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40</code></li>
+  </ul>
+</div>
+
+<div class="notes">
+  <h3>Pre-run Checklist</h3>
+  <ul>
+    <li>Dashboard running (PM2 or <code>npm run dev</code> in dashboard/)</li>
+    <li>Recent on-chain proofs visible on Etherscan</li>
+    <li>Run <code>record-all-snapshots.mjs</code> beforehand if needed</li>
+  </ul>
+</div>
+
+<div class="notes">
+  <h3>Timing Guide</h3>
+  <table class="timing-table">
+    <tr><td>Scene 1: The Problem</td><td>~30s</td></tr>
+    <tr><td>Scene 2: What It Does</td><td>~50s</td></tr>
+    <tr><td>Scene 3: How It All Connects</td><td>~50s</td></tr>
+    <tr><td>Scene 4: Wrap</td><td>~30s</td></tr>
+    <tr class="total"><td>Total</td><td>~2m 40s</td></tr>
+  </table>
+</div>
+
+</div>
+</body>
+</html>

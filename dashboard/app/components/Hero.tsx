@@ -25,14 +25,14 @@ export default function Hero({ overallStatus, healthyCount, totalCount, totalAle
           alt="Orbital Sentinel"
           width={72}
           height={72}
-          style={{ objectFit: 'contain', filter: 'drop-shadow(0 0 24px rgba(120, 80, 255, 0.5)) drop-shadow(0 0 48px rgba(46, 123, 255, 0.25))' }}
+          style={{ objectFit: 'contain', filter: 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.1))' }}
           priority
         />
       </div>
 
-      <h1 className="hero-title">Orbital Sentinel</h1>
+      <h1 className="hero-title">Sentinel by Orbital</h1>
       <p className="hero-subtitle">
-        Autonomous AI agent monitoring for DeFi protocols, powered by Chainlink CRE
+        Autonomous DeFi health monitoring. 8 CRE workflows. On-chain proofs. LAA live on mainnet DON.
       </p>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
