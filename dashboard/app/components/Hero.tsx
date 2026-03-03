@@ -69,9 +69,26 @@ export default function Hero({ overallStatus, healthyCount, totalCount, totalAle
         </span>
       </div>
 
-      <p style={{ marginTop: 16, fontSize: 14, color: 'var(--t3)', fontStyle: 'italic' }}>
-        Select a workflow below to explore real-time metrics and on-chain proofs
-      </p>
+      <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <p style={{ fontSize: 14, color: 'var(--t3)', fontStyle: 'italic', margin: 0 }}>
+          Select a workflow below to explore real-time metrics and on-chain proofs
+        </p>
+        <a
+          href="/whitepaper.html"
+          style={{
+            fontSize: 13,
+            padding: '4px 12px',
+            borderRadius: 'var(--r-sm)',
+            background: 'rgba(55, 91, 210, 0.15)',
+            color: 'var(--chainlink)',
+            textDecoration: 'none',
+            fontWeight: 600,
+            border: '1px solid rgba(55, 91, 210, 0.3)',
+          }}
+        >
+          Read the Whitepaper
+        </a>
+      </div>
     </div>
   );
 }

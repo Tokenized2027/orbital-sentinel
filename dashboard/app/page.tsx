@@ -169,7 +169,7 @@ export default function Page() {
       <ArchitectureDiagram />
 
       <footer className="footer">
-        Built for Chainlink Convergence Hackathon 2026 · <a href="https://github.com/Tokenized2027/orbital-sentinel">Orbital</a> · MIT
+        Built for Chainlink Convergence Hackathon 2026 · <a href="https://github.com/Tokenized2027/orbital-sentinel">Orbital</a> · <a href="/whitepaper.html">Whitepaper</a> · MIT
       </footer>
     </main>
   );

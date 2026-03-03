@@ -6,6 +6,8 @@ Orbital Sentinel's core product is the **LINK AI Arbitrage (LAA)** workflow: an 
 
 What makes this different from a simple arb bot: **the LAA doesn't decide in isolation.** A composite intelligence layer reads treasury health, oracle prices, lending market utilization, CCIP bridge status, and Curve pool structure, then feeds that full ecosystem context to an AI analyst (GPT-5.3-Codex) that can override the raw signal. When the math says "execute" but the ecosystem says "the Priority Pool queue is 365K LINK deep and the basis is unstable," the composite layer says "wait."
 
+**[Read the full Whitepaper](https://sentinel.schuna.co.il/whitepaper.html)** | [Live Dashboard](https://sentinel.schuna.co.il) | [SentinelRegistry on Etherscan](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40)
+
 ---
 
 ## The Core Product: LINK AI Arbitrage (LAA)
