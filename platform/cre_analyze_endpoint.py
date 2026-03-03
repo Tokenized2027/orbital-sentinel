@@ -632,7 +632,137 @@ def analyze_composite():
         return jsonify({"error": "internal analysis error"}), 500
 
 
+# ─── SDL CCIP Bridge routes ───
+# These serve the bridge-ai-advisor CRE workflow (separate project, same tunnel)
+
+def _strip_nulls(obj):
+    """Recursively replace None/null with 0 (CRE consensus can't serialize null)."""
+    if isinstance(obj, dict):
+        return {k: _strip_nulls(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_strip_nulls(v) for v in obj]
+    if obj is None:
+        return 0
+    return obj
+
+
+def _bridge_check_auth() -> bool:
+    """Auth check for bridge endpoints (uses CRE_SECRET env only, not CRE_ANALYZE_SECRET)."""
+    secret = os.environ.get("CRE_SECRET", "")
+    if not secret:
+        return True  # No CRE_SECRET = accept all (bridge default)
+    provided = request.headers.get("X-CRE-Secret", "")
+    return hmac.compare_digest(provided, secret)
+
+
+def _bridge_heuristic(vault_state: dict) -> dict:
+    """Fallback heuristic when AI is unavailable for bridge analysis."""
+    util = vault_state.get("utilizationBps", 0)
+    queue = vault_state.get("queueDepth", 0)
+    reserve = vault_state.get("reserveRatio", 0)
+    risk = "ok"
+    actions = []
+    adjustments = {}
+    if util >= 9000:
+        risk = "critical"
+        actions.append("Consider reducing maxUtilizationBps to prevent liquidity crunch")
+        adjustments["maxUtilizationBps"] = max(util - 1000, 5000)
+    elif util >= 7000:
+        risk = "warning"
+        actions.append("Monitor utilization closely, approaching cap")
+    if reserve < 0.02 and float(vault_state.get("totalAssets", "0")) > 0:
+        risk = "critical" if risk != "critical" else risk
+        actions.append("Increase badDebtReserveCutBps to rebuild reserve buffer")
+        adjustments["badDebtReserveCutBps"] = 1500
+    if queue >= 10:
+        risk = "critical"
+        actions.append("Process redemption queue urgently")
+    elif queue >= 3:
+        if risk == "ok":
+            risk = "warning"
+        actions.append("Queue building up, consider processing")
+    return {
+        "risk": risk,
+        "recommendation": f"Vault at {util}bps utilization with {queue} queued redemptions",
+        "suggestedActions": actions or ["No action needed"],
+        "policyAdjustments": adjustments,
+        "confidence": 0.6,
+        "reasoning": "Heuristic analysis (AI unavailable)",
+    }
+
+
+@cre_bp.route("/api/cre/analyze-bridge", methods=["POST"])
+def analyze_bridge():
+    if not _bridge_check_auth():
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    vault_state = data.get("vaultState", {})
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        result = _bridge_heuristic(vault_state)
+        import hashlib
+        input_hash = hashlib.sha256(json.dumps(vault_state, sort_keys=True).encode()).hexdigest()[:8]
+        result["_inputHash"] = input_hash
+        return jsonify(result)
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        prompt = f"""Analyze this ERC-4626 bridge vault state and provide policy recommendations.
+
+Vault State:
+- Utilization: {vault_state.get('utilizationBps', 0)} bps (max allowed: {vault_state.get('maxUtilBps', 6000)} bps)
+- Queue depth: {vault_state.get('queueDepth', 0)} pending redemptions
+- Bad debt reserve ratio: {vault_state.get('reserveRatio', 0):.4f} ({vault_state.get('reserveRatio', 0) * 100:.2f}%)
+- Share price: {vault_state.get('sharePrice', 1):.6f}
+- Free liquidity: {vault_state.get('freeLiquidity', '0')}
+- Reserved: {vault_state.get('reserved', '0')}
+- In-flight: {vault_state.get('inFlight', '0')}
+- Total assets: {vault_state.get('totalAssets', '0')}
+- LINK/USD: ${vault_state.get('linkUsd', 0):.2f}
+- Current policy: maxUtil={vault_state.get('maxUtilBps', 6000)}bps, reserveCut={vault_state.get('reserveCutBps', 1000)}bps, hotReserve={vault_state.get('hotReserveBps', 2000)}bps
+
+IMPORTANT: Never use null in the response. Use 0 to mean "no change recommended".
+
+Respond with ONLY valid JSON (no markdown, no explanation outside JSON):
+{{
+  "risk": "ok or warning or critical",
+  "recommendation": "one-sentence summary",
+  "suggestedActions": ["action1", "action2"],
+  "policyAdjustments": {{
+    "maxUtilizationBps": 0,
+    "badDebtReserveCutBps": 0,
+    "targetHotReserveBps": 0
+  }},
+  "confidence": 0.0_to_1.0,
+  "reasoning": "brief reasoning"
+}}"""
+        response = client.chat.completions.create(
+            model="gpt-5.2",
+            max_completion_tokens=500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = response.choices[0].message.content.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1]
+            if text.endswith("```"):
+                text = text[:-3]
+        result = _strip_nulls(json.loads(text))
+        import hashlib
+        input_hash = hashlib.sha256(json.dumps(vault_state, sort_keys=True).encode()).hexdigest()[:8]
+        result["_inputHash"] = input_hash
+        logger.info("Bridge AI | risk=%s confidence=%.2f", result.get("risk"), result.get("confidence", 0))
+        return jsonify(result), 200
+    except Exception:
+        logger.exception("bridge analyze failed, using heuristic")
+        result = _bridge_heuristic(vault_state)
+        import hashlib
+        input_hash = hashlib.sha256(json.dumps(vault_state, sort_keys=True).encode()).hexdigest()[:8]
+        result["_inputHash"] = input_hash
+        return jsonify(result)
+
+
 app.register_blueprint(cre_bp)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
