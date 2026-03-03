@@ -18,6 +18,7 @@ Endpoints:
     POST /api/cre/analyze           — Treasury risk assessment (Anthropic)
     POST /api/cre/analyze-arb       — Arb vault market analysis (OpenAI)
     POST /api/cre/analyze-composite — Cross-workflow composite LAA analysis (OpenAI)
+    POST /api/cre/analyze-bridge    — SDL CCIP Bridge vault risk analysis (GPT-5.2)
 """
 
 import hmac

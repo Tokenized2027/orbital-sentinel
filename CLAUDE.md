@@ -28,7 +28,7 @@ Autonomous DeFi health monitoring platform built on Chainlink CRE for the Chainl
 7. **Proof hashes are immutable.** Once a `snapshotHash` is written on-chain, it cannot be altered. The hash encoding (`keccak256(abi.encode(...))`) must stay consistent across TypeScript and Solidity.
 8. **Workflow isolation.** Each workflow is a standalone CRE project with its own `package.json`, `node_modules`, config, and ABIs. Do not share state between workflows at runtime.
 9. **CRE SDK patterns:** Use `consensusIdenticalAggregation` for all HTTPClient calls. Use `encodeCallMsg` for all EVMClient calls. Use `getNetwork` for chain resolution. Use `CronCapability` for scheduling.
-10. **AI analysis costs money.** The Flask endpoint (`platform/cre_analyze_endpoint.py`) uses two providers: Claude Haiku (`ANTHROPIC_API_KEY`) for treasury analysis, GPT-5.3-Codex (`OPENAI_API_KEY`) for arb vault analysis. Every workflow simulation that hits this endpoint costs API credits (~$0.004/call for arb).
+10. **AI analysis costs money.** The Flask endpoint (`platform/cre_analyze_endpoint.py`) uses three providers: Claude Haiku (`ANTHROPIC_API_KEY`) for treasury analysis, GPT-5.3-Codex (`OPENAI_API_KEY`) for arb vault analysis, and GPT-5.2 for SDL CCIP Bridge vault analysis. Every workflow simulation that hits this endpoint costs API credits (~$0.004/call).
 11. **Dashboard uses existing SDL database.** The `sentinel_records` table lives in the `sdl_analytics` PostgreSQL database (port 5432).
 
 ---
@@ -59,7 +59,7 @@ orbital-sentinel/
 │   │   └── globals.css
 │   └── lib/db/                   #   Drizzle ORM (schema.ts, queries.ts)
 ├── platform/
-│   └── cre_analyze_endpoint.py   # Flask AI analysis server (Claude Haiku for treasury, GPT-5.3-Codex for arb + composite)
+│   └── cre_analyze_endpoint.py   # Flask AI analysis server (Claude Haiku for treasury, GPT-5.3-Codex for arb + composite, GPT-5.2 for SDL bridge)
 ├── scripts/
 │   ├── composite-laa-intelligence.mjs  # Phase 1.5: Cross-workflow composite LAA analysis
 │   ├── record-all-snapshots.mjs  # Cron bridge: CRE snapshots -> on-chain proofs (incl. composite)
