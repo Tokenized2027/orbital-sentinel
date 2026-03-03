@@ -267,6 +267,11 @@ function computeSignal(
 	const bestQuote = premiumQuotes[0];
 	if (!bestQuote || bestQuote.premiumBps <= 0) return 'unprofitable';
 
+	// Flash loan sanity cap (F-W3 audit fix): premiums above 500 bps are suspicious
+	// and likely indicate pool manipulation rather than genuine market conditions.
+	const MAX_REASONABLE_PREMIUM_BPS = 500;
+	if (bestQuote.premiumBps > MAX_REASONABLE_PREMIUM_BPS) return 'wait';
+
 	// Check against vault's minProfitBps if available
 	const minBps = vaultState ? Number(vaultState.minProfitBps) : 10;
 	if (bestQuote.premiumBps < minBps) return 'wait';
@@ -298,7 +303,20 @@ function fetchAIAnalysis(
 		throw new Error(`AI analyze request failed with status=${resp.statusCode}`);
 	}
 
-	return JSON.parse(Buffer.from(resp.body).toString('utf-8')) as AIAnalysisResult;
+	const raw = JSON.parse(Buffer.from(resp.body).toString('utf-8'));
+
+	// Runtime validation: AI responses must match expected schema (F-W2 audit fix)
+	const VALID_RECS = ['execute', 'wait', 'skip'];
+	const decoded: AIAnalysisResult = {
+		recommendation: VALID_RECS.includes(raw.recommendation) ? raw.recommendation : 'wait',
+		assessment: typeof raw.assessment === 'string' ? raw.assessment.slice(0, 2000) : '',
+		optimal_swap_size: typeof raw.optimal_swap_size === 'string' ? raw.optimal_swap_size : '0',
+		risk_factors: Array.isArray(raw.risk_factors) ? raw.risk_factors.filter((i: unknown) => typeof i === 'string') : [],
+		confidence: typeof raw.confidence === 'number' && raw.confidence >= 0 && raw.confidence <= 1 ? raw.confidence : 0,
+		reasoning: typeof raw.reasoning === 'string' ? raw.reasoning.slice(0, 1000) : '',
+	};
+
+	return decoded;
 }
 
 // ---------- Handler ----------

@@ -12,6 +12,7 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { config } from 'dotenv';
 import pg from 'pg';
 import {
   createWalletClient,
@@ -24,10 +25,17 @@ import {
 import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
 
+// Load .env from repo root
+config({ path: new URL('../.env', import.meta.url).pathname });
+
 // ── Constants ──────────────────────────────────────────────────────────
 
 const REGISTRY_ADDRESS = '0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40';
-const DEPLOYER_KEY = '0xbf893d437ec2ab1fae3f27d4e592307225bb45161eb3d966696a7d91728efe9b';
+const DEPLOYER_KEY = process.env.PRIVATE_KEY;
+if (!DEPLOYER_KEY) {
+  console.error('PRIVATE_KEY not set in .env');
+  process.exit(1);
+}
 
 const RPC_URLS = [
   'https://ethereum-sepolia-rpc.publicnode.com',
@@ -260,6 +268,29 @@ const WORKFLOWS = [
       );
     },
   },
+  {
+    key: 'composite',
+    file: 'cre_composite_snapshot.json',
+    extractRisk: (d) => d.composite_risk ?? 'unknown',
+    hashFields: (d) => {
+      const ts = BigInt(Math.floor(new Date(d.generated_at_utc).getTime() / 1000));
+      const risk = d.composite_risk ?? 'unknown';
+      const m = d.metrics ?? {};
+      // Encode key metrics from all workflows into a single proof hash
+      const premiumBps = BigInt(m.laa_premium_bps ?? 0);
+      const linkUsd = BigInt(Math.round((m.link_usd ?? 0) * 1e8)); // 8 decimals like Chainlink
+      const communityFillPct = BigInt(Math.round((m.treasury_community_fill_pct ?? 0) * 100));
+      const queueLink = BigInt(Math.round(m.treasury_queue_link ?? 0));
+      const morphoUtil = BigInt(Math.round((m.morpho_utilization ?? 0) * 1e6));
+      const ccipOk = BigInt(m.ccip_ok_lanes ?? 0);
+      const curveImbalance = BigInt(Math.round((m.curve_imbalance_pct ?? 0) * 100));
+      const confidence = BigInt(Math.round((d.confidence ?? 0) * 100));
+      return encodeAbiParameters(
+        parseAbiParameters('uint256 ts, string wf, string risk, uint256 premiumBps, uint256 linkUsd, uint256 communityFillPct, uint256 queueLink, uint256 morphoUtil, uint256 ccipOk, uint256 curveImbalance, uint256 confidence'),
+        [ts, 'composite', risk, premiumBps, linkUsd, communityFillPct, queueLink, morphoUtil, ccipOk, curveImbalance, confidence],
+      );
+    },
+  },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -313,16 +344,18 @@ async function writeOnChain(snapshotHash, riskLevel) {
 
 // ── Database ──────────────────────────────────────────────────────────
 
-const DB_URL = 'postgresql://devuser:Mbwet%2FF%2F7ENsFDXOgd8HJOOC1JJwQsL5@localhost:5432/sdl_analytics';
+const DB_URL = process.env.DATABASE_URL || '';
 let _pool = null;
 
 function getPool() {
+  if (!DB_URL) return null;
   if (!_pool) _pool = new pg.Pool({ connectionString: DB_URL, max: 2 });
   return _pool;
 }
 
 async function insertRecord({ snapshotHash, riskLevel, blockTimestamp, blockNumber, txHash, recorder }) {
   const pool = getPool();
+  if (!pool) { log('DB insert skipped (DATABASE_URL not set)'); return; }
   await pool.query(
     `INSERT INTO sentinel_records (protocol_id, snapshot_hash, risk_level, block_timestamp, block_number, tx_hash, recorder)
      VALUES ($1, $2, $3, $4, $5, $6, $7)

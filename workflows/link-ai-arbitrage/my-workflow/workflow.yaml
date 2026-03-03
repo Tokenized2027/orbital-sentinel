@@ -6,7 +6,7 @@ staging-settings:
     workflow-name: "link-ai-arbitrage-staging"
   workflow-artifacts:
     workflow-path: "./main.ts"
-    config-path: "./config.json"
+    config-path: "./config.staging.json"
     secrets-path: ""
 
 # ==========================================================================
@@ -15,5 +15,5 @@ production-settings:
     workflow-name: "link-ai-arbitrage-production"
   workflow-artifacts:
     workflow-path: "./main.ts"
-    config-path: "./config.json"
+    config-path: "./config.staging.json"
     secrets-path: ""

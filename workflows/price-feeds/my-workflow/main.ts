@@ -211,32 +211,45 @@ function readFeed(
 		data: bytesToHex(decResp.data),
 	}) as number;
 
-	// latestAnswer()
-	const ansCallData = encodeFunctionData({
+	// latestRoundData() — includes updatedAt for staleness validation
+	const roundCallData = encodeFunctionData({
 		abi: PriceFeedAggregator,
-		functionName: 'latestAnswer',
+		functionName: 'latestRoundData',
 	});
 
-	const ansResp = evmClient
+	const roundResp = evmClient
 		.callContract(runtime, {
 			call: encodeCallMsg({
 				from: zeroAddress,
 				to: address as Address,
-				data: ansCallData,
+				data: roundCallData,
 			}),
 		})
 		.result();
 
-	const latestAnswer = decodeFunctionResult({
+	const roundData = decodeFunctionResult({
 		abi: PriceFeedAggregator,
-		functionName: 'latestAnswer',
-		data: bytesToHex(ansResp.data),
-	}) as bigint;
+		functionName: 'latestRoundData',
+		data: bytesToHex(roundResp.data),
+	}) as readonly [bigint, bigint, bigint, bigint, bigint];
+
+	const latestAnswer = roundData[1];
+	const updatedAt = roundData[3];
+
+	// Staleness check: reject prices older than 1 hour (3600s)
+	const MAX_STALENESS_SECONDS = 3600n;
+	const nowUnix = BigInt(Math.floor(Date.now() / 1000));
+	const staleness = nowUnix - updatedAt;
+	if (staleness > MAX_STALENESS_SECONDS) {
+		runtime.log(
+			`STALE FEED: "${name}" last updated ${staleness}s ago (max ${MAX_STALENESS_SECONDS}s). Using value but flagging.`,
+		);
+	}
 
 	const scaled = formatUnits(latestAnswer, decimals);
 
 	runtime.log(
-		`Price feed read | chain=${runtime.config.chainName} feed="${name}" address=${address} decimals=${decimals} latestAnswerRaw=${latestAnswer.toString()} latestAnswerScaled=${scaled}`,
+		`Price feed read | chain=${runtime.config.chainName} feed="${name}" address=${address} decimals=${decimals} latestAnswerRaw=${latestAnswer.toString()} latestAnswerScaled=${scaled} staleness=${staleness}s`,
 	);
 
 	return {

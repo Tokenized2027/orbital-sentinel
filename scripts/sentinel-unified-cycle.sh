@@ -17,6 +17,14 @@ LOG_PREFIX="[$(date -u +"%Y-%m-%dT%H:%M:%SZ")]"
 
 log() { echo "${LOG_PREFIX} $1"; }
 
+# Prevent concurrent cycle executions (F-B5 audit fix)
+LOCK_FILE="/tmp/sentinel-unified-cycle.lock"
+exec 200>"${LOCK_FILE}"
+if ! flock -n 200; then
+  log "Another cycle is already running. Exiting."
+  exit 0
+fi
+
 log "=== Sentinel Unified Cycle START ==="
 
 # ── Phase 1: Run all 7 CRE snapshot generators in parallel ──────────
@@ -68,6 +76,20 @@ log "Phase 1 done — ${#PIDS[@]} workflows, ${FAIL_COUNT} failures"
 if [ "${FAIL_COUNT}" -eq "${#PIDS[@]}" ]; then
   log "ALL workflows failed — skipping on-chain write"
   exit 1
+fi
+
+# ── Phase 1.5: Composite Intelligence ──────────────────────────────
+#
+# Reads all workflow snapshots and produces a cross-workflow AI analysis
+# that enriches the LAA arb decision with ecosystem-wide context.
+# Requires the AI endpoint to be running (platform/cre_analyze_endpoint.py).
+
+log "Running composite LAA intelligence..."
+cd "${SCRIPT_DIR}"
+if AI_ENDPOINT="http://localhost:5050/api/cre/analyze-composite" /usr/bin/node composite-laa-intelligence.mjs; then
+  log "Composite intelligence OK"
+else
+  log "Composite intelligence FAILED (non-blocking, continuing to proof write)"
 fi
 
 # ── Phase 2: Write on-chain proofs ──────────────────────────────────

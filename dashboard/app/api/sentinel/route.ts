@@ -43,9 +43,10 @@ export async function GET() {
       })),
     });
   } catch (e) {
+    console.error('Sentinel API error:', e);
     return NextResponse.json({
       ok: false,
-      error: e instanceof Error ? e.message : String(e),
+      error: 'Internal server error',
     }, { status: 500 });
   }
 }

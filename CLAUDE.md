@@ -59,9 +59,10 @@ orbital-sentinel/
 │   │   └── globals.css
 │   └── lib/db/                   #   Drizzle ORM (schema.ts, queries.ts)
 ├── platform/
-│   └── cre_analyze_endpoint.py   # Flask AI analysis server (Claude Haiku for treasury, GPT-5.3-Codex for arb)
+│   └── cre_analyze_endpoint.py   # Flask AI analysis server (Claude Haiku for treasury, GPT-5.3-Codex for arb + composite)
 ├── scripts/
-│   ├── record-all-snapshots.mjs  # Cron bridge: CRE snapshots -> on-chain proofs
+│   ├── composite-laa-intelligence.mjs  # Phase 1.5: Cross-workflow composite LAA analysis
+│   ├── record-all-snapshots.mjs  # Cron bridge: CRE snapshots -> on-chain proofs (incl. composite)
 │   ├── record-health.mjs         # One-shot recordHealth call
 │   ├── record-health-cron.mjs    # Cron variant
 │   └── verify-contract.mjs       # Sourcify contract verification
@@ -80,11 +81,20 @@ orbital-sentinel/
 ### Data Flow
 
 ```
-CRE Workflows (cron, every 15-30 min)
+Phase 1: CRE Workflows (unified cycle, 7x/day)
   -> EVMClient reads from Ethereum mainnet contracts
   -> HTTPClient POSTs to AI analysis endpoint (Claude Haiku / GPT-5.3-Codex)
-  -> Workflow computes keccak256 proof hash
-  -> record-all-snapshots.mjs writes proof to SentinelRegistry on Sepolia
+  -> Each workflow writes snapshot JSON to intelligence/data/
+
+Phase 1.5: Composite Intelligence
+  -> composite-laa-intelligence.mjs reads all 6 snapshots
+  -> POSTs cross-workflow context to /api/cre/analyze-composite (GPT-5.3-Codex)
+  -> AI produces ecosystem-aware recommendation (may override isolated signal)
+  -> Writes cre_composite_snapshot.json
+
+Phase 2: On-Chain Proofs
+  -> record-all-snapshots.mjs reads all snapshots (7 workflows + composite)
+  -> Computes keccak256 proof hashes, writes to SentinelRegistry on Sepolia
   -> Dashboard collector reads HealthRecorded events via viem getLogs
   -> sentinel_records table in PostgreSQL
   -> Dashboard API serves to Next.js frontend
@@ -130,6 +140,7 @@ CRE Workflows (cron, every 15-30 min)
 | Dashboard API: sentinel | `dashboard/app/api/sentinel/route.ts` |
 | Dashboard API: CRE signals | `dashboard/app/api/cre-signals/route.ts` |
 | AI endpoint | `platform/cre_analyze_endpoint.py` |
+| Composite intelligence | `scripts/composite-laa-intelligence.mjs` |
 | Unified cycle script | `scripts/sentinel-unified-cycle.sh` |
 | Cron bridge script | `scripts/record-all-snapshots.mjs` |
 | CRE ecosystem docs | `docs/CRE-ECOSYSTEM-REFERENCE.md` |
@@ -208,11 +219,20 @@ cd /home/avi/orbital-sentinel/scripts
 node record-health.mjs
 ```
 
-Or the cron bridge that reads all 8 snapshots:
+Or the cron bridge that reads all snapshots (7 workflows + composite):
 
 ```bash
 node record-all-snapshots.mjs
 ```
+
+### Run composite intelligence (cross-workflow LAA analysis)
+
+```bash
+cd /home/avi/orbital-sentinel/scripts
+AI_ENDPOINT=http://localhost:5050/api/cre/analyze-composite node composite-laa-intelligence.mjs
+```
+
+Requires the AI endpoint to be running. Costs ~$0.004-0.01 per call (GPT-5.3-Codex).
 
 ### Foundry (Solidity)
 
@@ -252,10 +272,11 @@ bun install
 ## Current State
 
 - **All 8 workflows:** implemented and simulating successfully
-- **SentinelRegistry:** deployed on Sepolia at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit). Access control, dedup, validation active on-chain.
+- **Composite intelligence:** cross-workflow LAA analysis operational. Reads 5 workflow snapshots + LAA, produces ecosystem-aware arb recommendation via GPT-5.3-Codex. First composite proof on Sepolia: block 10,371,778.
+- **SentinelRegistry:** deployed on Sepolia at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit). Access control, dedup, validation active on-chain. 73+ records.
 - **Dashboard:** running on port 3016, reads on-chain proofs + CRE signals
-- **Cron bridge:** `record-all-snapshots.mjs` writes proofs for all 8 workflows
-- **AI endpoint:** Flask server with Claude Haiku + GPT-5.3-Codex analysis
+- **Cron bridge:** `record-all-snapshots.mjs` writes proofs for all 8 workflows + composite
+- **AI endpoint:** Flask server with Claude Haiku (treasury) + GPT-5.3-Codex (arb + composite)
 - **Hackathon tracks:** CRE & AI, DeFi & Tokenization, Autonomous Agents (Moltbook)
 - **Demo video:** script at `docs/demo-video-script.md`, video not yet recorded
 - **Submission doc:** `docs/submission.md`
@@ -299,7 +320,7 @@ Before any commit:
 
 ## Unified CRE Cycle Schedule
 
-All 8 workflows run together in a unified cycle, 7 times per day (~3h 25min apart). The master script `scripts/sentinel-unified-cycle.sh` runs all CRE simulations in parallel, then writes all on-chain proofs in one batch via `record-all-snapshots.mjs`.
+All 8 workflows run together in a unified cycle, 7 times per day (~3h 25min apart). The master script `scripts/sentinel-unified-cycle.sh` runs all CRE simulations in parallel (Phase 1), then runs composite intelligence analysis (Phase 1.5), then writes all on-chain proofs in one batch via `record-all-snapshots.mjs` (Phase 2).
 
 | Cycle | UTC Time | Cron |
 |-------|----------|------|
@@ -311,7 +332,7 @@ All 8 workflows run together in a unified cycle, 7 times per day (~3h 25min apar
 | 6 | 17:05 | `5 17 * * *` |
 | 7 | 20:30 | `30 20 * * *` |
 
-**Per cycle:** 7 CRE simulations (parallel) + 7 on-chain proof writes (sequential). Total: 49 on-chain proofs/day.
+**Per cycle:** 7 CRE simulations (parallel) + 1 composite AI analysis + 8 on-chain proof writes (sequential). Total: 56 on-chain proofs/day (49 workflow + 7 composite).
 
 **Workflows in each cycle:** treasury-risk, price-feeds, governance-monitor, morpho-vault-health, curve-pool, ccip-lane-health, link-ai-arbitrage (LAA).
 

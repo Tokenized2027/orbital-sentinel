@@ -190,6 +190,28 @@ const sepoliaNet = getNetwork({ chainFamily: 'evm', chainSelectorName: 'ethereum
 
 ---
 
+## 7. Composite Intelligence Layer (Cross-Workflow)
+
+After all 8 CRE workflows complete their individual runs in the unified cycle, a composite intelligence phase reads data from 5 workflows (price-feeds, treasury-risk, morpho-vault-health, ccip-lane-health, curve-pool) and feeds it alongside the LAA arb data to an AI analysis endpoint. This creates **cross-workflow intelligence**: the LAA arb decision is enriched with ecosystem-wide context that no single CRE workflow can see in isolation.
+
+**Script:** `scripts/composite-laa-intelligence.mjs`
+**AI Endpoint:** `platform/cre_analyze_endpoint.py` (`POST /api/cre/analyze-composite`)
+
+The composite analysis produces a `composite:ok|warning|critical` risk level and writes a proof hash to SentinelRegistry that encodes metrics from all contributing workflows:
+
+```typescript
+encodeAbiParameters(
+  'uint256 ts, string wf, string risk, uint256 premiumBps, uint256 linkUsd, uint256 communityFillPct, uint256 queueLink, uint256 morphoUtil, uint256 ccipOk, uint256 curveImbalance, uint256 confidence',
+  [timestamp, 'composite', risk, ...metrics],
+)
+```
+
+This means the on-chain proof for the composite workflow contains verifiable data from 6 different CRE data sources (LAA + 5 context workflows), creating a tamper-proof record of cross-workflow AI reasoning.
+
+**Example:** The isolated LAA signal was `execute` (17 bps premium), but the composite analysis downgraded to `wait` because treasury data showed 365K LINK queued (slow capital recycling) and price feeds showed stLINK/LINK basis instability at 95 bps. This decision is provable on-chain.
+
+---
+
 ## Summary
 
 | Chainlink Component | Where Used |
@@ -198,10 +220,11 @@ const sepoliaNet = getNetwork({ chainFamily: 'evm', chainSelectorName: 'ethereum
 | `EVMClient.callContract()` | All 8 workflows (mainnet reads + Sepolia writes) |
 | Chainlink Data Feeds (LINK/USD, ETH/USD) | `workflows/price-feeds/my-workflow/main.ts` |
 | CCIP Router + OnRamp + TokenPool | `workflows/ccip-lane-health/my-workflow/main.ts` |
-| `HTTPClient` + `consensusIdenticalAggregation` | treasury-risk, governance-monitor, price-feeds |
+| `HTTPClient` + `consensusIdenticalAggregation` | treasury-risk, governance-monitor, price-feeds, link-ai-arbitrage |
 | `CronCapability` | All 8 workflows |
 | `getNetwork()` chain selector | All 8 workflows (mainnet + Sepolia) |
-| `SentinelRegistry.sol` (on-chain write) | All 8 workflow `main.ts` files + `scripts/record-all-snapshots.mjs` |
+| `SentinelRegistry.sol` (on-chain write) | All 8 workflows + composite intelligence + `scripts/record-all-snapshots.mjs` |
 | `encodeCallMsg` | All 8 workflows |
+| Composite Intelligence (cross-workflow) | `scripts/composite-laa-intelligence.mjs` + `platform/cre_analyze_endpoint.py` |
 
 > **Note:** The LINK AI Arbitrage (LAA) workflow was previously a cross-repo reference to the Orbital repo. It is now included directly in this repository at `workflows/link-ai-arbitrage/`.

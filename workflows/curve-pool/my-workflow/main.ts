@@ -259,12 +259,22 @@ async function onCron(runtime: Runtime<Config>, _trigger: CronPayload) {
 			call: encodeCallMsg({ from: zeroAddress, to: linkFeedAddress, data: decimalsCallData }),
 		}).result();
 
-		const roundData = decodeFunctionResult({ abi: PriceFeedAggregator, functionName: 'latestRoundData', data: bytesToHex(roundResp.data) });
+		const roundData = decodeFunctionResult({ abi: PriceFeedAggregator, functionName: 'latestRoundData', data: bytesToHex(roundResp.data) }) as readonly [bigint, bigint, bigint, bigint, bigint];
 		const feedDecimals = decodeFunctionResult({ abi: PriceFeedAggregator, functionName: 'decimals', data: bytesToHex(decResp.data) });
 
-		const answer = (roundData as readonly [bigint, bigint, bigint, bigint, bigint])[1];
+		const answer = roundData[1];
+		const updatedAt = roundData[3];
+
+		// Staleness check: flag prices older than 1 hour
+		const MAX_STALENESS_SECONDS = 3600n;
+		const nowUnix = BigInt(Math.floor(Date.now() / 1000));
+		const staleness = nowUnix - updatedAt;
+		if (staleness > MAX_STALENESS_SECONDS) {
+			runtime.log(`STALE FEED: LINK/USD last updated ${staleness}s ago (max ${MAX_STALENESS_SECONDS}s). Using value but flagging.`);
+		}
+
 		linkUsd = Number(formatUnits(answer, Number(feedDecimals)));
-		runtime.log(`LINK/USD: $${linkUsd.toFixed(4)}`);
+		runtime.log(`LINK/USD: $${linkUsd.toFixed(4)} (staleness=${staleness}s)`);
 	} catch (e) {
 		runtime.log(`LINK/USD feed read failed (degraded): ${e instanceof Error ? e.message : String(e)}`);
 	}

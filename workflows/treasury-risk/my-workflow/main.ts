@@ -291,16 +291,21 @@ function readRewardMetrics(
 
 	// Runway: vaultBalance / emissionPerDay
 	let runwayDays = 0;
-	if (totalEmissionPerDay > 0n) {
+	let risk: RiskLevel;
+	if (totalEmissionPerDay === 0n) {
+		// Zero emissions = rewards paused or between periods. Not a runway crisis. (F-W10 audit fix)
+		runwayDays = 9999;
+		risk = 'ok';
+		runtime.log('Emission rate is zero (rewards paused or between periods). Runway not applicable.');
+	} else {
 		// Use bigint division for precision: (balance * 100) / emissionPerDay / 100
 		runwayDays = Number((vaultBalanceRaw * 100n) / totalEmissionPerDay) / 100;
+		risk = classifyRiskBelow(
+			runwayDays,
+			thresholds.rewardRunwayDaysWarning,
+			thresholds.rewardRunwayDaysCritical,
+		);
 	}
-
-	const risk = classifyRiskBelow(
-		runwayDays,
-		thresholds.rewardRunwayDaysWarning,
-		thresholds.rewardRunwayDaysCritical,
-	);
 
 	runtime.log(
 		`Rewards read | vaultBalance=${vaultBalance} LINK emissionPerDay=${emissionPerDay} LINK runwayDays=${runwayDays.toFixed(1)} risk=${risk}`,
@@ -391,9 +396,16 @@ function fetchAIAnalysis(
 		throw new Error(`AI analyze request failed with status=${resp.statusCode}`);
 	}
 
-	const decoded = JSON.parse(
-		Buffer.from(resp.body).toString('utf-8'),
-	) as AIAnalysisResult;
+	const raw = JSON.parse(Buffer.from(resp.body).toString('utf-8'));
+
+	// Runtime validation: AI responses must match expected schema (F-W2 audit fix)
+	const VALID_RISK_LABELS = ['ok', 'warning', 'critical', 'unknown'];
+	const decoded: AIAnalysisResult = {
+		assessment: typeof raw.assessment === 'string' ? raw.assessment.slice(0, 2000) : '',
+		risk_label: VALID_RISK_LABELS.includes(raw.risk_label) ? raw.risk_label : 'unknown',
+		action_items: Array.isArray(raw.action_items) ? raw.action_items.filter((i: unknown) => typeof i === 'string') : [],
+		confidence: typeof raw.confidence === 'number' && raw.confidence >= 0 && raw.confidence <= 1 ? raw.confidence : 0,
+	};
 
 	return decoded;
 }

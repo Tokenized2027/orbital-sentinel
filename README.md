@@ -1,109 +1,221 @@
 # Orbital Sentinel
 
-**Autonomous AI agent platform for DeFi protocol health monitoring, built on Chainlink CRE.**
+**AI-powered DeFi arbitrage intelligence built on Chainlink CRE, with cross-workflow ecosystem awareness and on-chain proof verification.**
 
-Orbital Sentinel runs 8 production CRE workflows that continuously read live Ethereum mainnet data and feed it through a Claude AI analysis layer. All workflows run together in a unified cycle 7 times per day (~3h 25min apart), writing verifiable risk proofs on-chain via `SentinelRegistry` on Sepolia — fully autonomous, no human in the loop. Each proof is a `keccak256` hash of workflow-specific metrics with a prefixed risk level (e.g., `treasury:ok`, `feeds:warning`, `morpho:critical`, `ccip:ok`).
+Orbital Sentinel's core product is the **LINK AI Arbitrage (LAA)** workflow: an autonomous system that detects stLINK/LINK arbitrage opportunities on Curve and makes execution decisions informed by real-time data from 5 additional CRE workflows monitoring the entire stake.link ecosystem. Every decision is backed by a verifiable `keccak256` proof hash written to Ethereum Sepolia.
+
+What makes this different from a simple arb bot: **the LAA doesn't decide in isolation.** A composite intelligence layer reads treasury health, oracle prices, lending market utilization, CCIP bridge status, and Curve pool structure, then feeds that full ecosystem context to an AI analyst (GPT-5.3-Codex) that can override the raw signal. When the math says "execute" but the ecosystem says "the Priority Pool queue is 365K LINK deep and the basis is unstable," the composite layer says "wait."
 
 ---
 
-## What It Does
+## The Core Product: LINK AI Arbitrage (LAA)
+
+The arb mechanism: sell stLINK for LINK on Curve (when stLINK trades at a premium), then deposit LINK to the Priority Pool at 1:1 to mint new stLINK, pocketing the spread.
+
+### What LAA Reads (via CRE EVMClient, Ethereum Mainnet)
+
+| Contract | Data | Why |
+|----------|------|-----|
+| Curve StableSwap NG | `balances()`, `get_dy()` at 4 swap sizes | Pool composition + premium quotes with slippage |
+| Priority Pool | `poolStatus()`, `totalQueued()` | Gate check (open/draining/closed) + queue depth |
+| Arb Vault (optional) | `totalStLINKHeld()`, `minProfitBps()`, `cycleCount()` | Vault state for capital management |
+
+### Signal Logic
 
 ```
-Chainlink CRE Workflow
-  ├── Read on-chain data (EVMClient → mainnet contracts)
-  ├── Fetch off-chain signals (HTTPClient → price feeds, governance, lending)
-  ├── POST to AI analysis endpoint (Claude Haiku / GPT-5.3-Codex → risk assessment)
-  └── Write proof on-chain (SentinelRegistry.sol → Sepolia)
+Priority Pool closed?     → pool_closed
+Vault has zero stLINK?    → no_stlink
+Premium ≤ 0 bps?          → unprofitable
+Premium < minProfitBps?   → wait
+Otherwise                 → execute
 ```
 
-All 8 workflows run together in a unified cycle 7 times per day. A master script (`sentinel-unified-cycle.sh`) runs all CRE simulations in parallel, then writes all on-chain proofs sequentially via `record-all-snapshots.mjs`. The real-time dashboard shows CRE capability tags per workflow and per-workflow on-chain proof statistics.
+### What LAA Misses (Without Composite Intelligence)
+
+The LAA workflow only sees the Curve pool and Priority Pool. It has no idea that:
+- LINK/USD is dropping 5% today (price-feeds workflow)
+- The community staking pool is 100% full, supporting premium persistence (treasury-risk)
+- Morpho utilization is at 89.65%, locking wstLINK as collateral (morpho-vault-health)
+- A CCIP lane is degraded, disrupting cross-chain LINK flows (ccip-lane-health)
+- The Curve pool imbalance just shifted 3% toward equilibrium (curve-pool)
+
+This is where the composite intelligence layer comes in.
+
+---
+
+## Composite Intelligence: Cross-Workflow AI Synthesis
+
+After all CRE workflows complete in the unified cycle, a composite intelligence script reads data from all 6 sources and sends the full ecosystem context to an AI analyst (GPT-5.3-Codex). The AI produces an ecosystem-aware recommendation that can confirm or override the isolated LAA signal.
+
+```
+Phase 1: CRE Unified Cycle (7x/day)
+  ┌─────────────────────────────────────────────────────────────┐
+  │  7 CRE workflows run in parallel (Ethereum mainnet reads)  │
+  │                                                             │
+  │  LAA ─────────── Curve pool, Premium quotes, Priority Pool  │
+  │  price-feeds ─── LINK/USD, ETH/USD (Chainlink Data Feeds)  │
+  │  treasury-risk ─ Staking pools, Reward runway, Queue depth  │
+  │  morpho-vault ── Utilization, Supply/Borrow, APY            │
+  │  ccip-lanes ──── Router, OnRamp, TokenPool (3 dest chains)  │
+  │  curve-pool ──── Composition, TVL, Gauge rewards            │
+  │  governance ──── Snapshot proposals, Forum activity          │
+  └──────────────────────────┬──────────────────────────────────┘
+                             │
+Phase 1.5: Composite Intelligence
+  ┌──────────────────────────▼──────────────────────────────────┐
+  │  composite-laa-intelligence.mjs                             │
+  │                                                             │
+  │  Reads all 6 snapshots → builds cross-workflow context      │
+  │  → POSTs to /api/cre/analyze-composite (GPT-5.3-Codex)     │
+  │  → AI produces ecosystem-aware recommendation               │
+  │  → Writes cre_composite_snapshot.json                       │
+  └──────────────────────────┬──────────────────────────────────┘
+                             │
+Phase 2: On-Chain Proofs
+  ┌──────────────────────────▼──────────────────────────────────┐
+  │  record-all-snapshots.mjs                                   │
+  │                                                             │
+  │  8 workflow proofs + 1 composite proof → SentinelRegistry   │
+  │  keccak256(abi.encode(metrics...)) → Sepolia                │
+  └─────────────────────────────────────────────────────────────┘
+```
+
+### How Each Workflow Influences the LAA Decision
+
+| Workflow | Signal for LAA | Example Impact |
+|----------|----------------|----------------|
+| **price-feeds** | LINK/USD price, stLINK/LINK depeg bps | 17 bps arb premium means nothing if LINK drops 5% during the cycle |
+| **treasury-risk** | Pool fill %, queue depth, reward runway | 100% community pool fill = premium persists (bullish). 365K LINK queue = slow capital recycling (caution) |
+| **morpho-vault-health** | Utilization %, supply APY | 89.65% utilization = wstLINK locked as collateral = less sell pressure on stLINK (premium support) |
+| **ccip-lane-health** | Lane status, paused count, rate limiters | Degraded CCIP lanes restrict cross-chain LINK flows, affecting Curve pool dynamics |
+| **curve-pool** | Imbalance %, TVL, gauge rewards, virtual price | Deep imbalance with active gauge rewards = premium is structural, not transient |
+
+### Real Example (Live Mainnet Data, March 2026)
+
+```
+Isolated LAA signal:        EXECUTE  (17 bps premium, pool open)
+Composite recommendation:   WAIT     (ecosystem under stress)
+Confidence:                 0.94     (all 5 context workflows loaded)
+Optimal swap size:          500 stLINK (reduced from 5000)
+
+Reasoning: "Premium is real and likely to persist (100% community pool fill,
+89.65% Morpho utilization), but Priority Pool queue is 365K LINK (slow
+recycling), stLINK/LINK depeg at 95 bps (basis instability), and premium
+is thin (16-17 bps). Wait for queue normalization or probe with small size."
+```
+
+The composite proof hash encoding this decision is on Sepolia: [`0xd2e041...`](https://sepolia.etherscan.io/tx/0xd2e0414a08ca361cfd23666c44457385164a7d5ee2c1a33953a2bc466acae7eb)
+
+---
+
+## The 5 Supporting CRE Workflows
+
+Each workflow is a standalone CRE project that reads live Ethereum mainnet data and writes its own on-chain proof. Together, they form the ecosystem intelligence layer that feeds the LAA composite analysis.
+
+### 1. `price-feeds` : Chainlink Oracle Price Monitoring
+Reads LINK/USD, ETH/USD from Chainlink AggregatorV3 Data Feed contracts. Computes stLINK/LINK depeg basis points. Provides USD-denominated context for arb profitability.
+
+**CRE:** `EVMClient.callContract()` reads `latestAnswer()` from Chainlink price feed contracts.
+
+### 2. `treasury-risk` : Protocol Treasury Health
+Monitors staking pool utilization (community + operator), reward vault runway, and priority queue depth. Calls Claude Haiku for structured risk assessment.
+
+**CRE:** `EVMClient.callContract()` reads `getTotalPrincipal()`, `getMaxPoolSize()`, `getRewardBuckets()`, `balanceOf()`. `HTTPClient` + `consensusIdenticalAggregation` for AI analysis.
+
+### 3. `morpho-vault-health` : Lending Market Risk
+Reads Morpho Blue market utilization and ERC4626 vault TVL. High utilization means wstLINK is locked as collateral, reducing stLINK supply on open markets.
+
+**CRE:** `EVMClient.callContract()` reads Morpho Blue market structs and vault share prices.
+
+### 4. `ccip-lane-health` : CCIP Lane Availability
+Monitors Chainlink CCIP Router `getOnRamp()`, OnRamp `paused()` state, and `LockReleaseTokenPool` rate limiters per destination chain (Arbitrum, Base, Polygon).
+
+**CRE:** `EVMClient.callContract()` reads CCIP Router, OnRamp, and LockReleaseTokenPool contracts.
+
+### 5. `curve-pool` : Curve Pool Structure
+Monitors Curve StableSwap pool composition, virtual price, amplification factor, TVL, and gauge reward incentives. Provides market structure context for premium sustainability.
+
+**CRE:** `EVMClient.callContract()` reads Curve pool balances and Chainlink LINK/USD Data Feed.
+
+### Additional Workflows
+
+- **`governance-monitor`** : Polls Snapshot GraphQL for active proposals across governance spaces. Uses `HTTPClient` + `consensusIdenticalAggregation` for deterministic multi-source fetching.
+- **`token-flows`** : Tracks balances across 50+ classified addresses (validators, whales, DEX pools, vesting). Implemented but not yet wired into the unified cycle.
+
+---
+
+## On-Chain Proofs: SentinelRegistry (Sepolia)
+
+Every workflow run and every composite analysis produces a verifiable proof hash written to `OrbitalSentinelRegistry` on Sepolia.
+
+**Contract:** [`0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40)
+
+```
+snapshotHash = keccak256(abi.encode(timestamp, workflowType, risk, metric1, metric2, ...))
+riskLevel = "treasury:ok" | "feeds:warning" | "composite:critical" | ...
+```
+
+**The composite proof** is special: it encodes metrics from **6 different CRE data sources** into a single hash, creating a tamper-proof record of cross-workflow AI reasoning:
+
+```typescript
+encodeAbiParameters(
+  'uint256 ts, string wf, string risk, uint256 premiumBps, uint256 linkUsd,
+   uint256 communityFillPct, uint256 queueLink, uint256 morphoUtil,
+   uint256 ccipOk, uint256 curveImbalance, uint256 confidence',
+  [timestamp, 'composite', risk, ...metrics],
+)
+```
+
+Anyone can reconstruct the hash from the raw workflow data and verify it matches the on-chain record.
+
+### Contract Interface
+
+```solidity
+function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external onlyOwner
+function transferOwnership(address newOwner) external onlyOwner  // Ownable2Step
+function acceptOwnership() external  // only callable by pendingOwner
+function count() external view returns (uint256)
+function recorded(bytes32) external view returns (bool)
+```
+
+**Security:** Owner-only writes, Ownable2Step transfer, on-chain duplicate prevention (`AlreadyRecorded`), input validation (`EmptyRiskLevel`, `RiskLevelTooLong`). Audited: 4 findings fixed, 31 tests (17 unit + 7 fuzz + 7 deep audit), 80,000 fuzz iterations. See [AUDIT-REPORT.md](./AUDIT-REPORT.md).
+
+---
+
+## Unified Cycle Schedule
+
+All workflows run together 7 times per day (~3h 25min apart). The master script `sentinel-unified-cycle.sh` orchestrates three phases:
+
+| Phase | What Happens |
+|-------|-------------|
+| 1 | 7 CRE simulations run in parallel (mainnet reads) |
+| 1.5 | Composite intelligence: cross-workflow AI analysis of LAA decision |
+| 2 | 8 on-chain proof writes (7 workflows + 1 composite) |
+
+| Cycle | UTC Time |
+|-------|----------|
+| 1 | 00:00 |
+| 2 | 03:25 |
+| 3 | 06:50 |
+| 4 | 10:15 |
+| 5 | 13:40 |
+| 6 | 17:05 |
+| 7 | 20:30 |
+
+**Per cycle:** 7 simulations + 1 composite AI call + 8 on-chain writes. **Total: 56 on-chain proofs/day.**
 
 ---
 
 ## Builder Fee
 
-Orbital Sentinel charges a **0.1% builder fee** (10 bps) on protocol-integrated actions. The fee is configurable by the protocol multisig and can be adjusted or set to zero at any time. The builder fee recipient address will be specified in the deployment configuration.
+Orbital Sentinel charges a **0.1% builder fee** (10 bps) on protocol-integrated actions. Configurable by the protocol multisig.
 
 | Parameter | Value |
 |-----------|-------|
 | Default fee | 0.1% (10 bps) |
 | Configured by | Protocol multisig |
-| Adjustable | Yes — multisig can update at any time |
-| Recipient address | TBD — will be set at deployment |
-
----
-
-## The 8 Workflows
-
-### 1. `link-ai-arbitrage` — LINK AI Arbitrage (LAA)
-Monitors stLINK/LINK arbitrage opportunities via the Curve StableSwap pool. Reads pool balances, premium quotes at multiple swap sizes, Priority Pool queue status, and optional Arb Vault state. Computes an execution signal (execute/wait/unprofitable/pool_closed/no_stlink) and calls GPT-5.3-Codex for AI analysis of optimal swap timing. This is the flagship workflow — the only one that produces a direct, actionable trading signal.
-
-**Chainlink usage:** `EVMClient.callContract()` reads Curve StableSwap pool (get_dy, balances), Priority Pool (poolStatus, totalQueued), and optional Arb Vault contracts on Ethereum mainnet. `HTTPClient` + `consensusIdenticalAggregation` for AI analysis endpoint.
-
-### 2. `treasury-risk` — Protocol Treasury Health
-Monitors staking pool utilization, reward vault runway, lending market exposure, and priority queue depth. Computes an overall risk score (`ok / warning / critical`) and calls Claude Haiku for a structured assessment. Writes a `keccak256` snapshot hash to `SentinelRegistry` on Sepolia.
-
-**Chainlink usage:** `EVMClient.callContract()` reads `getTotalPrincipal()`, `getMaxPoolSize()`, `getRewardBuckets()`, `balanceOf()` from deployed staking contracts on Ethereum mainnet.
-
-### 3. `governance-monitor` — DAO Governance Lifecycle
-Polls Snapshot GraphQL for active proposals across multiple governance spaces. Flags urgent votes (<24h remaining). Fetches forum topics for community signal. Outputs proposal urgency ranking.
-
-**Chainlink usage:** `HTTPClient.sendRequest()` with `consensusIdenticalAggregation` for deterministic multi-source data fetching.
-
-### 4. `price-feeds` — Chainlink Oracle Price Monitoring
-Reads LINK/USD, ETH/USD, and other asset prices directly from Chainlink Data Feed contracts. Computes depeg basis points for liquid staking derivatives.
-
-**Chainlink usage:** Reads `latestAnswer()` and `latestRoundData()` from Chainlink AggregatorV3 price feed contracts on Ethereum mainnet.
-
-### 5. `morpho-vault-health` — Lending Market Risk
-Reads Morpho Blue market utilization rates and ERC4626 vault TVL. Flags high utilization (risk of liquidity crunch for borrowers).
-
-**Chainlink usage:** `EVMClient.callContract()` reads Morpho Blue market structs and vault share prices from Ethereum mainnet.
-
-### 6. `token-flows` — Whale & Holder Intelligence
-Tracks token and staked-token balances across classified address categories (validators, whales, DEX pools, vesting schedules). Detects large movements that may indicate protocol stress.
-
-**Chainlink usage:** `EVMClient.callContract()` reads `balanceOf()` and vesting `releasable()` across 50+ classified addresses.
-
-### 7. `ccip-lane-health` — CCIP Lane Availability
-Monitors Chainlink CCIP lane health by reading the Router's `getOnRamp()`, OnRamp `paused()` state, and `LockReleaseTokenPool` rate limiter buckets per destination chain. Detects paused lanes, unconfigured routes, and rate limiter depletion.
-
-**Chainlink usage:** `EVMClient.callContract()` reads CCIP Router, OnRamp, and LockReleaseTokenPool contracts on Ethereum mainnet.
-
-### 8. `curve-pool` — Curve Pool Balance Monitoring
-Monitors Curve StableSwap pool balance composition for stLINK/LINK. Flags imbalanced reserves that may indicate liquidity stress or arbitrage opportunities.
-
-**Chainlink usage:** `EVMClient.callContract()` reads Curve pool balances and Chainlink LINK/USD price feed on Ethereum mainnet.
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                  Chainlink CRE Runtime                   │
-│                                                          │
-│  ┌──────────────┐   ┌──────────────┐   ┌─────────────┐  │
-│  │ EVMClient    │   │ HTTPClient   │   │ CronTrigger │  │
-│  │ (mainnet     │   │ (AI analysis │   │ (scheduled  │  │
-│  │  reads)      │   │  endpoint)   │   │  execution) │  │
-│  └──────┬───────┘   └──────┬───────┘   └──────┬──────┘  │
-│         │                  │                   │         │
-│         └──────────────────┴───────────────────┘         │
-│                            │                             │
-│                     ┌──────▼──────┐                      │
-│                     │  Workflow   │                      │
-│                     │  Handler   │                      │
-│                     └──────┬──────┘                      │
-└────────────────────────────│────────────────────────────┘
-                             │
-              ┌──────────────┼──────────────┐
-              ▼              ▼              ▼
-    ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-    │  Risk Output │  │ Claude Haiku  │  │ SentinelReg  │
-    │  (JSON)      │  │ Assessment   │  │ (Sepolia tx) │
-    └──────────────┘  └──────────────┘  └──────────────┘
-```
+| Adjustable | Yes |
+| Recipient | TBD at deployment |
 
 ---
 
@@ -111,137 +223,40 @@ Monitors Curve StableSwap pool balance composition for stLINK/LINK. Flags imbala
 
 ### Prerequisites
 
-- [CRE CLI](https://docs.chain.link/chainlink-automation) installed at `~/.local/bin/cre`
+- [CRE CLI](https://docs.chain.link/cre) installed at `~/.local/bin/cre`
 - [Bun](https://bun.sh) runtime
-- An Ethereum RPC endpoint (public or private)
-- `ANTHROPIC_API_KEY` for AI analysis
+- Ethereum RPC endpoint
+- `OPENAI_API_KEY` for composite + arb analysis
+- `ANTHROPIC_API_KEY` for treasury analysis
 
-### Simulate a workflow
+### Simulate the LAA workflow
 
 ```bash
-cd workflows/treasury-risk
-
-# Install dependencies
+cd workflows/link-ai-arbitrage
 bun install
-
-# Copy and fill in config
 cp my-workflow/config.example.json my-workflow/config.staging.json
-
-# Run simulation
 ./run_snapshot.sh staging-settings
 ```
 
-Expected output includes:
-```json
-{
-  "overallRisk": "ok",
-  "staking": { "community": { "fillPct": 87.3, "risk": "ok" }, ... },
-  "rewards": { "runwayDays": 109, "risk": "ok" },
-  "aiAnalysis": {
-    "assessment": "Protocol treasury is healthy...",
-    "risk_label": "ok",
-    "action_items": [...],
-    "confidence": 0.95
-  },
-  "registryTx": "hash=0x... registry=0x..."
-}
-```
-
-### Start the AI analysis endpoint
+### Run composite intelligence
 
 ```bash
-pip install flask anthropic
+# Start the AI endpoint
+export OPENAI_API_KEY=your_key
 export ANTHROPIC_API_KEY=your_key
 python platform/cre_analyze_endpoint.py
-# Listening on :5000
+
+# In another terminal: run composite analysis against existing snapshots
+cd scripts
+AI_ENDPOINT=http://localhost:5000/api/cre/analyze-composite node composite-laa-intelligence.mjs
 ```
 
-### Deploy SentinelRegistry to Sepolia
+### Write proofs to Sepolia
 
 ```bash
-cd contracts
-forge create SentinelRegistry.sol:OrbitalSentinelRegistry \
-  --rpc-url https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY \
-  --private-key YOUR_PRIVATE_KEY
+cd scripts
+node record-all-snapshots.mjs
 ```
-
-The deployer becomes the contract owner. Only the owner can call `recordHealth()`.
-Update `registry.address` in your workflow config with the deployed address.
-
----
-
-## SentinelRegistry (Sepolia)
-
-Every workflow run writes a verifiable hash to `OrbitalSentinelRegistry` on Sepolia. The contract is owner-gated with on-chain duplicate prevention:
-
-```solidity
-// Owner-only write with duplicate prevention and input validation
-function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external onlyOwner
-
-// Two-step ownership transfer (Ownable2Step pattern)
-function transferOwnership(address newOwner) external onlyOwner
-function acceptOwnership() external  // only callable by pendingOwner
-
-// Read functions
-function count() external view returns (uint256)
-function latest() external view returns (Record memory)
-function recorded(bytes32) external view returns (bool)
-function owner() external view returns (address)
-function pendingOwner() external view returns (address)
-
-// Events
-event HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 ts)
-event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner)
-event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
-
-// Errors
-error NotOwner()
-error NotPendingOwner()
-error AlreadyRecorded()
-error EmptyRiskLevel()
-error RiskLevelTooLong()
-```
-
-**Security features:**
-- Owner-only writes (prevents spam/pollution)
-- Two-step ownership transfer (Ownable2Step — prevents accidental ownership loss)
-- On-chain duplicate hash prevention (`AlreadyRecorded` revert)
-- Non-empty riskLevel validation (`EmptyRiskLevel` revert)
-- Maximum riskLevel length (256 bytes, `RiskLevelTooLong` revert)
-- Gas-efficient custom errors
-
-Risk levels use a prefixed format: `treasury:ok`, `feeds:warning`, `morpho:critical`, `governance:ok`, `flows:ok`, `ccip:ok`, `laa:ok`.
-
-`snapshotHash = keccak256(abi.encode(timestamp, workflowType, risk, metric1, metric2))`
-
-**Audit:** See [AUDIT-REPORT.md](./AUDIT-REPORT.md) — 4 findings fixed, 31 tests (17 unit + 7 fuzz + 7 deep audit), 80,000 fuzz iterations, 0 failures. Enhanced 9-phase methodology (2026-03-01): threat model, economic assessment, post-deployment recommendations. No new vulnerabilities.
-
-Deployed address (v2, post-audit): `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`
-
-View on Sepolia Etherscan: `https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`
-
----
-
-## Analytics Integration
-
-Sentinel on-chain records feed back into the standalone dashboard, creating a closed intelligence loop:
-
-```
-sentinel-unified-cycle.sh (7x/day, runs all 8 CRE simulations in parallel)
-  ↓
-record-all-snapshots.mjs (bridge, writes proofs for all 8 workflows)
-  ↓ keccak256 proof hash per workflow
-SentinelRegistry (Sepolia)
-  ↓ HealthRecorded events
-Sentinel Collector (cron, viem getLogs)
-  ↓ sentinel_records table
-Dashboard API (/api/sentinel)
-  ↓ JSON + per-workflow stats + Etherscan links
-Sentinel Dashboard (Next.js)
-  → Workflow grid with CRE tags, on-chain records with workflow column
-```
-
-The collector reads `HealthRecorded` events from the registry contract, stores them in PostgreSQL via Drizzle ORM, and serves them through the dashboard. Each record links back to its Sepolia Etherscan transaction for full auditability. The dashboard parses prefixed risk levels (`treasury:ok`) to show per-workflow proof statistics.
 
 ---
 
@@ -250,154 +265,128 @@ The collector reads `HealthRecorded` events from the registry contract, stores t
 ```
 orbital-sentinel/
 ├── workflows/
-│   ├── link-ai-arbitrage/     ← LINK AI Arbitrage (LAA) — flagship: Curve arb signal generation
-│   ├── treasury-risk/          ← EVM reads + AI analysis + on-chain write
-│   ├── governance-monitor/     ← DAO proposal monitoring + on-chain write
-│   ├── price-feeds/            ← Chainlink Data Feed reads + on-chain write
-│   ├── morpho-vault-health/    ← Lending market utilization + on-chain write
-│   ├── token-flows/            ← Whale & holder tracking + on-chain write
-│   ├── ccip-lane-health/       ← CCIP lane availability + rate limiter monitoring
-│   └── curve-pool/             ← Curve pool balance composition monitoring
+│   ├── link-ai-arbitrage/        ← LAA: the core product (Curve arb + AI signals)
+│   ├── price-feeds/              ← Context: Chainlink Data Feed reads (LINK/USD, ETH/USD)
+│   ├── treasury-risk/            ← Context: staking health + reward runway + AI analysis
+│   ├── morpho-vault-health/      ← Context: lending utilization + ERC4626 TVL
+│   ├── ccip-lane-health/         ← Context: CCIP bridge status + rate limiters
+│   ├── curve-pool/               ← Context: pool composition + gauge + TVL
+│   ├── governance-monitor/       ← Context: DAO proposal tracking
+│   └── token-flows/              ← Context: whale/holder balance tracking (not in cycle)
 ├── contracts/
-│   ├── SentinelRegistry.sol    ← On-chain risk proof registry (Sepolia, owner-gated)
-│   └── test/
-│       ├── SentinelRegistry.t.sol      ← 17 unit tests
-│       ├── SentinelRegistry.Fuzz.t.sol ← 7 fuzz tests (10k iterations each)
-│       └── DeepAudit.t.sol            ← 7 deep audit tests (Ownable2Step, gas, scale)
-├── dashboard/                  ← Next.js standalone dashboard
-│   ├── app/components/         ← WorkflowGrid, SentinelRegistry, PegMonitor, etc.
-│   ├── app/api/                ← /api/sentinel, /api/cre-signals
-│   └── lib/db/                 ← Drizzle ORM schema + queries (PostgreSQL)
+│   ├── SentinelRegistry.sol      ← On-chain proof registry (Sepolia, audited)
+│   └── test/                     ← 31 tests (unit + fuzz + deep audit)
+├── dashboard/                    ← Next.js standalone dashboard (port 3016)
 ├── platform/
-│   └── cre_analyze_endpoint.py ← Flask AI analysis server (Claude Haiku + GPT-5.3-Codex)
+│   └── cre_analyze_endpoint.py   ← Flask AI server (Haiku + GPT-5.3-Codex + composite)
 ├── scripts/
-│   ├── sentinel-unified-cycle.sh ← Master: runs all 8 CRE sims + on-chain proofs (7x/day)
-│   ├── record-all-snapshots.mjs  ← Bridge: CRE snapshots → on-chain proofs
-│   ├── record-health.mjs         ← One-shot recordHealth call
+│   ├── sentinel-unified-cycle.sh ← Master: Phase 1 + 1.5 + 2 (7x/day)
+│   ├── composite-laa-intelligence.mjs ← Phase 1.5: cross-workflow LAA analysis
+│   ├── record-all-snapshots.mjs  ← Phase 2: CRE snapshots → on-chain proofs
 │   └── verify-contract.mjs       ← Sourcify contract verification
-├── docs/
-│   ├── CRE-ECOSYSTEM-REFERENCE.md ← CRE capabilities, SDK patterns, ecosystem context
-│   ├── submission.md           ← Hackathon submission copy-paste
-│   └── demo-video-script.md    ← Recording guide
-├── README.md
-└── CHAINLINK.md                ← All Chainlink touchpoints documented
+├── CHAINLINK.md                  ← Every Chainlink touchpoint documented
+├── AUDIT-REPORT.md               ← SentinelRegistry security audit
+└── docs/
+    ├── CRE-ECOSYSTEM-REFERENCE.md
+    ├── submission.md
+    └── demo-video-script.md
 ```
+
+---
+
+## Chainlink CRE Components Used
+
+| Component | Where | Purpose |
+|-----------|-------|---------|
+| `@chainlink/cre-sdk` Runner | All 8 workflows | Workflow execution runtime |
+| `EVMClient.callContract()` | All 8 workflows | Read live Ethereum mainnet contracts |
+| Chainlink Data Feeds | price-feeds, curve-pool | LINK/USD, ETH/USD oracle prices |
+| CCIP Router + OnRamp + TokenPool | ccip-lane-health | Cross-chain bridge monitoring |
+| `HTTPClient` + `consensusIdenticalAggregation` | LAA, treasury-risk, governance, price-feeds | Deterministic off-chain fetches with oracle consensus |
+| `CronCapability` | All 8 workflows | Autonomous scheduled execution |
+| `getNetwork()` | All 8 workflows | Chain selector resolution (mainnet + Sepolia) |
+| `encodeCallMsg` | All 8 workflows | ABI-encoded contract calls |
+| `SentinelRegistry.sol` | All workflows + composite | On-chain proof anchoring (Sepolia) |
+| Composite Intelligence | `composite-laa-intelligence.mjs` | Cross-workflow AI synthesis (GPT-5.3-Codex) |
+
+See [CHAINLINK.md](./CHAINLINK.md) for detailed per-file documentation of every Chainlink touchpoint.
 
 ---
 
 ## Chainlink Files Index
 
-Every file in this repo that uses Chainlink products, organized by category. Required for hackathon submission — see [CHAINLINK.md](./CHAINLINK.md) for detailed usage documentation.
+### CRE Workflow Definitions
 
-### CRE Workflow Definitions (`@chainlink/cre-sdk`)
+| # | Workflow | File | CRE Features |
+|---|----------|------|--------------|
+| 1 | **LINK AI Arbitrage (LAA)** | [`workflows/link-ai-arbitrage/my-workflow/main.ts`](./workflows/link-ai-arbitrage/my-workflow/main.ts) | EVMClient (Curve + Priority Pool + Arb Vault), HTTPClient (AI), CronCapability |
+| 2 | Price Feeds | [`workflows/price-feeds/my-workflow/main.ts`](./workflows/price-feeds/my-workflow/main.ts) | EVMClient (Chainlink Data Feeds), CronCapability |
+| 3 | Treasury Risk | [`workflows/treasury-risk/my-workflow/main.ts`](./workflows/treasury-risk/my-workflow/main.ts) | EVMClient (4 mainnet reads), HTTPClient (AI), CronCapability |
+| 4 | Morpho Vault Health | [`workflows/morpho-vault-health/my-workflow/main.ts`](./workflows/morpho-vault-health/my-workflow/main.ts) | EVMClient (Morpho Blue + ERC4626), CronCapability |
+| 5 | CCIP Lane Health | [`workflows/ccip-lane-health/my-workflow/main.ts`](./workflows/ccip-lane-health/my-workflow/main.ts) | EVMClient (CCIP Router + OnRamp + TokenPool), CronCapability |
+| 6 | Curve Pool | [`workflows/curve-pool/my-workflow/main.ts`](./workflows/curve-pool/my-workflow/main.ts) | EVMClient (Curve + LINK/USD feed), CronCapability |
+| 7 | Governance Monitor | [`workflows/governance-monitor/my-workflow/main.ts`](./workflows/governance-monitor/my-workflow/main.ts) | HTTPClient + consensus, CronCapability |
+| 8 | Token Flows | [`workflows/token-flows/my-workflow/main.ts`](./workflows/token-flows/my-workflow/main.ts) | EVMClient (50+ ERC20 reads), CronCapability |
 
-All 8 workflows import `Runner`, `handler`, `CronCapability`, `EVMClient`, `getNetwork`, and `encodeCallMsg` from the CRE SDK:
-
-| # | Workflow | File | Chainlink Features |
-|---|----------|------|--------------------|
-| 1 | LINK AI Arbitrage (LAA) | [`workflows/link-ai-arbitrage/my-workflow/main.ts`](./workflows/link-ai-arbitrage/my-workflow/main.ts) | EVMClient (Curve pool + Priority Pool + Arb Vault), HTTPClient (AI analysis), CronCapability, SentinelRegistry write |
-| 2 | Treasury Risk | [`workflows/treasury-risk/my-workflow/main.ts`](./workflows/treasury-risk/my-workflow/main.ts) | EVMClient (4 mainnet reads), HTTPClient (AI analysis), CronCapability, SentinelRegistry write |
-| 3 | Governance Monitor | [`workflows/governance-monitor/my-workflow/main.ts`](./workflows/governance-monitor/my-workflow/main.ts) | HTTPClient + consensusIdenticalAggregation (Snapshot + Discourse), CronCapability, SentinelRegistry write |
-| 4 | Price Feeds | [`workflows/price-feeds/my-workflow/main.ts`](./workflows/price-feeds/my-workflow/main.ts) | EVMClient reads Chainlink Data Feeds (LINK/USD, ETH/USD), CronCapability, SentinelRegistry write |
-| 5 | Morpho Vault Health | [`workflows/morpho-vault-health/my-workflow/main.ts`](./workflows/morpho-vault-health/my-workflow/main.ts) | EVMClient (Morpho Blue + ERC4626), CronCapability, SentinelRegistry write |
-| 6 | Token Flows | [`workflows/token-flows/my-workflow/main.ts`](./workflows/token-flows/my-workflow/main.ts) | EVMClient (50+ ERC20 balanceOf reads), CronCapability, SentinelRegistry write |
-| 7 | CCIP Lane Health | [`workflows/ccip-lane-health/my-workflow/main.ts`](./workflows/ccip-lane-health/my-workflow/main.ts) | EVMClient (CCIP Router + OnRamp + TokenPool), CronCapability, SentinelRegistry write |
-| 8 | Curve Pool | [`workflows/curve-pool/my-workflow/main.ts`](./workflows/curve-pool/my-workflow/main.ts) | EVMClient (Curve pool + LINK/USD Data Feed), CronCapability, SentinelRegistry write |
-
-### On-Chain Contract (Sepolia)
+### Composite Intelligence
 
 | File | Description |
 |------|-------------|
-| [`contracts/SentinelRegistry.sol`](./contracts/SentinelRegistry.sol) | `OrbitalSentinelRegistry` — owner-gated `recordHealth(bytes32, string)` with on-chain dedup. [Audit report](./AUDIT-REPORT.md). Deployed (v2, audited): [`0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40) |
+| [`scripts/composite-laa-intelligence.mjs`](./scripts/composite-laa-intelligence.mjs) | Phase 1.5: reads all workflow snapshots, calls AI for cross-workflow analysis |
+| [`platform/cre_analyze_endpoint.py`](./platform/cre_analyze_endpoint.py) | Flask AI server: `/api/cre/analyze-composite` (GPT-5.3-Codex), `/api/cre/analyze` (Claude Haiku), `/api/cre/analyze-arb` (GPT-5.3-Codex) |
 
-### ABI Files (Chainlink Contract Interfaces)
+### On-Chain Contract
+
+| File | Description |
+|------|-------------|
+| [`contracts/SentinelRegistry.sol`](./contracts/SentinelRegistry.sol) | `OrbitalSentinelRegistry` on Sepolia. [Audit](./AUDIT-REPORT.md). Address: [`0xE5B1...1d40`](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40) |
+
+### Bridge Scripts
+
+| File | Description |
+|------|-------------|
+| [`scripts/sentinel-unified-cycle.sh`](./scripts/sentinel-unified-cycle.sh) | Master: Phase 1 (7 CRE sims) + Phase 1.5 (composite AI) + Phase 2 (on-chain proofs). 7x/day. |
+| [`scripts/record-all-snapshots.mjs`](./scripts/record-all-snapshots.mjs) | Bridge: reads 8 workflow snapshots + composite, writes keccak256 proofs to Sepolia |
+
+### ABI Files
 
 | File | Contract |
 |------|----------|
-| [`workflows/treasury-risk/contracts/abi/StakingPool.ts`](./workflows/treasury-risk/contracts/abi/StakingPool.ts) | Chainlink staking pool (getTotalPrincipal, getMaxPoolSize) |
-| [`workflows/treasury-risk/contracts/abi/RewardVault.ts`](./workflows/treasury-risk/contracts/abi/RewardVault.ts) | Chainlink reward vault (getRewardBuckets) |
-| [`workflows/treasury-risk/contracts/abi/SentinelRegistry.ts`](./workflows/treasury-risk/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI for on-chain writes |
-| [`workflows/price-feeds/contracts/abi/PriceFeedAggregator.ts`](./workflows/price-feeds/contracts/abi/PriceFeedAggregator.ts) | Chainlink AggregatorV3 (latestAnswer, latestRoundData) |
-| [`workflows/price-feeds/contracts/abi/SentinelRegistry.ts`](./workflows/price-feeds/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
-| [`workflows/morpho-vault-health/contracts/abi/MorphoBlue.ts`](./workflows/morpho-vault-health/contracts/abi/MorphoBlue.ts) | Morpho Blue market struct |
-| [`workflows/morpho-vault-health/contracts/abi/ERC4626Vault.ts`](./workflows/morpho-vault-health/contracts/abi/ERC4626Vault.ts) | ERC4626 vault (totalAssets) |
-| [`workflows/morpho-vault-health/contracts/abi/SentinelRegistry.ts`](./workflows/morpho-vault-health/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
-| [`workflows/ccip-lane-health/contracts/abi/CCIPRouter.ts`](./workflows/ccip-lane-health/contracts/abi/CCIPRouter.ts) | Chainlink CCIP Router (getOnRamp) |
-| [`workflows/ccip-lane-health/contracts/abi/CCIPOnRamp.ts`](./workflows/ccip-lane-health/contracts/abi/CCIPOnRamp.ts) | Chainlink CCIP OnRamp (paused) |
-| [`workflows/ccip-lane-health/contracts/abi/LockReleaseTokenPool.ts`](./workflows/ccip-lane-health/contracts/abi/LockReleaseTokenPool.ts) | Chainlink CCIP TokenPool (rate limiter) |
-| [`workflows/curve-pool/contracts/abi/CurvePool.ts`](./workflows/curve-pool/contracts/abi/CurvePool.ts) | Curve StableSwap pool (balances, A, virtual_price) |
-| [`workflows/curve-pool/contracts/abi/PriceFeedAggregator.ts`](./workflows/curve-pool/contracts/abi/PriceFeedAggregator.ts) | Chainlink LINK/USD feed for TVL calc |
-| [`workflows/curve-pool/contracts/abi/SentinelRegistry.ts`](./workflows/curve-pool/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
-| [`workflows/governance-monitor/contracts/abi/SentinelRegistry.ts`](./workflows/governance-monitor/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
-| [`workflows/token-flows/contracts/abi/SentinelRegistry.ts`](./workflows/token-flows/contracts/abi/SentinelRegistry.ts) | SentinelRegistry ABI |
-| [`workflows/link-ai-arbitrage/contracts/abi/CurveStableSwapNG.ts`](./workflows/link-ai-arbitrage/contracts/abi/CurveStableSwapNG.ts) | Curve StableSwap NG pool (balances, get_dy) |
-| [`workflows/link-ai-arbitrage/contracts/abi/PriorityPool.ts`](./workflows/link-ai-arbitrage/contracts/abi/PriorityPool.ts) | stake.link Priority Pool (poolStatus, totalQueued) |
-| [`workflows/link-ai-arbitrage/contracts/abi/ArbVault.ts`](./workflows/link-ai-arbitrage/contracts/abi/ArbVault.ts) | Arb Vault (totalStLINKHeld, minProfitBps, cycleCount) |
-
-### Bridge Scripts (On-Chain Proof Writers)
-
-| File | Description |
-|------|-------------|
-| [`scripts/sentinel-unified-cycle.sh`](./scripts/sentinel-unified-cycle.sh) | Master script: runs all 8 CRE simulations in parallel, then writes all on-chain proofs. Scheduled 7x/day via cron. |
-| [`scripts/record-all-snapshots.mjs`](./scripts/record-all-snapshots.mjs) | Bridge: reads all 8 CRE workflow snapshots, writes keccak256 proofs to SentinelRegistry on Sepolia. Handles `AlreadyRecorded` gracefully. |
-| [`scripts/record-health.mjs`](./scripts/record-health.mjs) | One-shot recordHealth call for a single workflow snapshot |
-| [`scripts/record-health-cron.mjs`](./scripts/record-health-cron.mjs) | Cron variant of record-health |
-| [`scripts/verify-contract.mjs`](./scripts/verify-contract.mjs) | Sourcify contract verification for SentinelRegistry |
-
-### CRE Simulation Scripts
-
-Each workflow has a `run_snapshot.sh` that runs `cre simulate`:
-
-| File |
-|------|
-| [`workflows/treasury-risk/run_snapshot.sh`](./workflows/treasury-risk/run_snapshot.sh) |
-| [`workflows/governance-monitor/run_snapshot.sh`](./workflows/governance-monitor/run_snapshot.sh) |
-| [`workflows/price-feeds/run_snapshot.sh`](./workflows/price-feeds/run_snapshot.sh) |
-| [`workflows/morpho-vault-health/run_snapshot.sh`](./workflows/morpho-vault-health/run_snapshot.sh) |
-| [`workflows/token-flows/run_snapshot.sh`](./workflows/token-flows/run_snapshot.sh) |
-| [`workflows/ccip-lane-health/run_snapshot.sh`](./workflows/ccip-lane-health/run_snapshot.sh) |
-| [`workflows/curve-pool/run_snapshot.sh`](./workflows/curve-pool/run_snapshot.sh) |
-| [`workflows/link-ai-arbitrage/run_snapshot.sh`](./workflows/link-ai-arbitrage/run_snapshot.sh) |
-
-### AI Analysis Endpoint
-
-| File | Description |
-|------|-------------|
-| [`platform/cre_analyze_endpoint.py`](./platform/cre_analyze_endpoint.py) | Flask server called by CRE workflows via HTTPClient for AI risk assessment |
-
-### Dashboard (On-Chain Proof Reader)
-
-| File | Description |
-|------|-------------|
-| [`dashboard/app/api/sentinel/route.ts`](./dashboard/app/api/sentinel/route.ts) | API route reading SentinelRegistry on-chain proof data |
-| [`dashboard/app/api/cre-signals/route.ts`](./dashboard/app/api/cre-signals/route.ts) | API route for CRE workflow signal data |
-| [`dashboard/app/components/SentinelRegistry.tsx`](./dashboard/app/components/SentinelRegistry.tsx) | UI: on-chain proof records with Etherscan links |
-| [`dashboard/app/components/WorkflowGrid.tsx`](./dashboard/app/components/WorkflowGrid.tsx) | UI: workflow grid with CRE capability tags |
-| [`dashboard/lib/db/schema.ts`](./dashboard/lib/db/schema.ts) | Drizzle ORM schema for `sentinel_records` table |
-| [`dashboard/lib/db/queries.ts`](./dashboard/lib/db/queries.ts) | Queries for sentinel proof statistics |
+| `workflows/link-ai-arbitrage/contracts/abi/CurveStableSwapNG.ts` | Curve StableSwap NG (balances, get_dy) |
+| `workflows/link-ai-arbitrage/contracts/abi/PriorityPool.ts` | Priority Pool (poolStatus, totalQueued) |
+| `workflows/link-ai-arbitrage/contracts/abi/ArbVault.ts` | Arb Vault (totalStLINKHeld, minProfitBps) |
+| `workflows/treasury-risk/contracts/abi/StakingPool.ts` | Chainlink staking pool |
+| `workflows/treasury-risk/contracts/abi/RewardVault.ts` | Chainlink reward vault |
+| `workflows/price-feeds/contracts/abi/PriceFeedAggregator.ts` | Chainlink AggregatorV3 |
+| `workflows/ccip-lane-health/contracts/abi/CCIPRouter.ts` | CCIP Router |
+| `workflows/ccip-lane-health/contracts/abi/CCIPOnRamp.ts` | CCIP OnRamp |
+| `workflows/ccip-lane-health/contracts/abi/LockReleaseTokenPool.ts` | CCIP TokenPool |
+| `workflows/morpho-vault-health/contracts/abi/MorphoBlue.ts` | Morpho Blue market |
+| `workflows/morpho-vault-health/contracts/abi/ERC4626Vault.ts` | ERC4626 vault |
+| `workflows/curve-pool/contracts/abi/CurvePool.ts` | Curve StableSwap pool |
 
 ### Documentation
 
 | File | Description |
 |------|-------------|
-| [`CHAINLINK.md`](./CHAINLINK.md) | Complete Chainlink touchpoint map (SDK, EVMClient, Data Feeds, CCIP, HTTPClient, CronCapability, getNetwork) |
-| [`AUDIT-REPORT.md`](./AUDIT-REPORT.md) | SentinelRegistry security audit — 4 findings fixed, 31 tests, 80k fuzz iterations |
-| [`docs/CRE-ECOSYSTEM-REFERENCE.md`](./docs/CRE-ECOSYSTEM-REFERENCE.md) | CRE capabilities, SDK patterns, runtime requirements |
-| [`docs/submission.md`](./docs/submission.md) | Hackathon submission details |
+| [`CHAINLINK.md`](./CHAINLINK.md) | Complete Chainlink touchpoint map |
+| [`AUDIT-REPORT.md`](./AUDIT-REPORT.md) | SentinelRegistry security audit |
+| [`docs/CRE-ECOSYSTEM-REFERENCE.md`](./docs/CRE-ECOSYSTEM-REFERENCE.md) | CRE SDK patterns and capabilities |
+| [`docs/submission.md`](./docs/submission.md) | Hackathon submission |
 
 ---
 
 ## Demo
 
-**Video:** *Coming soon — will be linked here before submission deadline.*
+**Video:** *Coming soon*
 
 ---
 
 ## Built For
 
 **Chainlink Convergence Hackathon 2026**
-Tracks: CRE & AI + DeFi & Tokenization + Autonomous Agents (Moltbook)
+Tracks: CRE & AI + DeFi & Tokenization + Autonomous Agents
 
-**By:** [Orbital](https://github.com/Tokenized2027) — managed AI ops platform for DeFi protocols.
+**By:** [Orbital](https://github.com/Tokenized2027)
 
 **License:** MIT

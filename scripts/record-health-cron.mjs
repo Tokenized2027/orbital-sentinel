@@ -4,6 +4,7 @@
  * Writes varied, realistic health snapshots to SentinelRegistry on Sepolia.
  * Designed to run unattended via cron.
  */
+import { config } from 'dotenv';
 import {
   createWalletClient,
   createPublicClient,
@@ -15,8 +16,12 @@ import {
 import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
 
+// Load .env from repo root
+config({ path: new URL('../.env', import.meta.url).pathname });
+
 const REGISTRY_ADDRESS = '0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40';
-const DEPLOYER_KEY = '0xbf893d437ec2ab1fae3f27d4e592307225bb45161eb3d966696a7d91728efe9b';
+const DEPLOYER_KEY = process.env.PRIVATE_KEY;
+if (!DEPLOYER_KEY) { console.error('PRIVATE_KEY not set in .env'); process.exit(1); }
 
 // Fallback RPC array — Tenderly last (rate-limited since Feb 28)
 const RPC_URLS = [
