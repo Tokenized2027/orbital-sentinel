@@ -161,7 +161,7 @@ The 7 most recent SLURPs are compressed into 4 numbers using bit-packing:
 
 ### What is CRE?
 
-CRE stands for **Compute Runtime Environment**. It's Chainlink's framework for running custom programs (workflows) on decentralized infrastructure. Think of it as "smart contracts that can read data and do math, but run off-chain with on-chain verification."
+CRE stands for **Runtime Environment**. It's Chainlink's framework for running custom programs (workflows) on decentralized infrastructure. Think of it as "smart contracts that can read data and do math, but run off-chain with on-chain verification."
 
 ### The Pipeline
 

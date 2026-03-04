@@ -31,7 +31,7 @@ That's what Sentinel does.
 Sentinel is an autonomous AI agent platform
 that monitors DeFi protocol health using Chainlink CRE workflows.
 
-CRE is Chainlink's Compute Runtime Environment.
+CRE is Chainlink's Runtime Environment.
 Think of it like a decentralized server
 that runs your code across Chainlink's oracle network,
 not on a single machine you control.
