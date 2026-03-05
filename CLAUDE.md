@@ -31,6 +31,41 @@ Autonomous DeFi health monitoring platform built on Chainlink CRE for the Chainl
 10. **AI analysis costs money.** The Flask endpoint (`platform/cre_analyze_endpoint.py`) uses three providers: Claude Haiku (`ANTHROPIC_API_KEY`) for treasury analysis, GPT-5.3-Codex (`OPENAI_API_KEY`) for arb vault analysis, and GPT-5.2 for SDL CCIP Bridge vault analysis. Every workflow simulation that hits this endpoint costs API credits (~$0.004/call).
 11. **Dashboard uses existing SDL database.** The `sentinel_records` table lives in the `sdl_analytics` PostgreSQL database (port 5432).
 
+## Sprint Management
+
+All sprints are tracked in a shared PostgreSQL database on BOSGAME. Use the CLI or `/sprint` command, never raw SQL INSERTs.
+
+**CLI invocation:**
+```bash
+POSTGRES_PASSWORD=$(grep ^POSTGRES_PASSWORD ~/projects/infrastructure/.env | cut -d= -f2) \
+  node ~/projects/infrastructure/scripts/tools/sprint-manager.js <command>
+```
+
+This project's tag: `#sentinel`
+
+Common commands:
+```bash
+# List this project's sprints
+node ~/projects/infrastructure/scripts/tools/sprint-manager.js list --tag sentinel
+
+# Create a sprint for this project
+node ~/projects/infrastructure/scripts/tools/sprint-manager.js create "Sprint Name" --priority HIGH --tags sentinel,feature
+
+# Update status
+node ~/projects/infrastructure/scripts/tools/sprint-manager.js update SPRINT-NNN --status IN_PROGRESS
+
+# Mark done
+node ~/projects/infrastructure/scripts/tools/sprint-manager.js complete SPRINT-NNN --duration "4 hours"
+```
+
+Dashboard: http://100.92.162.66:3020 -> Sprints tab (filter by tag `sentinel`)
+
+Rules:
+- Create plan docs at `docs/sprints/sprint-NNN_plan.md` in this repo
+- Update `docs/recent_developments.md` when completing a sprint
+- NEVER mark DONE until the user explicitly says so
+- Templates: `~/.claude/templates/sprint-plan-template.md` and `~/.claude/templates/completion-template.md`
+
 ---
 
 ## Architecture
