@@ -378,7 +378,11 @@ See [CHAINLINK.md](./CHAINLINK.md) for detailed per-file documentation of every 
 
 ## Demo
 
-**Video:** *Coming soon*
+**Video:** In progress (deadline March 8, 2026).
+
+**Live now:** [sentinel.schuna.co.il](https://sentinel.schuna.co.il) shows the full dashboard with real workflow status, CRE signals, and on-chain proof history.
+
+**Whitepaper:** [sentinel.schuna.co.il/whitepaper.html](https://sentinel.schuna.co.il/whitepaper.html) covers full architecture, composite intelligence, and verification model.
 
 ---
 
@@ -388,7 +392,7 @@ See [CHAINLINK.md](./CHAINLINK.md) for detailed per-file documentation of every 
 
 ## Live Dashboard
 
-**[sentinel.schuna.co.il](https://sentinel.schuna.co.il)** — workflow status, on-chain proof history, CRE signals.
+**[sentinel.schuna.co.il](https://sentinel.schuna.co.il)**: workflow status, on-chain proof history, CRE signals.
 
 ## Built For
 

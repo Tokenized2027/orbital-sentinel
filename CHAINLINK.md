@@ -55,9 +55,10 @@ evmClient.callContract(runtime, { call: encodeCallMsg({ to: linkUsdFeed, data: l
 evmClient.callContract(runtime, { call: encodeCallMsg({ to: ethUsdFeed, data: latestAnswer }) })
 ```
 
-Feeds read:
+Feeds read (configurable via `config.feeds` array):
 - LINK/USD: `0x2c1d072e956affc0d435cb7ac38ef18d24d9127c` (Ethereum mainnet)
 - ETH/USD: `0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419` (Ethereum mainnet)
+- POL/USD: optional, configured in staging settings
 
 ABI file: `workflows/price-feeds/contracts/abi/PriceFeedAggregator.ts`
 
@@ -218,7 +219,7 @@ This means the on-chain proof for the composite workflow contains verifiable dat
 |---------------------|-----------|
 | `@chainlink/cre-sdk` Runner + handler | All 8 workflow `main.ts` files |
 | `EVMClient.callContract()` | All 8 workflows (mainnet reads + Sepolia writes) |
-| Chainlink Data Feeds (LINK/USD, ETH/USD) | `workflows/price-feeds/my-workflow/main.ts` |
+| Chainlink Data Feeds (LINK/USD, ETH/USD, POL/USD) | `workflows/price-feeds/my-workflow/main.ts` |
 | CCIP Router + OnRamp + TokenPool | `workflows/ccip-lane-health/my-workflow/main.ts` |
 | `HTTPClient` + `consensusIdenticalAggregation` | treasury-risk, governance-monitor, price-feeds, link-ai-arbitrage |
 | `CronCapability` | All 8 workflows |

@@ -342,7 +342,7 @@ Before any commit:
 | Address | `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit) |
 | Solidity | 0.8.19 |
 | Key function | `recordHealth(bytes32 snapshotHash, string riskLevel)` — **owner-only** |
-| Access control | `owner` + `onlyOwner` modifier + single-step Ownable (`transferOwnership` completes immediately, no `acceptOwnership` needed) |
+| Access control | `owner` + `onlyOwner` modifier + two-step Ownable2Step (`transferOwnership` sets `pendingOwner`; new owner must call `acceptOwnership()` to complete) |
 | Duplicate prevention | `mapping(bytes32 => bool) recorded` — reverts `AlreadyRecorded` on duplicates |
 | Input validation | Reverts `EmptyRiskLevel` on empty `riskLevel` string, `RiskLevelTooLong` on > 256 bytes |
 | Events | `HealthRecorded(bytes32 indexed, string, uint256)`, `OwnershipTransferStarted(address indexed, address indexed)`, `OwnershipTransferred(address indexed, address indexed)` |
