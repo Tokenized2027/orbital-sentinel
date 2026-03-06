@@ -378,7 +378,7 @@ See [CHAINLINK.md](./CHAINLINK.md) for detailed per-file documentation of every 
 
 ## Demo
 
-**Video:** In progress (deadline March 8, 2026).
+**Video:** [Convergence26' | Orbital-Sentinel](https://www.youtube.com/watch?v=CR2ckpE-SC8)
 
 **Live now:** [sentinel.schuna.co.il](https://sentinel.schuna.co.il) shows the full dashboard with real workflow status, CRE signals, and on-chain proof history.
 

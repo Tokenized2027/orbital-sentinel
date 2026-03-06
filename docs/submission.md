@@ -11,7 +11,7 @@
 | GitHub | https://github.com/Tokenized2027/orbital-sentinel |
 | Chainlink Usage | https://github.com/Tokenized2027/orbital-sentinel/blob/main/CHAINLINK.md |
 | Contract (Sepolia) | https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40 |
-| Demo Video | (YouTube link, TBD) |
+| Demo Video | https://www.youtube.com/watch?v=CR2ckpE-SC8 |
 
 ---
 

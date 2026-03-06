@@ -313,7 +313,7 @@ bun install
 - **Cron bridge:** `record-all-snapshots.mjs` writes proofs for all 8 workflows + composite
 - **AI endpoint:** Flask server with Claude Haiku (treasury) + GPT-5.3-Codex (arb + composite)
 - **Hackathon tracks:** CRE & AI, DeFi & Tokenization, Autonomous Agents (Moltbook)
-- **Demo video:** script at `docs/demo-video-script.md`, video not yet recorded
+- **Demo video:** https://www.youtube.com/watch?v=CR2ckpE-SC8
 - **Submission doc:** `docs/submission.md`
 
 ---
