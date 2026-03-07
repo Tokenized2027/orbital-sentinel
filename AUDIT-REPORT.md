@@ -1,8 +1,10 @@
 # OrbitalSentinelRegistry — Security Audit Report
 
-**Date:** 2026-03-01
-**Auditor:** Claude Opus 4.6 (automated + manual review)
+**Date:** 2026-03-01 (updated 2026-03-07 with Nemesis full-system audit)
+**Auditor:** Claude Opus 4.6 (automated + manual review + Nemesis iterative dual-loop)
 **Contract:** `contracts/SentinelRegistry.sol` (52 nSLOC)
+
+> **2026-03-07 Nemesis Audit Addendum:** Full-system Nemesis audit (Feynman + State Inconsistency, 7 phases, 3 feedback iterations) covering contract + 8 CRE workflows + AI endpoint + bridge scripts (~5,692 lines). 1 HIGH fixed (bridge auth bypass + prompt injection), 5 LOW fixed. Contract verdict: SOUND. See `.audit/findings/nemesis-verified.md` for full report.
 **Solidity:** 0.8.19 | **EVM Target:** Paris | **Optimizer:** Disabled
 
 ---

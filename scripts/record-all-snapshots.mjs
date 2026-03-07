@@ -222,15 +222,10 @@ const WORKFLOWS = [
   {
     key: 'curve',
     file: 'cre_curve_pool_snapshot.json',
-    extractRisk: (d) => {
-      const imbalance = d.pool?.imbalancePct ?? 0;
-      if (imbalance > 30) return 'critical';
-      if (imbalance > 15) return 'warning';
-      return 'ok';
-    },
+    extractRisk: (d) => d.overallRisk ?? 'unknown',
     hashFields: (d) => {
       const ts = BigInt(Math.floor(new Date(d.generated_at_utc).getTime() / 1000));
-      const risk = (d.pool?.imbalancePct ?? 0) > 30 ? 'critical' : (d.pool?.imbalancePct ?? 0) > 15 ? 'warning' : 'ok';
+      const risk = d.overallRisk ?? 'unknown';
       // Pool composition (whole tokens)
       const linkBalance = BigInt(Math.round(d.pool?.linkBalance ?? 0));
       const stlinkBalance = BigInt(Math.round(d.pool?.stlinkBalance ?? 0));
@@ -256,12 +251,20 @@ const WORKFLOWS = [
   {
     key: 'ccip',
     file: 'cre_ccip_snapshot.json',
-    extractRisk: (d) => (d.metadata?.pausedCount > 0 ? 'warning' : 'ok'),
+    extractRisk: (d) => {
+      const paused = d.metadata?.pausedCount ?? 0;
+      const ok = d.metadata?.okCount ?? 0;
+      const total = d.metadata?.laneCount ?? 0;
+      const unconfigured = total - ok - paused;
+      return (paused > 0 || unconfigured > 0) ? 'warning' : 'ok';
+    },
     hashFields: (d) => {
       const ts = BigInt(Math.floor(new Date(d.generated_at_utc).getTime() / 1000));
       const ok = BigInt(d.metadata?.okCount ?? 0);
       const total = BigInt(d.metadata?.laneCount ?? 0);
-      const risk = d.metadata?.pausedCount > 0 ? 'warning' : 'ok';
+      const paused = d.metadata?.pausedCount ?? 0;
+      const unconfigured = Number(total) - Number(ok) - paused;
+      const risk = (paused > 0 || unconfigured > 0) ? 'warning' : 'ok';
       return encodeAbiParameters(
         parseAbiParameters('uint256 ts, string wf, string risk, uint256 okLanes, uint256 totalLanes'),
         [ts, 'ccip', risk, ok, total],

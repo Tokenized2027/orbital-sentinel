@@ -292,21 +292,21 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 			const snapshotHash = keccak256(
 				encodeAbiParameters(
 					parseAbiParameters('uint256 ts, string wf, string risk, uint256 totalSdl, uint256 addrCount'),
-					[timestampUnix, 'flows', 'ok', totalSdlBig, BigInt(allAddresses.length)],
+					[timestampUnix, 'flows', 'info', totalSdlBig, BigInt(allAddresses.length)],
 				),
 			);
 
 			const writeCallData = encodeFunctionData({
 				abi: SentinelRegistry,
 				functionName: 'recordHealth',
-				args: [snapshotHash, 'flows:ok'],
+				args: [snapshotHash, 'flows:info'],
 			});
 
 			sepoliaClient.callContract(runtime, {
 				call: encodeCallMsg({ from: zeroAddress, to: runtime.config.registry.address as Address, data: writeCallData }),
 			}).result();
 
-			runtime.log(`Registry write | flows:ok hash=${snapshotHash}`);
+			runtime.log(`Registry write | flows:info hash=${snapshotHash}`);
 		} catch (e) {
 			runtime.log(`Registry write failed (degraded): ${e instanceof Error ? e.message : String(e)}`);
 		}

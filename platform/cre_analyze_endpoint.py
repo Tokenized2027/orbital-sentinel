@@ -648,10 +648,10 @@ def _strip_nulls(obj):
 
 
 def _bridge_check_auth() -> bool:
-    """Auth check for bridge endpoints (uses CRE_SECRET env only, not CRE_ANALYZE_SECRET)."""
-    secret = os.environ.get("CRE_SECRET", "")
+    """Auth check for bridge endpoints. Uses CRE_SECRET or falls back to CRE_ANALYZE_SECRET."""
+    secret = os.environ.get("CRE_SECRET", "") or _CRE_SECRET
     if not secret:
-        return True  # No CRE_SECRET = accept all (bridge default)
+        return False  # No secret configured = reject all (fail-closed)
     provided = request.headers.get("X-CRE-Secret", "")
     return hmac.compare_digest(provided, secret)
 
@@ -708,19 +708,34 @@ def analyze_bridge():
     try:
         from openai import OpenAI
         client = OpenAI(api_key=api_key)
+        # Sanitize all string inputs before prompt interpolation (Nemesis F1 fix)
+        s_free = _sanitize_str(str(vault_state.get('freeLiquidity', '0')), max_len=50)
+        s_reserved = _sanitize_str(str(vault_state.get('reserved', '0')), max_len=50)
+        s_inflight = _sanitize_str(str(vault_state.get('inFlight', '0')), max_len=50)
+        s_total = _sanitize_str(str(vault_state.get('totalAssets', '0')), max_len=50)
+        # Numeric fields — force to numbers to prevent injection
+        n_util = int(vault_state.get('utilizationBps', 0)) if isinstance(vault_state.get('utilizationBps', 0), (int, float)) else 0
+        n_max_util = int(vault_state.get('maxUtilBps', 6000)) if isinstance(vault_state.get('maxUtilBps', 6000), (int, float)) else 6000
+        n_queue = int(vault_state.get('queueDepth', 0)) if isinstance(vault_state.get('queueDepth', 0), (int, float)) else 0
+        n_reserve = float(vault_state.get('reserveRatio', 0)) if isinstance(vault_state.get('reserveRatio', 0), (int, float)) else 0.0
+        n_share = float(vault_state.get('sharePrice', 1)) if isinstance(vault_state.get('sharePrice', 1), (int, float)) else 1.0
+        n_link = float(vault_state.get('linkUsd', 0)) if isinstance(vault_state.get('linkUsd', 0), (int, float)) else 0.0
+        n_res_cut = int(vault_state.get('reserveCutBps', 1000)) if isinstance(vault_state.get('reserveCutBps', 1000), (int, float)) else 1000
+        n_hot = int(vault_state.get('hotReserveBps', 2000)) if isinstance(vault_state.get('hotReserveBps', 2000), (int, float)) else 2000
+
         prompt = f"""Analyze this ERC-4626 bridge vault state and provide policy recommendations.
 
 Vault State:
-- Utilization: {vault_state.get('utilizationBps', 0)} bps (max allowed: {vault_state.get('maxUtilBps', 6000)} bps)
-- Queue depth: {vault_state.get('queueDepth', 0)} pending redemptions
-- Bad debt reserve ratio: {vault_state.get('reserveRatio', 0):.4f} ({vault_state.get('reserveRatio', 0) * 100:.2f}%)
-- Share price: {vault_state.get('sharePrice', 1):.6f}
-- Free liquidity: {vault_state.get('freeLiquidity', '0')}
-- Reserved: {vault_state.get('reserved', '0')}
-- In-flight: {vault_state.get('inFlight', '0')}
-- Total assets: {vault_state.get('totalAssets', '0')}
-- LINK/USD: ${vault_state.get('linkUsd', 0):.2f}
-- Current policy: maxUtil={vault_state.get('maxUtilBps', 6000)}bps, reserveCut={vault_state.get('reserveCutBps', 1000)}bps, hotReserve={vault_state.get('hotReserveBps', 2000)}bps
+- Utilization: {n_util} bps (max allowed: {n_max_util} bps)
+- Queue depth: {n_queue} pending redemptions
+- Bad debt reserve ratio: {n_reserve:.4f} ({n_reserve * 100:.2f}%)
+- Share price: {n_share:.6f}
+- Free liquidity: {s_free}
+- Reserved: {s_reserved}
+- In-flight: {s_inflight}
+- Total assets: {s_total}
+- LINK/USD: ${n_link:.2f}
+- Current policy: maxUtil={n_max_util}bps, reserveCut={n_res_cut}bps, hotReserve={n_hot}bps
 
 IMPORTANT: Never use null in the response. Use 0 to mean "no change recommended".
 

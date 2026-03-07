@@ -51,6 +51,8 @@ type PriceResult = {
 	decimals: number;
 	latestAnswerRaw: string;
 	scaled: string;
+	stale: boolean;
+	stalenessSeconds: number;
 };
 
 type InternalDataResult = {
@@ -258,6 +260,8 @@ function readFeed(
 		decimals,
 		latestAnswerRaw: latestAnswer.toString(),
 		scaled,
+		stale: staleness > MAX_STALENESS_SECONDS,
+		stalenessSeconds: Number(staleness),
 	};
 }
 
@@ -322,7 +326,8 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 			const sepoliaClient = new cre.capabilities.EVMClient(net.chainSelector.selector);
 
 			const timestampUnix = BigInt(Math.floor(Date.now() / 1000));
-			const risk = depegStatus === 'healthy' ? 'ok' : depegStatus;
+			const hasStaleFeeds = results.some((r) => r.stale);
+			const risk = depegStatus === 'critical' ? 'critical' : hasStaleFeeds ? 'warning' : depegStatus === 'healthy' ? 'ok' : depegStatus;
 			const ratioScaled = BigInt(Math.round((ratio ?? 0) * 1e6));
 			const bpsScaled = BigInt(Math.round((depegBps ?? 0) * 100));
 			const snapshotHash = keccak256(
