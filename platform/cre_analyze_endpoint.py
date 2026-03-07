@@ -26,7 +26,13 @@ import json
 import logging
 import os
 import re
+from pathlib import Path
+
+from dotenv import load_dotenv
 from flask import Flask, Blueprint, jsonify, request
+
+# Load .env from repo root (one level up from platform/)
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

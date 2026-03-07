@@ -17,11 +17,27 @@ LOG_PREFIX="[$(date -u +"%Y-%m-%dT%H:%M:%SZ")]"
 
 log() { echo "${LOG_PREFIX} $1"; }
 
+# ── Telegram alerting on failure ──────────────────────────────────────
+_TG_TOKEN="$(grep ^TELEGRAM_BOT_TOKEN /home/avi/projects/infrastructure/.env 2>/dev/null | cut -d= -f2)"
+_TG_CHAT="6659800746"
+
+notify_failure() {
+  local exit_code=$?
+  if [ "${exit_code}" -ne 0 ] && [ -n "${_TG_TOKEN}" ]; then
+    local msg="⚠️ Sentinel Unified Cycle FAILED (exit ${exit_code}) at $(date -u +"%H:%M UTC"). Check logs: ~/logs/sentinel-unified.log"
+    curl -s -X POST "https://api.telegram.org/bot${_TG_TOKEN}/sendMessage" \
+      -d chat_id="${_TG_CHAT}" -d text="${msg}" >/dev/null 2>&1 || true
+    log "Failure notification sent to Telegram"
+  fi
+}
+trap notify_failure EXIT
+
 # Prevent concurrent cycle executions (F-B5 audit fix)
 LOCK_FILE="/tmp/sentinel-unified-cycle.lock"
 exec 200>"${LOCK_FILE}"
 if ! flock -n 200; then
   log "Another cycle is already running. Exiting."
+  # Exit 0 so the trap doesn't fire a false alarm
   exit 0
 fi
 
