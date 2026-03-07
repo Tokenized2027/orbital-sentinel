@@ -143,7 +143,7 @@ Monitors Curve StableSwap pool composition, virtual price, amplification factor,
 ### Additional Workflows
 
 - **`governance-monitor`** : Polls Snapshot GraphQL for active proposals across governance spaces. Uses `HTTPClient` + `consensusIdenticalAggregation` for deterministic multi-source fetching.
-- **`token-flows`** : Tracks balances across 50+ classified addresses (validators, whales, DEX pools, vesting). Implemented but not yet wired into the unified cycle.
+- **`token-flows`** : Tracks balances across 50+ classified addresses (validators, whales, DEX pools, vesting). Fully implemented and CI-validated, but excluded from the unified cycle because its 50+ `balanceOf` reads exceed the CRE 15-read limit per workflow — requires batching or a dedicated multi-call pattern before DON deployment. Proofs are still written when run standalone.
 
 ---
 

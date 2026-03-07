@@ -109,6 +109,12 @@ jobs:
           bun install
           bun x tsc --noEmit
 
+      - name: Install and typecheck link-ai-arbitrage
+        run: |
+          cd workflows/link-ai-arbitrage/my-workflow
+          bun install
+          bun x tsc --noEmit
+
   # ── Prettier Format Check ──────────────────────────────────────────
   format:
     name: Format check
