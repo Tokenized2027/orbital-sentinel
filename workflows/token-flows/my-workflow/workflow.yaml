@@ -1,0 +1,19 @@
+# ==========================================================================
+# CRE WORKFLOW SETTINGS — SDL Token Flow Tracker
+# ==========================================================================
+staging-settings:
+  user-workflow:
+    workflow-name: "sdl-token-flows-staging"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.staging.json"
+    secrets-path: ""
+
+# ==========================================================================
+production-settings:
+  user-workflow:
+    workflow-name: "sdl-token-flows-production"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.production.json"
+    secrets-path: ""

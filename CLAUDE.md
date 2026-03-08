@@ -1,0 +1,380 @@
+<!-- ECOSYSTEM METADATA
+repo: orbital-sentinel
+language: TypeScript, Solidity, Python
+deploy_target: Sepolia (contracts), BOSGAME (dashboard + scripts), CRE Runtime (workflows)
+production_status: hackathon-demo (LAA workflow live on CRE mainnet)
+ci: GitHub Actions (contracts + dashboard + workflows + format)
+health_check: dashboard at :3016, SentinelRegistry on Sepolia
+-->
+
+# Orbital Sentinel
+
+Autonomous DeFi health monitoring platform built on Chainlink CRE for the Chainlink Convergence Hackathon 2026.
+
+**Deadline: March 8, 2026.**
+
+8 CRE workflows read Ethereum mainnet, run AI analysis (Claude Haiku + GPT-5.3-Codex), and write keccak256 risk proofs to `SentinelRegistry` on Sepolia. A Next.js dashboard displays workflow status and on-chain proof history.
+
+---
+
+## Critical Rules
+
+1. **Never hardcode private keys.** Always from env (`PRIVATE_KEY`). The `.env` is gitignored.
+2. **Never deploy contracts without explicit approval.** SentinelRegistry is already deployed at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` on Sepolia. Redeployment changes all downstream references.
+3. **Mainnet reads only.** All EVM reads target Ethereum mainnet. No write operations to mainnet ever.
+4. **All writes go to Sepolia only.** On-chain proofs, test transactions, everything.
+5. **Run `forge test` before any Solidity changes.** Foundry config at `foundry.toml`, solc 0.8.19.
+6. **All workflows must be idempotent.** Re-running a workflow with the same input must not corrupt state.
+7. **Proof hashes are immutable.** Once a `snapshotHash` is written on-chain, it cannot be altered. The hash encoding (`keccak256(abi.encode(...))`) must stay consistent across TypeScript and Solidity.
+8. **Workflow isolation.** Each workflow is a standalone CRE project with its own `package.json`, `node_modules`, config, and ABIs. Do not share state between workflows at runtime.
+9. **CRE SDK patterns:** Use `consensusIdenticalAggregation` for all HTTPClient calls. Use `encodeCallMsg` for all EVMClient calls. Use `getNetwork` for chain resolution. Use `CronCapability` for scheduling.
+10. **AI analysis costs money.** The Flask endpoint (`platform/cre_analyze_endpoint.py`) uses three providers: Claude Haiku (`ANTHROPIC_API_KEY`) for treasury analysis, GPT-5.3-Codex (`OPENAI_API_KEY`) for arb vault analysis, and GPT-5.2 for SDL CCIP Bridge vault analysis. Every workflow simulation that hits this endpoint costs API credits (~$0.004/call).
+11. **Dashboard uses existing SDL database.** The `sentinel_records` table lives in the `sdl_analytics` PostgreSQL database (port 5432).
+
+## Sprint Management
+
+All sprints are tracked in a shared PostgreSQL database on BOSGAME. Use the CLI or `/sprint` command, never raw SQL INSERTs.
+
+**CLI invocation:**
+```bash
+POSTGRES_PASSWORD=$(grep ^POSTGRES_PASSWORD ~/projects/infrastructure/.env | cut -d= -f2) \
+  node ~/projects/infrastructure/scripts/tools/sprint-manager.js <command>
+```
+
+This project's tag: `#sentinel`
+
+Common commands:
+```bash
+# List this project's sprints
+node ~/projects/infrastructure/scripts/tools/sprint-manager.js list --tag sentinel
+
+# Create a sprint for this project
+node ~/projects/infrastructure/scripts/tools/sprint-manager.js create "Sprint Name" --priority HIGH --tags sentinel,feature
+
+# Update status
+node ~/projects/infrastructure/scripts/tools/sprint-manager.js update SPRINT-NNN --status IN_PROGRESS
+
+# Mark done
+node ~/projects/infrastructure/scripts/tools/sprint-manager.js complete SPRINT-NNN --duration "4 hours"
+```
+
+Dashboard: http://[INTERNAL_IP]:3020 -> Sprints tab (filter by tag `sentinel`)
+
+Rules:
+- Create plan docs at `docs/sprints/sprint-NNN_plan.md` in this repo
+- Update `docs/recent_developments.md` when completing a sprint
+- NEVER mark DONE until the user explicitly says so
+- Templates: `~/.claude/templates/sprint-plan-template.md` and `~/.claude/templates/completion-template.md`
+
+---
+
+## Architecture
+
+```
+orbital-sentinel/
+├── workflows/                    # 8 CRE workflow projects (Bun + CRE SDK)
+│   ├── treasury-risk/            #   Staking pool health + reward runway
+│   ├── governance-monitor/       #   DAO proposal tracking (Snapshot + Discourse)
+│   ├── price-feeds/              #   Chainlink Data Feed reads (LINK/USD, ETH/USD)
+│   ├── morpho-vault-health/      #   Morpho Blue utilization + ERC4626 TVL
+│   ├── token-flows/              #   Whale/holder balance tracking (50+ addresses)
+│   ├── ccip-lane-health/         #   CCIP Router + OnRamp + TokenPool monitoring
+│   ├── curve-pool/               #   Curve StableSwap balance composition
+│   └── link-ai-arbitrage/       #   LINK AI Arbitrage (LAA) — Curve arb opportunity detection
+├── contracts/                    # Solidity (Foundry)
+│   ├── SentinelRegistry.sol      #   On-chain risk proof registry (owner-gated, dedup, validated)
+│   ├── SentinelRegistry.ts       #   TypeScript ABI export
+│   └── test/                     #   Foundry tests (17 unit + 7 fuzz + DeepAudit.t.sol)
+├── dashboard/                    # Next.js 15 standalone app (port 3016)
+│   ├── app/
+│   │   ├── api/sentinel/         #   GET — on-chain proof data
+│   │   ├── api/cre-signals/      #   GET — CRE workflow signal data
+│   │   ├── components/           #   WorkflowGrid, SentinelRegistry, PegMonitor, etc.
+│   │   ├── page.tsx              #   Main dashboard page
+│   │   └── globals.css
+│   └── lib/db/                   #   Drizzle ORM (schema.ts, queries.ts)
+├── platform/
+│   └── cre_analyze_endpoint.py   # Flask AI analysis server (Claude Haiku for treasury, GPT-5.3-Codex for arb + composite, GPT-5.2 for SDL bridge)
+├── scripts/
+│   ├── composite-laa-intelligence.mjs  # Phase 1.5: Cross-workflow composite LAA analysis
+│   ├── record-all-snapshots.mjs  # Cron bridge: CRE snapshots -> on-chain proofs (incl. composite)
+│   ├── record-health.mjs         # One-shot recordHealth call
+│   ├── record-health-cron.mjs    # Cron variant
+│   └── verify-contract.mjs       # Sourcify contract verification
+├── intelligence/                 # Intelligence data directory (gitignored contents)
+├── docs/
+│   ├── CRE-ECOSYSTEM-REFERENCE.md
+│   ├── submission.md
+│   ├── demo-video-script.md
+│   ├── verification.md
+│   └── how-it-works.md
+├── foundry.toml                  # Foundry config (solc 0.8.19)
+├── CHAINLINK.md                  # Every Chainlink touchpoint documented
+└── README.md
+```
+
+### Data Flow
+
+```
+Phase 1: CRE Workflows (unified cycle, 7x/day)
+  -> EVMClient reads from Ethereum mainnet contracts
+  -> HTTPClient POSTs to AI analysis endpoint (Claude Haiku / GPT-5.3-Codex)
+  -> Each workflow writes snapshot JSON to intelligence/data/
+
+Phase 1.5: Composite Intelligence
+  -> composite-laa-intelligence.mjs reads all 6 snapshots
+  -> POSTs cross-workflow context to /api/cre/analyze-composite (GPT-5.3-Codex)
+  -> AI produces ecosystem-aware recommendation (may override isolated signal)
+  -> Writes cre_composite_snapshot.json
+
+Phase 2: On-Chain Proofs
+  -> record-all-snapshots.mjs reads all snapshots (7 workflows + composite)
+  -> Computes keccak256 proof hashes, writes to SentinelRegistry on Sepolia
+  -> Dashboard collector reads HealthRecorded events via viem getLogs
+  -> sentinel_records table in PostgreSQL
+  -> Dashboard API serves to Next.js frontend
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Runtime | Node / Bun | 22 / latest |
+| Workflows | @chainlink/cre-sdk | ^1.0.9 |
+| Smart Contracts | Solidity (Foundry) | 0.8.19 |
+| Dashboard | Next.js (Turbopack) | 15.2 |
+| UI | React | 19 |
+| ORM | drizzle-orm | ^0.39 |
+| Database | PostgreSQL | existing sdl_analytics DB |
+| On-chain lib | viem | 2.34+ |
+| AI Analysis | Flask + anthropic + openai (Python) | Claude Haiku (treasury) / GPT-5.3-Codex (arb) |
+| Language | TypeScript | 5.7+ |
+| Schema validation | zod | 3.25 |
+| Formatter | Prettier | semi, singleQuote, trailingComma: all |
+
+---
+
+## Key File Paths
+
+| What | Path |
+|------|------|
+| Repo root | `$HOME/orbital-sentinel` |
+| Workflow entry point pattern | `workflows/<name>/my-workflow/main.ts` |
+| Workflow config pattern | `workflows/<name>/my-workflow/config.staging.json` |
+| Workflow CRE settings | `workflows/<name>/project.yaml` |
+| Workflow simulation script | `workflows/<name>/run_snapshot.sh` |
+| ABI files per workflow | `workflows/<name>/contracts/abi/*.ts` |
+| Contract source | `contracts/SentinelRegistry.sol` |
+| Security audit | `AUDIT-REPORT.md` |
+| Contract tests | `contracts/test/SentinelRegistry.t.sol`, `contracts/test/SentinelRegistry.Fuzz.t.sol` |
+| Dashboard app | `dashboard/app/page.tsx` |
+| Dashboard DB schema | `dashboard/lib/db/schema.ts` |
+| Dashboard DB queries | `dashboard/lib/db/queries.ts` |
+| Dashboard API: sentinel | `dashboard/app/api/sentinel/route.ts` |
+| Dashboard API: CRE signals | `dashboard/app/api/cre-signals/route.ts` |
+| AI endpoint | `platform/cre_analyze_endpoint.py` |
+| Composite intelligence | `scripts/composite-laa-intelligence.mjs` |
+| Unified cycle script | `scripts/sentinel-unified-cycle.sh` |
+| Cron bridge script | `scripts/record-all-snapshots.mjs` |
+| CRE ecosystem docs | `docs/CRE-ECOSYSTEM-REFERENCE.md` |
+| Hackathon submission | `docs/submission.md` |
+
+---
+
+## Environment Variables
+
+### Root `.env` (scripts, contract deployment)
+
+| Variable | Purpose | Required |
+|----------|---------|----------|
+| `PRIVATE_KEY` | Deployer wallet key (Sepolia writes) | Yes (scripts) |
+| `SEPOLIA_RPC_URL` | Sepolia RPC endpoint | Yes |
+| `ETHERSCAN_API_KEY` | Contract verification | Optional |
+| `CHAINLINK_CRE_URL` | CRE runtime URL | For CRE deploy |
+| `CHAINLINK_CRE_API_KEY` | CRE auth | For CRE deploy |
+| `CHAINLINK_CRE_ORG_CODE` | CRE org code | For CRE deploy |
+| `NEXT_PUBLIC_CONTRACT_ADDRESS` | SentinelRegistry address | Dashboard |
+| `NEXT_PUBLIC_RPC_URL` | Sepolia RPC for frontend | Dashboard |
+
+### Dashboard `.env.local`
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string (sdl_analytics DB) |
+| `CRE_DATA_DIR` | Path to CRE intelligence data directory |
+
+### Workflow configs
+
+Each workflow has `config.staging.json` and `config.example.json` inside `my-workflow/`. RPCs are set in `project.yaml` per workflow.
+
+### AI endpoint
+
+| Variable | Purpose |
+|----------|---------|
+| `ANTHROPIC_API_KEY` | Claude Haiku API key for treasury risk assessment |
+| `OPENAI_API_KEY` | OpenAI GPT-5.3-Codex key for arb vault analysis |
+
+---
+
+## Development Workflow
+
+### Run a workflow simulation
+
+```bash
+cd $HOME/orbital-sentinel/workflows/treasury-risk
+./run_snapshot.sh staging-settings
+```
+
+This calls `cre simulate` using the CRE CLI at `~/.local/bin/cre`. Each workflow is self-contained.
+
+### Start the AI analysis endpoint
+
+```bash
+cd $HOME/orbital-sentinel/platform
+ANTHROPIC_API_KEY=... python cre_analyze_endpoint.py
+# Listens on :5000
+```
+
+Costs API credits on every call.
+
+### Start the dashboard
+
+```bash
+cd $HOME/orbital-sentinel/dashboard
+npm run dev
+# Next.js 15 on port 3016 (Turbopack)
+```
+
+### Write on-chain proofs manually
+
+```bash
+cd $HOME/orbital-sentinel/scripts
+node record-health.mjs
+```
+
+Or the cron bridge that reads all snapshots (7 workflows + composite):
+
+```bash
+node record-all-snapshots.mjs
+```
+
+### Run composite intelligence (cross-workflow LAA analysis)
+
+```bash
+cd $HOME/orbital-sentinel/scripts
+AI_ENDPOINT=http://localhost:5050/api/cre/analyze-composite node composite-laa-intelligence.mjs
+```
+
+Requires the AI endpoint to be running. Costs ~$0.004-0.01 per call (GPT-5.3-Codex).
+
+### Foundry (Solidity)
+
+```bash
+cd $HOME/orbital-sentinel
+forge build
+forge test
+```
+
+### Install workflow dependencies
+
+Each workflow uses Bun:
+
+```bash
+cd $HOME/orbital-sentinel/workflows/<name>/my-workflow
+bun install
+```
+
+---
+
+## Common Mistakes
+
+| Mistake | Fix |
+|---------|-----|
+| Running `npm install` in a workflow dir | Use `bun install` -- workflows use Bun, not npm |
+| Changing proof hash encoding in TS but not updating docs | Hash encoding must match `keccak256(abi.encode(...))` -- verify against CHAINLINK.md |
+| Editing config.staging.json and committing it | Staging configs are gitignored. Use config.example.json as template |
+| Running `forge create` without explicit approval | SentinelRegistry is already deployed. Redeployment breaks all references |
+| Adding a workflow and forgetting CHAINLINK.md | Every Chainlink touchpoint must be documented in CHAINLINK.md for hackathon |
+| Sharing state between workflows | Each workflow is isolated. No shared runtime state |
+| Modifying `record-all-snapshots.mjs` without understanding dedup | On-chain `AlreadyRecorded` revert prevents duplicates; script handles gracefully |
+| Running dashboard without DATABASE_URL | Needs the sdl_analytics PostgreSQL database connection |
+| Calling AI endpoint in a loop during testing | Each call costs Anthropic API credits |
+
+---
+
+## Current State
+
+- **LAA workflow:** deployed and ACTIVE on CRE mainnet DON (workflow ID: `005f8a76...fe96`, 7x/day schedule). Other 7 workflows: implemented and simulating locally via `cre simulate`
+- **Composite intelligence:** cross-workflow LAA analysis operational. Reads 5 workflow snapshots + LAA, produces ecosystem-aware arb recommendation via GPT-5.3-Codex. First composite proof on Sepolia: block 10,371,778.
+- **SentinelRegistry:** deployed on Sepolia at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit). Access control, dedup, validation active on-chain. 73+ records.
+- **Dashboard:** running on port 3016, reads on-chain proofs + CRE signals
+- **Cron bridge:** `record-all-snapshots.mjs` writes proofs for all 8 workflows + composite
+- **AI endpoint:** Flask server with Claude Haiku (treasury) + GPT-5.3-Codex (arb + composite)
+- **Hackathon tracks:** CRE & AI, DeFi & Tokenization, Autonomous Agents (Moltbook)
+- **Demo video:** https://www.youtube.com/watch?v=CR2ckpE-SC8
+- **Submission doc:** `docs/submission.md`
+
+---
+
+## Quality Gates
+
+Before any commit:
+
+1. `forge build` -- Solidity compiles
+2. `forge test` -- all 31 contract tests pass (17 unit + 7 fuzz + 7 deep audit)
+3. `forge test --fuzz-runs 10000` -- fuzz tests pass at high iterations
+4. Workflow simulation succeeds (`./run_snapshot.sh staging-settings`) for any modified workflow
+5. Dashboard builds: `cd dashboard && npx next build`
+6. No secrets in committed files (check `.gitignore` covers `.env`, `config.staging.json`, `secrets.yaml`)
+7. `CHAINLINK.md` updated if any Chainlink touchpoint changed
+8. `README.md` updated if project structure or workflow list changed
+
+---
+
+## Contract Reference
+
+| Field | Value |
+|-------|-------|
+| Contract | `OrbitalSentinelRegistry` |
+| Network | Ethereum Sepolia |
+| Address | `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit) |
+| Solidity | 0.8.19 |
+| Key function | `recordHealth(bytes32 snapshotHash, string riskLevel)` — **owner-only** |
+| Access control | `owner` + `onlyOwner` modifier + two-step Ownable2Step (`transferOwnership` sets `pendingOwner`; new owner must call `acceptOwnership()` to complete) |
+| Duplicate prevention | `mapping(bytes32 => bool) recorded` — reverts `AlreadyRecorded` on duplicates |
+| Input validation | Reverts `EmptyRiskLevel` on empty `riskLevel` string, `RiskLevelTooLong` on > 256 bytes |
+| Events | `HealthRecorded(bytes32 indexed, string, uint256)`, `OwnershipTransferStarted(address indexed, address indexed)`, `OwnershipTransferred(address indexed, address indexed)` |
+| Errors | `NotOwner`, `NotPendingOwner`, `AlreadyRecorded`, `EmptyRiskLevel`, `RiskLevelTooLong` |
+| Risk level format | Prefixed: `treasury:ok`, `feeds:warning`, `morpho:critical`, etc. |
+| Audit | `AUDIT-REPORT.md` — 4 findings fixed, 31 tests, 80k fuzz iterations. Enhanced methodology (2026-03-01): threat model, economic assessment, post-deployment recs |
+| Etherscan | `https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` |
+
+---
+
+## CRE Deployment Status
+
+**Only LAA is deployed on CRE mainnet.** The other 7 workflows run locally via `cre simulate`.
+
+| Workflow | Status | Schedule |
+|----------|--------|----------|
+| link-ai-arbitrage (LAA) | **ACTIVE on CRE DON** | 7x/day (00, 03, 07, 10, 14, 17, 21 UTC) |
+| treasury-risk | Local simulate | 7x/day (unified cycle) |
+| price-feeds | Local simulate | 7x/day (unified cycle) |
+| morpho-vault-health | Local simulate | 7x/day (unified cycle) |
+| curve-pool | Local simulate | 7x/day (unified cycle) |
+| ccip-lane-health | Local simulate | 7x/day (unified cycle) |
+| governance-monitor | Local simulate | 7x/day (unified cycle) |
+| token-flows | Local simulate | Not in unified cycle |
+
+**CRE LAA Details:**
+- Workflow ID: `005f8a760f4b41e09d4646bfeb7ae17d00140408fc9e7d89ae10d570ff62fe96`
+- Workflow Registry: `0x4Ac54353FA4Fa961AfcC5ec4B118596d3305E7e5` (Ethereum mainnet)
+- Deploy TX: `0x3ab827b80223329dceb3875c0f7b04606f14c1e44fd05be9ea5b48bbac86aa71`
+- Owner: `0xB250152756E2d6E3bD237a6875aE5E26e3D3877b`
+- AI Endpoint: `https://sentinel-ai.schuna.co.il/api/cre/analyze-arb` (auth: `X-CRE-Secret` header)
+- DON Family: `zone-a`
+- Estimated AI cost: ~$0.004/call (GPT-5.3-Codex), ~$0.14 total through March 8
+
+Composite intelligence (Phase 1.5) and on-chain proof writing (Phase 2) still run via the local `sentinel-unified-cycle.sh` cron 7x/day.

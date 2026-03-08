@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hackathon Submission Fields: Sentinel by Orbital</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    line-height: 1.7;
+    padding: 2rem;
+  }
+  .container { max-width: 860px; margin: 0 auto; }
+  h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+    color: #58a6ff;
+  }
+  .subtitle {
+    color: #8b949e;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+  }
+  .field {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 1.4rem 1.6rem;
+    margin-bottom: 1.4rem;
+  }
+  .field-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #58a6ff;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .field-label .char-count {
+    font-size: 0.7rem;
+    color: #8b949e;
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 400;
+  }
+  .field-value {
+    color: #e6edf3;
+    font-size: 1rem;
+    white-space: pre-wrap;
+  }
+  .field-value p { margin-bottom: 0.8rem; }
+  .field-value p:last-child { margin-bottom: 0; }
+  .copy-hint {
+    font-size: 0.7rem;
+    color: #484f58;
+    margin-top: 0.6rem;
+    font-style: italic;
+  }
+  a { color: #58a6ff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .divider {
+    border: none;
+    border-top: 1px solid #21262d;
+    margin: 2rem 0;
+  }
+  .prefilled {
+    border-left: 3px solid #3fb950;
+  }
+  .prefilled .field-label { color: #3fb950; }
+  .note {
+    background: #1c2128;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    color: #8b949e;
+    font-size: 0.85rem;
+    margin-bottom: 1.4rem;
+  }
+  @media print {
+    body { background: #fff; color: #1a1a1a; padding: 1rem; }
+    .container { max-width: 100%; }
+    .field { background: #f6f8fa; border-color: #d0d7de; }
+    .field-label { color: #0550ae; }
+    .field-value { color: #1a1a1a; }
+    a { color: #0550ae; }
+    h1 { color: #0550ae; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Hackathon Submission Fields</h1>
+<p class="subtitle">Sentinel by Orbital. Chainlink Convergence Hackathon 2026. Copy each field into the form.</p>
+
+<hr class="divider">
+
+<!-- PROJECT NAME -->
+<div class="field prefilled">
+  <div class="field-label">Project Name</div>
+  <div class="field-value">Sentinel by Orbital</div>
+</div>
+
+<!-- 1-LINE DESCRIPTION -->
+<div class="field">
+  <div class="field-label">1-Line Description <span class="char-count">(78 chars)</span></div>
+  <div class="field-value">Autonomous AI agent monitoring DeFi health via 8 CRE workflows with on-chain proofs</div>
+</div>
+
+<!-- FULL PROJECT DESCRIPTION -->
+<div class="field">
+  <div class="field-label">Full Project Description</div>
+  <div class="field-value"><p>Sentinel by Orbital is an autonomous AI agent platform that monitors DeFi protocol health using Chainlink CRE workflows. It reads live Ethereum mainnet contract data, feeds it through AI risk analysis, and writes verifiable proof hashes on-chain. No human in the loop.</p>
+
+<p>We built 8 production CRE workflows for stake.link, the largest Chainlink liquid staking protocol:</p>
+
+<p>1. Treasury Risk: reads staking pool contracts (getTotalPrincipal, getMaxPoolSize, getRewardBuckets) via EVMClient, computes risk scores across 4 dimensions, calls Claude Haiku for structured assessment.</p>
+
+<p>2. Governance Monitor: polls Snapshot GraphQL and Discourse forum via HTTPClient with consensusIdenticalAggregation, flags urgent votes with less than 24 hours remaining.</p>
+
+<p>3. Price Feeds: reads Chainlink Data Feed contracts (LINK/USD, ETH/USD) via latestAnswer(), computes stLINK/LINK depeg in basis points.</p>
+
+<p>4. Morpho Vault Health: reads Morpho Blue market utilization rates and ERC4626 vault TVL via EVMClient, flags high utilization (liquidity crunch risk).</p>
+
+<p>5. Token Flows: tracks SDL and stLINK balances across 50+ classified addresses (NOPs, whales, DEX pools, vesting) via EVMClient, detects large movements indicating protocol stress.</p>
+
+<p>6. CCIP Lane Health: monitors Chainlink CCIP lane availability by reading Router, OnRamp paused state, and LockReleaseTokenPool rate limiter buckets via EVMClient.</p>
+
+<p>7. Curve Pool Monitor: reads the Curve LINK/stLINK StableSwap pool (balances, amplification factor, virtual price) via EVMClient, computes pool imbalance using LINK/USD Chainlink price feed.</p>
+
+<p>8. LINK AI Arbitrage (LAA): monitors stLINK/LINK arbitrage opportunities via Curve pool. Reads pool balances, premium quotes at multiple swap sizes, Priority Pool queue status via EVMClient. Calls GPT for AI analysis of optimal swap timing. This workflow is live on the CRE mainnet DON, running 7x/day autonomously.</p>
+
+<p>Every workflow run produces an immutable on-chain audit trail: a HealthRecorded event on SentinelRegistry (Sepolia), containing the keccak256 hash of workflow-specific metrics. Risk levels use a prefixed format (treasury:ok, feeds:warning, morpho:critical) so each proof is tagged with its source workflow.</p>
+
+<p>A composite intelligence layer reads data from 5 workflows, combines it with the LAA arb signal, and feeds everything to AI as cross-workflow context. The composite assessment gets its own on-chain proof, creating verifiable records of ecosystem-aware AI reasoning.</p>
+
+<p>On-chain proofs are written autonomously across all 8 workflows + composite, 7 cycles per day. The contract deduplicates identical hashes, so only changed assessments produce new records. The dashboard collects HealthRecorded events via viem getLogs, stores them in PostgreSQL, and surfaces them with per-workflow statistics and Sepolia Etherscan links.</p></div>
+</div>
+
+<!-- HOW IS IT BUILT -->
+<div class="field">
+  <div class="field-label">How Is It Built?</div>
+  <div class="field-value"><p>All 8 workflows are built with @chainlink/cre-sdk (v1.0.9) using Runner, handler, CronCapability, EVMClient, HTTPClient, consensusIdenticalAggregation, getNetwork, and encodeCallMsg.</p>
+
+<p>EVMClient.callContract() reads staking pools, reward vaults, Morpho Blue markets, Chainlink Data Feeds, CCIP infrastructure, Curve StableSwap pools, and ERC20 token balances directly from Ethereum mainnet contracts. Each workflow makes 10+ on-chain reads per run.</p>
+
+<p>HTTPClient with consensusIdenticalAggregation handles off-chain data: AI analysis endpoints (Claude Haiku for treasury risk, GPT for arb analysis), Snapshot GraphQL for governance, and Discourse forum for proposal discussion. The consensus mechanism ensures oracle nodes agree on the response before accepting it.</p>
+
+<p>SentinelRegistry.sol is a minimal Solidity contract (0.8.19) deployed on Sepolia for on-chain health proofs. Owner-gated writes, duplicate prevention via mapping, input validation. Audited with 31 tests and 80,000 fuzz iterations.</p>
+
+<p>Proof hashes are computed in TypeScript using viem's keccak256 + encodeAbiParameters, identical encoding to Solidity's abi.encode(). Each workflow encodes domain-specific metrics into the hash.</p>
+
+<p>The dashboard is Next.js 15 with Drizzle ORM reading from PostgreSQL. A collector reads HealthRecorded events from Sepolia via viem getLogs and surfaces them with CRE capability tags and Etherscan links.</p>
+
+<p>The AI analysis server is a Flask endpoint (Python) running Claude Haiku for treasury assessment and GPT for arb and composite analysis, served through a stable Cloudflare tunnel with X-CRE-Secret auth header.</p>
+
+<p>The LAA workflow is compiled to WASM via Javy, deployed to the CRE mainnet DON (Workflow Registry on Ethereum mainnet), and runs autonomously 7x/day.</p></div>
+</div>
+
+<!-- CHALLENGES -->
+<div class="field">
+  <div class="field-label">What Challenges Did You Run Into?</div>
+  <div class="field-value"><p>Chaining EVM reads from mainnet contracts to an HTTP AI call to an EVM write on Sepolia within a single CRE workflow run. The data flow crosses chains and capabilities, and each step depends on the previous one's output.</p>
+
+<p>Making AI analysis work with consensusIdenticalAggregation. AI responses are non-deterministic by nature, so we had to engineer prompts and response formats carefully to ensure oracle nodes reach consensus on the AI output. Temperature settings, structured JSON responses, and deterministic prompt templates were critical.</p>
+
+<p>Managing wallet gas on Sepolia for continuous autonomous writes across 8 workflows and composite intelligence. We needed proper nonce management, gas estimation, and staleness dedup (the contract reverts on duplicate hashes via an on-chain mapping) to keep the system running without manual intervention.</p>
+
+<p>Building the cross-workflow composite intelligence layer. Individual CRE workflows are isolated by design, so creating ecosystem-aware AI reasoning required a separate phase that reads all workflow snapshots and feeds combined context to the AI. The challenge was encoding multi-source metrics into a single verifiable on-chain proof.</p>
+
+<p>Deploying to the CRE mainnet DON required compiling TypeScript workflows to WASM, setting up authenticated AI endpoints accessible from DON nodes (via Cloudflare tunnel), and managing CRE secrets for runtime configuration. The deploy pipeline (compile, upload, register on Workflow Registry) had to be debugged against the live DON environment.</p></div>
+</div>
+
+<!-- LINKS -->
+<div class="field prefilled">
+  <div class="field-label">Link to Project Repo</div>
+  <div class="field-value"><a href="https://github.com/Tokenized2027/orbital-sentinel">https://github.com/Tokenized2027/orbital-sentinel</a></div>
+</div>
+
+<div class="field prefilled">
+  <div class="field-label">Chainlink Usage</div>
+  <div class="field-value"><a href="https://github.com/Tokenized2027/orbital-sentinel/blob/main/CHAINLINK.md">https://github.com/Tokenized2027/orbital-sentinel/blob/main/CHAINLINK.md</a></div>
+</div>
+
+<div class="field">
+  <div class="field-label">Project Demo</div>
+  <div class="field-value">(YouTube link, to be added after recording)</div>
+</div>
+
+<!-- PRE-FILLED -->
+<hr class="divider">
+
+<div class="field prefilled">
+  <div class="field-label">Prize Tracks</div>
+  <div class="field-value">DeFi and Tokenization, CRE and AI</div>
+</div>
+
+<div class="field prefilled">
+  <div class="field-label">Submitter</div>
+  <div class="field-value">Tokenized2027 | noreply@users.noreply.github.com | Individual</div>
+</div>
+
+<div class="note">
+  Contract on Sepolia: <a href="https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40">0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40</a>
+  <br>
+  CRE LAA Workflow ID: 005f8a760f4b41e09d4646bfeb7ae17d00140408fc9e7d89ae10d570ff62fe96
+  <br>
+  Workflow Registry TX: <a href="https://etherscan.io/tx/0x3ab827b80223329dceb3875c0f7b04606f14c1e44fd05be9ea5b48bbac86aa71">0x3ab827...86aa71</a>
+</div>
+
+</div>
+</body>
+</html>
