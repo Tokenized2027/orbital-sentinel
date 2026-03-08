@@ -1,0 +1,11 @@
+{
+  "schedule": "0 */30 * * * *",
+  "chainName": "ethereum-mainnet",
+  "tokenAddress": "YOUR_PROTOCOL_TOKEN_ADDRESS",
+  "stakedTokenAddress": "YOUR_STAKED_TOKEN_ADDRESS",
+  "rpcUrl": "https://YOUR_ETHEREUM_RPC_URL",
+  "registry": {
+    "address": "0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40",
+    "chainName": "ethereum-testnet-sepolia"
+  }
+}

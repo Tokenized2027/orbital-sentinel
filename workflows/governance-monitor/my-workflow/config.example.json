@@ -1,0 +1,16 @@
+{
+  "schedule": "0 */30 * * * *",
+  "snapshotGraphqlUrl": "https://hub.snapshot.org/graphql",
+  "snapshotSpaces": ["your-dao.eth", "your-council.eth"],
+  "forumBaseUrl": "https://your-protocol-forum.example.com",
+  "forumTopicCount": 10,
+  "registry": {
+    "address": "0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40",
+    "chainName": "ethereum-testnet-sepolia"
+  },
+  "webhook": {
+    "enabled": false,
+    "url": "",
+    "bearerToken": ""
+  }
+}
