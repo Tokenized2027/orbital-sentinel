@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "name": "sentinel-orbital-guardrails",
+  "description": "Pre-push quality gates for Sentinel-Orbital CRE hackathon project — contracts, 8 CRE workflows, dashboard, formatting, and secrets scan",
+  "steps": [
+    {
+      "name": "Solidity compilation",
+      "run": "forge build"
+    },
+    {
+      "name": "Contract tests (unit + fuzz + audit)",
+      "run": "forge test -vv"
+    },
+    {
+      "name": "CRE workflow typecheck — treasury-risk",
+      "run": "cd workflows/treasury-risk/my-workflow && bun install --frozen-lockfile && tsc --noEmit"
+    },
+    {
+      "name": "CRE workflow typecheck — governance-monitor",
+      "run": "cd workflows/governance-monitor/my-workflow && bun install --frozen-lockfile && tsc --noEmit"
+    },
+    {
+      "name": "CRE workflow typecheck — price-feeds",
+      "run": "cd workflows/price-feeds/my-workflow && bun install --frozen-lockfile && tsc --noEmit"
+    },
+    {
+      "name": "CRE workflow typecheck — morpho-vault-health",
+      "run": "cd workflows/morpho-vault-health/my-workflow && bun install --frozen-lockfile && tsc --noEmit"
+    },
+    {
+      "name": "CRE workflow typecheck — token-flows",
+      "run": "cd workflows/token-flows/my-workflow && bun install --frozen-lockfile && tsc --noEmit"
+    },
+    {
+      "name": "CRE workflow typecheck — ccip-lane-health",
+      "run": "cd workflows/ccip-lane-health/my-workflow && bun install --frozen-lockfile && tsc --noEmit"
+    },
+    {
+      "name": "CRE workflow typecheck — curve-pool",
+      "run": "cd workflows/curve-pool/my-workflow && bun install --frozen-lockfile && tsc --noEmit"
+    },
+    {
+      "name": "CRE workflow typecheck — link-ai-arbitrage",
+      "run": "cd workflows/link-ai-arbitrage/my-workflow && bun install --frozen-lockfile && tsc --noEmit"
+    },
+    {
+      "name": "Dashboard typecheck",
+      "run": "cd dashboard && npm ci && tsc --noEmit"
+    },
+    {
+      "name": "Dashboard build",
+      "run": "cd dashboard && npx next build"
+    },
+    {
+      "name": "Prettier format check",
+      "run": "npx prettier --check 'dashboard/**/*.{ts,tsx}' 'scripts/**/*.{ts,mjs}'"
+    },
+    {
+      "name": "Secrets scan — no .env or private keys in tracked files",
+      "run": "! git diff --cached --name-only | grep -E '(\\.env$|secrets\\.yaml|config\\.staging\\.json)' && ! git grep -l 'PRIVATE_KEY\\|ANTHROPIC_API_KEY\\|OPENAI_API_KEY' -- ':!.env.example' ':!.gitignore' ':!CLAUDE.md' ':!.cre/guardrails.json'"
+    }
+  ]
+}
