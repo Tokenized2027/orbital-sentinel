@@ -4,6 +4,8 @@
 
 Orbital Sentinel's core product is the **LINK AI Arbitrage (LAA)** workflow: an autonomous system that detects stLINK/LINK arbitrage opportunities on Curve and makes execution decisions informed by real-time data from 5 additional CRE workflows monitoring the entire stake.link ecosystem. The LAA workflow is **live on CRE mainnet**, running 7x/day on the DON. All 8 workflows are implemented and simulating successfully, with the remaining 7 ready for CRE deployment. Every decision is backed by a verifiable `keccak256` proof hash written to Ethereum Sepolia.
 
+The monitored execution layer behind LAA, the **stLINK Premium Arbitrage Vault**, is maintained in the companion `Tokenized2027/orbital` repo. Its security audit and production-readiness audit are mirrored in this repo for reviewer convenience.
+
 What makes this different from a simple arb bot: **the LAA doesn't decide in isolation.** A composite intelligence layer reads treasury health, oracle prices, lending market utilization, CCIP bridge status, and Curve pool structure, then feeds that full ecosystem context to an AI analyst (GPT-5.3-Codex) that can override the raw signal. When the math says "execute" but the ecosystem says "the Priority Pool queue is 365K LINK deep and the basis is unstable," the composite layer says "wait."
 
 **[Read the full Whitepaper](https://sentinel.schuna.co.il/whitepaper.html)** | [Live Dashboard](https://sentinel.schuna.co.il) | [SentinelRegistry on Etherscan](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40)
@@ -341,6 +343,13 @@ See [CHAINLINK.md](./CHAINLINK.md) for detailed per-file documentation of every 
 |------|-------------|
 | [`contracts/SentinelRegistry.sol`](./contracts/SentinelRegistry.sol) | `OrbitalSentinelRegistry` on Sepolia. [Audit](./AUDIT-REPORT.md). Address: [`0xE5B1...1d40`](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40) |
 
+### Companion Execution Layer
+
+| File | Description |
+|------|-------------|
+| [`docs/arb-vault-security-audit.md`](./docs/arb-vault-security-audit.md) | Security audit summary for the stLINK Premium Arbitrage Vault execution layer monitored by LAA |
+| [`docs/arb-vault-production-readiness.md`](./docs/arb-vault-production-readiness.md) | Production-readiness audit covering keeper hardening, E2E, invariants, fork tests, and CI gates |
+
 ### Bridge Scripts
 
 | File | Description |
@@ -371,6 +380,8 @@ See [CHAINLINK.md](./CHAINLINK.md) for detailed per-file documentation of every 
 |------|-------------|
 | [`CHAINLINK.md`](./CHAINLINK.md) | Complete Chainlink touchpoint map |
 | [`AUDIT-REPORT.md`](./AUDIT-REPORT.md) | SentinelRegistry security audit |
+| [`docs/arb-vault-security-audit.md`](./docs/arb-vault-security-audit.md) | stLINK arb-vault security audit summary |
+| [`docs/arb-vault-production-readiness.md`](./docs/arb-vault-production-readiness.md) | stLINK arb-vault production-readiness audit |
 | [`docs/CRE-ECOSYSTEM-REFERENCE.md`](./docs/CRE-ECOSYSTEM-REFERENCE.md) | CRE SDK patterns and capabilities |
 | [`docs/submission.md`](./docs/submission.md) | Hackathon submission |
 

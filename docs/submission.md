@@ -12,12 +12,15 @@
 | Chainlink Usage | https://github.com/Tokenized2027/orbital-sentinel/blob/main/CHAINLINK.md |
 | Contract (Sepolia) | https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40 |
 | Demo Video | https://www.youtube.com/watch?v=CR2ckpE-SC8 |
+| Companion Vault Audits | https://github.com/Tokenized2027/orbital-sentinel/blob/main/docs/arb-vault-security-audit.md and https://github.com/Tokenized2027/orbital-sentinel/blob/main/docs/arb-vault-production-readiness.md |
 
 ---
 
 ## Project Description (copy-paste ready)
 
 Orbital Sentinel is an autonomous AI agent platform that monitors DeFi protocol health using Chainlink CRE workflows. The flagship LAA workflow is **live on the CRE mainnet DON**, running 7x/day autonomously. All 8 workflows read live Ethereum mainnet data, feed it through AI analysis (Claude Haiku + GPT-5.3-Codex), and write verifiable risk proofs on-chain to a Sepolia registry contract. On-chain proofs are written autonomously, with contract-level deduplication ensuring only changed assessments produce new records.
+
+The execution layer that LAA can monitor, the **stLINK Premium Arbitrage Vault**, is audited separately and those companion audit documents are bundled in this repo so reviewers can evaluate both the monitoring layer and the monitored execution layer together.
 
 We built 8 production CRE workflows for stake.link (the largest Chainlink liquid staking protocol):
 
