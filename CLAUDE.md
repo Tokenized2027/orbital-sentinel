@@ -9,6 +9,10 @@ health_check: dashboard at :3016, SentinelRegistry on Sepolia
 
 # Orbital Sentinel
 
+## Orchestrator Role (mandatory)
+
+You are the orchestrator. Never do work yourself. Spawn subagents for every task. Your job is to think, plan, and coordinate. Subagents execute.
+
 Autonomous DeFi health monitoring platform built on Chainlink CRE for the Chainlink Convergence Hackathon 2026.
 
 **Deadline: March 8, 2026.**
@@ -20,7 +24,7 @@ Autonomous DeFi health monitoring platform built on Chainlink CRE for the Chainl
 ## Critical Rules
 
 1. **Never hardcode private keys.** Always from env (`PRIVATE_KEY`). The `.env` is gitignored.
-2. **Never deploy contracts without explicit approval.** SentinelRegistry is already deployed at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` on Sepolia. Redeployment changes all downstream references.
+2. **Never deploy contracts without explicit approval.** SentinelRegistry is already deployed at `0x5D15952f672fCAaf2492591668A869E26B815aE3` on Sepolia. Redeployment changes all downstream references.
 3. **Mainnet reads only.** All EVM reads target Ethereum mainnet. No write operations to mainnet ever.
 4. **All writes go to Sepolia only.** On-chain proofs, test transactions, everything.
 5. **Run `forge test` before any Solidity changes.** Foundry config at `foundry.toml`, solc 0.8.19.
@@ -308,7 +312,7 @@ bun install
 
 - **LAA workflow:** deployed and ACTIVE on CRE mainnet DON (workflow ID: `005f8a76...fe96`, 7x/day schedule). Other 7 workflows: implemented and simulating locally via `cre simulate`
 - **Composite intelligence:** cross-workflow LAA analysis operational. Reads 5 workflow snapshots + LAA, produces ecosystem-aware arb recommendation via GPT-5.3-Codex. First composite proof on Sepolia: block 10,371,778.
-- **SentinelRegistry:** deployed on Sepolia at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit). Access control, dedup, validation active on-chain. 73+ records.
+- **SentinelRegistry:** deployed on Sepolia at `0x5D15952f672fCAaf2492591668A869E26B815aE3` (v2, post-audit). Access control, dedup, validation active on-chain. 73+ records.
 - **Dashboard:** running on port 3016, reads on-chain proofs + CRE signals
 - **Cron bridge:** `record-all-snapshots.mjs` writes proofs for all 8 workflows + composite
 - **AI endpoint:** Flask server with Claude Haiku (treasury) + GPT-5.3-Codex (arb + composite)
@@ -339,7 +343,7 @@ Before any commit:
 |-------|-------|
 | Contract | `OrbitalSentinelRegistry` |
 | Network | Ethereum Sepolia |
-| Address | `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (v2, post-audit) |
+| Address | `0x5D15952f672fCAaf2492591668A869E26B815aE3` (v2, post-audit) |
 | Solidity | 0.8.19 |
 | Key function | `recordHealth(bytes32 snapshotHash, string riskLevel)` — **owner-only** |
 | Access control | `owner` + `onlyOwner` modifier + two-step Ownable2Step (`transferOwnership` sets `pendingOwner`; new owner must call `acceptOwnership()` to complete) |
@@ -349,7 +353,7 @@ Before any commit:
 | Errors | `NotOwner`, `NotPendingOwner`, `AlreadyRecorded`, `EmptyRiskLevel`, `RiskLevelTooLong` |
 | Risk level format | Prefixed: `treasury:ok`, `feeds:warning`, `morpho:critical`, etc. |
 | Audit | `AUDIT-REPORT.md` — 4 findings fixed, 31 tests, 80k fuzz iterations. Enhanced methodology (2026-03-01): threat model, economic assessment, post-deployment recs |
-| Etherscan | `https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` |
+| Etherscan | `https://sepolia.etherscan.io/address/0x5D15952f672fCAaf2492591668A869E26B815aE3` |
 
 ---
 

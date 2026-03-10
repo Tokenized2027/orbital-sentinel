@@ -21,7 +21,7 @@ import { sepolia } from 'viem/chains';
 config({ path: new URL('../.env', import.meta.url).pathname });
 
 // --- Config ---
-const REGISTRY_ADDRESS = '0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40';
+const REGISTRY_ADDRESS = '0x5D15952f672fCAaf2492591668A869E26B815aE3';
 const DEPLOYER_KEY = process.env.PRIVATE_KEY;
 if (!DEPLOYER_KEY) { console.error('PRIVATE_KEY not set in .env'); process.exit(1); }
 const RPC_URL = process.env.SEPOLIA_RPC_URL || 'https://sepolia.gateway.tenderly.co';

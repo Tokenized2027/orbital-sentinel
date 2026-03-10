@@ -113,7 +113,7 @@ Sentinel gives them eyes.
 
 **Tabs to have open before recording:**
 1. Sentinel Dashboard (Cloudflare tunnel or localhost:3016)
-2. Sepolia Etherscan: `https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`
+2. Sepolia Etherscan: `https://sepolia.etherscan.io/address/0x5D15952f672fCAaf2492591668A869E26B815aE3`
 
 **Pre-run checklist:**
 - Dashboard running (PM2 or `npm run dev` in dashboard/)

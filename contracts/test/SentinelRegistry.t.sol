@@ -85,11 +85,25 @@ contract SentinelRegistryTest is Test {
         registry.recordHealth(hash, riskLevel);
     }
 
-    /// @notice Non-owner cannot record health
-    function test_recordHealth_revertsForNonOwner() public {
+    /// @notice Any address can record health (CRE DON compatibility)
+    function test_recordHealth_allowsAnyCaller() public {
         vm.prank(address(0xDEAD));
-        vm.expectRevert(OrbitalSentinelRegistry.NotOwner.selector);
         registry.recordHealth(keccak256("test"), "ok");
+        assertEq(registry.count(), 1);
+
+        // Verify recorder is the actual caller
+        (,,, address recorder) = registry.records(0);
+        assertEq(recorder, address(0xDEAD));
+    }
+
+    /// @notice address(0) can record health (CRE DON executes as zeroAddress)
+    function test_recordHealth_allowsZeroAddress() public {
+        vm.prank(address(0));
+        registry.recordHealth(keccak256("zero"), "queue:ok");
+        assertEq(registry.count(), 1);
+
+        (,,, address recorder) = registry.records(0);
+        assertEq(recorder, address(0));
     }
 
     // ─── Duplicate Prevention ──────────────────────────────────────

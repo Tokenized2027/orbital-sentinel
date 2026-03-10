@@ -19,7 +19,7 @@ config({ path: new URL('../.env', import.meta.url).pathname });
 
 const DATA_DIR =
   process.env.DATA_DIR ||
-  '$HOME/projects/orbital/clients/stake-link/sdl/orchestration/intelligence/data';
+  `${process.env.HOME}/projects/orbital/clients/stake-link/sdl/orchestration/intelligence/data`;
 
 const AI_ENDPOINT =
   process.env.AI_ENDPOINT || 'http://localhost:5050/api/cre/analyze-composite';

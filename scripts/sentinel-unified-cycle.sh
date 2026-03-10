@@ -2,13 +2,16 @@
 # ──────────────────────────────────────────────────────────────────────
 # Orbital Sentinel — Unified CRE Cycle
 #
-# Runs ALL 7 CRE workflow simulations in parallel, then writes
+# Runs ALL 8 CRE workflow simulations in parallel, then writes
 # all on-chain proofs in one batch via record-all-snapshots.mjs.
 #
 # Designed to run 7 times/day at even intervals (~3h25m apart).
 # Replaces the old per-workflow crons + 15-min bridge cron.
 # ──────────────────────────────────────────────────────────────────────
 set -euo pipefail
+
+export HOME="/home/avi"
+export PATH="${HOME}/.local/bin:${HOME}/.bun/bin:${PATH}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SENTINEL_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -64,13 +67,14 @@ run_workflow() {
   NAMES+=("${name}")
 }
 
-# Sentinel CRE workflows (7)
+# Sentinel CRE workflows (8)
 run_workflow "treasury"   "${SENTINEL_ROOT}/workflows/treasury-risk"      "cre_treasury_snapshot.json"
 run_workflow "feeds"       "${SENTINEL_ROOT}/workflows/price-feeds"        "cre_feed_snapshot.json"
 run_workflow "governance" "${SENTINEL_ROOT}/workflows/governance-monitor"  "cre_governance_snapshot.json"
 run_workflow "morpho"     "${SENTINEL_ROOT}/workflows/morpho-vault-health" "cre_morpho_snapshot.json"
 run_workflow "curve"      "${SENTINEL_ROOT}/workflows/curve-pool"          "cre_curve_pool_snapshot.json"
 run_workflow "ccip"       "${SENTINEL_ROOT}/workflows/ccip-lane-health"    "cre_ccip_snapshot.json"
+run_workflow "flows"     "${SENTINEL_ROOT}/workflows/token-flows"          "sentinel_token_flows_snapshot.json"
 
 # LINK AI Arbitrage (LAA) — was cross-repo, now local
 run_workflow "laa" "${SENTINEL_ROOT}/workflows/link-ai-arbitrage" "cre_laa_snapshot.json"

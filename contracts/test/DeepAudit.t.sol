@@ -136,10 +136,10 @@ contract DeepAuditSentinelTest is Test {
         registry.recordHealth(keccak256("newOwnerRecord"), "morpho:ok");
         assertEq(registry.count(), 1);
 
-        // Old owner cannot
+        // Old owner CAN still record health (open access for CRE DON compatibility)
         vm.prank(owner);
-        vm.expectRevert(OrbitalSentinelRegistry.NotOwner.selector);
         registry.recordHealth(keccak256("oldOwnerRecord"), "morpho:ok");
+        assertEq(registry.count(), 2);
     }
 
     // ═══════════ Fuzz: recordHealth with arbitrary hashes and levels ═══════════

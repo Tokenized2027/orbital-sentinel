@@ -45,7 +45,7 @@ const WORKFLOW_COLORS: Record<string, string> = {
   legacy: 'var(--t3)',
 };
 
-const REGISTRY_ADDRESS = '0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40';
+const REGISTRY_ADDRESS = '0x5D15952f672fCAaf2492591668A869E26B815aE3';
 const EXPLORER_BASE = 'https://sepolia.etherscan.io';
 
 export default function SentinelRegistry() {
