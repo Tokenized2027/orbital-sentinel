@@ -555,7 +555,7 @@ def _format_composite_prompt(data: dict) -> str:
             f"Overall: {ccip.get('overallRisk', '?')}",
         ])
         for lane in ccip_lanes:
-            rl = lane.get("rateLimiter", {})
+            rl = lane.get("rateLimiter") or {}
             rl_str = f" (rate limiter: {rl.get('usedPct', 0)}% used)" if rl.get("isEnabled") else ""
             lines.append(f"  {lane.get('destChainName', '?')}: {lane.get('status', '?')}{rl_str}")
     else:

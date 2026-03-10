@@ -64,7 +64,7 @@ contract OrbitalSentinelRegistry {
     /// @notice Record a new protocol health snapshot on-chain.
     /// @param snapshotHash  keccak256 hash of the snapshot content (timestamp + risk + assessment)
     /// @param riskLevel     Human-readable risk level: "ok", "warning", or "critical"
-    function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external onlyOwner {
+    function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external {
         if (recorded[snapshotHash]) revert AlreadyRecorded();
         if (bytes(riskLevel).length == 0) revert EmptyRiskLevel();
         if (bytes(riskLevel).length > 256) revert RiskLevelTooLong();

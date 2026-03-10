@@ -4,7 +4,7 @@
 **Auditor:** Claude Opus 4.6 (Smart Contract + Infrastructure Security)
 **Scope:** Entire repository: Solidity contracts, 8 CRE workflows, bridge scripts, AI endpoint, dashboard
 **Repository:** `Tokenized2027/orbital-sentinel` (PUBLIC on GitHub)
-**Contract:** `OrbitalSentinelRegistry` at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` (Sepolia)
+**Contract:** `OrbitalSentinelRegistry` at `0x5D15952f672fCAaf2492591668A869E26B815aE3` (Sepolia)
 
 ---
 

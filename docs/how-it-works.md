@@ -280,8 +280,8 @@ Storing the full snapshot on-chain would cost hundreds of dollars in gas per wri
 
 - **73+ proof records** on Sepolia (as of March 6, 2026)
 - **8 workflows** running simultaneously
-- **Registry contract:** `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`
-- All records verifiable on [Sepolia Etherscan](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40)
+- **Registry contract:** `0x5D15952f672fCAaf2492591668A869E26B815aE3`
+- All records verifiable on [Sepolia Etherscan](https://sepolia.etherscan.io/address/0x5D15952f672fCAaf2492591668A869E26B815aE3)
 
 ---
 

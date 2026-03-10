@@ -8,7 +8,7 @@ The monitored execution layer behind LAA, the **stLINK Premium Arbitrage Vault**
 
 What makes this different from a simple arb bot: **the LAA doesn't decide in isolation.** A composite intelligence layer reads treasury health, oracle prices, lending market utilization, CCIP bridge status, and Curve pool structure, then feeds that full ecosystem context to an AI analyst (GPT-5.3-Codex) that can override the raw signal. When the math says "execute" but the ecosystem says "the Priority Pool queue is 365K LINK deep and the basis is unstable," the composite layer says "wait."
 
-**[Read the full Whitepaper](https://sentinel.schuna.co.il/whitepaper.html)** | [Live Dashboard](https://sentinel.schuna.co.il) | [SentinelRegistry on Etherscan](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40)
+**[Read the full Whitepaper](https://sentinel.schuna.co.il/whitepaper.html)** | [Live Dashboard](https://sentinel.schuna.co.il) | [SentinelRegistry on Etherscan](https://sepolia.etherscan.io/address/0x5D15952f672fCAaf2492591668A869E26B815aE3)
 
 ---
 
@@ -153,7 +153,7 @@ Monitors Curve StableSwap pool composition, virtual price, amplification factor,
 
 Every workflow run and every composite analysis produces a verifiable proof hash written to `OrbitalSentinelRegistry` on Sepolia.
 
-**Contract:** [`0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40`](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40)
+**Contract:** [`0x5D15952f672fCAaf2492591668A869E26B815aE3`](https://sepolia.etherscan.io/address/0x5D15952f672fCAaf2492591668A869E26B815aE3)
 
 ```
 snapshotHash = keccak256(abi.encode(timestamp, workflowType, risk, metric1, metric2, ...))
@@ -341,7 +341,7 @@ See [CHAINLINK.md](./CHAINLINK.md) for detailed per-file documentation of every 
 
 | File | Description |
 |------|-------------|
-| [`contracts/SentinelRegistry.sol`](./contracts/SentinelRegistry.sol) | `OrbitalSentinelRegistry` on Sepolia. [Audit](./AUDIT-REPORT.md). Address: [`0xE5B1...1d40`](https://sepolia.etherscan.io/address/0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40) |
+| [`contracts/SentinelRegistry.sol`](./contracts/SentinelRegistry.sol) | `OrbitalSentinelRegistry` on Sepolia. [Audit](./AUDIT-REPORT.md). Address: [`0xE5B1...1d40`](https://sepolia.etherscan.io/address/0x5D15952f672fCAaf2492591668A869E26B815aE3) |
 
 ### Companion Execution Layer
 

@@ -30,7 +30,7 @@ config({ path: new URL('../.env', import.meta.url).pathname });
 
 // ── Constants ──────────────────────────────────────────────────────────
 
-const REGISTRY_ADDRESS = '0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40';
+const REGISTRY_ADDRESS = '0x5D15952f672fCAaf2492591668A869E26B815aE3';
 const DEPLOYER_KEY = process.env.PRIVATE_KEY;
 if (!DEPLOYER_KEY) {
   console.error('PRIVATE_KEY not set in .env');
@@ -44,8 +44,8 @@ const RPC_URLS = [
   'https://sepolia.gateway.tenderly.co',
 ];
 
-const SNAPSHOT_DIR = '$HOME/projects/orbital/clients/stake-link/sdl/orchestration/intelligence/data';
-const STATE_FILE = '$HOME/orbital-sentinel/scripts/.last-write-state.json';
+const SNAPSHOT_DIR = `${process.env.HOME}/projects/orbital/clients/stake-link/sdl/orchestration/intelligence/data`;
+const STATE_FILE = `${process.env.HOME}/orbital-sentinel/scripts/.last-write-state.json`;
 
 const registryAbi = [
   {

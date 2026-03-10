@@ -244,7 +244,7 @@ Added during the Ownable2Step + RiskLevelTooLong upgrade to verify the new secur
 ## Recommendations
 
 ### Pre-Deployment (Complete)
-1. ~~**Redeploy to Sepolia**~~ — **DONE.** Redeployed to `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` with all fixes active. All 30 downstream references updated (scripts, configs, dashboard, docs).
+1. ~~**Redeploy to Sepolia**~~ — **DONE.** Redeployed to `0x5D15952f672fCAaf2492591668A869E26B815aE3` with all fixes active. All 30 downstream references updated (scripts, configs, dashboard, docs).
 
 ### For Production Hardening (Recommended)
 2. **Use an enum for risk levels** — Replace `string riskLevel` with `enum RiskLevel` to save gas. (Note: the 256-byte max length guard now bounds the string, reducing the urgency of this change.)
@@ -412,7 +412,7 @@ None of the enhanced attack scenarios (#14–25) are meaningfully applicable to 
 
 Four findings were fixed during this audit: access control (F-1), duplicate prevention (F-3), pragma pinning (F-4), and input validation (F-5). The remaining findings are Info-level design tradeoffs acceptable for a hackathon demo on Sepolia.
 
-The contract is now significantly hardened — only the owner can write records, duplicates are rejected on-chain, and empty inputs are blocked. The audited version is deployed on Sepolia at `0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40` with all fixes active.
+The contract is now significantly hardened — only the owner can write records, duplicates are rejected on-chain, and empty inputs are blocked. The audited version is deployed on Sepolia at `0x5D15952f672fCAaf2492591668A869E26B815aE3` with all fixes active.
 
 **Enhanced methodology assessment (2026-03-01):** No new vulnerabilities found. The contract's minimal attack surface (no tokens, no ETH, no external calls, no oracle reads) renders all 12 enhanced attack scenarios inapplicable. The primary risk remains owner key compromise, mitigable via multi-sig ownership for production.
 

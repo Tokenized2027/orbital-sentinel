@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 
-const REGISTRY_ADDRESS = '0xE5B1b708b237F9F0F138DE7B03EEc1Eb1a871d40';
+const REGISTRY_ADDRESS = '0x5D15952f672fCAaf2492591668A869E26B815aE3';
 const CHAIN_ID = 11155111; // Sepolia
 const COMPILER_VERSION = 'v0.8.24+commit.e11b9ed9';
 const CONTRACT_NAME = 'OrbitalSentinelRegistry';

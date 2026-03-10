@@ -15,50 +15,39 @@ if [ ! -x "${CRE_BIN}" ]; then
 fi
 
 if [ "$#" -gt 0 ]; then
-  TARGETS=("$@")
+  TARGET="$1"
 else
-  TARGETS=("staging-settings")
+  TARGET="staging-settings"
 fi
 
-tmp_dir="$(mktemp -d)"
+tmp_log="$(mktemp)"
 tmp_json="$(mktemp)"
 cleanup() {
-  rm -rf "${tmp_dir}" "${tmp_json}"
+  rm -f "${tmp_log}" "${tmp_json}"
 }
 trap cleanup EXIT
 
 cd "${ROOT_DIR}"
 
-run_target() {
-  local target="$1"
-  local out_file="$2"
-  local max_attempts=3
-  local attempt=1
+max_attempts=3
+attempt=1
 
-  while true; do
-    echo "Running CRE simulate for ${target} (attempt ${attempt}/${max_attempts})..."
-    if "${CRE_BIN}" workflow simulate my-workflow --target "${target}" | tee "${out_file}"; then
-      return 0
-    fi
+while true; do
+  echo "Running CRE simulate for ${TARGET} (attempt ${attempt}/${max_attempts})..."
+  if "${CRE_BIN}" workflow simulate my-workflow --target "${TARGET}" > "${tmp_log}" 2>&1; then
+    break
+  fi
 
-    if [ "${attempt}" -ge "${max_attempts}" ]; then
-      echo "CRE simulate failed for ${target} after ${max_attempts} attempts." >&2
-      return 1
-    fi
+  if [ "${attempt}" -ge "${max_attempts}" ]; then
+    echo "CRE simulate failed for ${TARGET} after ${max_attempts} attempts." >&2
+    exit 1
+  fi
 
-    attempt=$((attempt + 1))
-    sleep 2
-  done
-}
-
-output_files=()
-for target in "${TARGETS[@]}"; do
-  out_file="${tmp_dir}/${target}.log"
-  run_target "${target}" "${out_file}"
-  output_files+=("${out_file}")
+  attempt=$((attempt + 1))
+  sleep 2
 done
 
-python3 - "${tmp_json}" "${SNAPSHOT_PATH}" "${output_files[@]}" <<'PY'
+python3 - "${tmp_log}" "${tmp_json}" "${SNAPSHOT_PATH}" <<'PY'
 import json
 import re
 import sys
@@ -67,6 +56,8 @@ from pathlib import Path
 
 
 def parse_output(text: str) -> dict | None:
+    """Extract CRE workflow output from simulate output."""
+    # Strategy 1: TOKEN_FLOWS_OUTPUT_JSON= marker
     marker_matches = re.findall(r"TOKEN_FLOWS_OUTPUT_JSON=(\{.*\})", text)
     if marker_matches:
         try:
@@ -74,31 +65,41 @@ def parse_output(text: str) -> dict | None:
         except Exception:
             pass
 
-    # Fallback: find JSON object with balances key
+    # Strategy 2: Parse the "Workflow Simulation Result:" block (always complete)
+    sim_match = re.search(r'Workflow Simulation Result:\s*"(.*)"', text, re.DOTALL)
+    if sim_match:
+        try:
+            raw = sim_match.group(1)
+            unescaped = raw.encode().decode("unicode_escape")
+            return json.loads(unescaped)
+        except Exception:
+            pass
+
+    # Strategy 3: Find any JSON object with expected keys
     decoder = json.JSONDecoder()
     for idx in range(len(text)):
+        if text[idx] != "{":
+            continue
         try:
             obj, _ = decoder.raw_decode(text[idx:])
         except Exception:
             continue
         if isinstance(obj, dict) and "balances" in obj and "totals" in obj:
             return obj
+
     return None
 
 
-tmp_json_path = Path(sys.argv[1])
-snapshot_path = Path(sys.argv[2])
-raw_paths = [Path(p) for p in sys.argv[3:]]
+log_path = Path(sys.argv[1])
+tmp_json_path = Path(sys.argv[2])
+snapshot_path = Path(sys.argv[3])
 
-parsed = None
-for raw_path in raw_paths:
-    text = raw_path.read_text(encoding="utf-8", errors="replace")
-    parsed = parse_output(text)
-    if parsed:
-        break
+text = log_path.read_text(encoding="utf-8", errors="replace")
+parsed = parse_output(text)
 
 if not parsed:
-    raise SystemExit("Could not find structured SDL flows workflow output")
+    print("ERROR: Could not find TOKEN_FLOWS_OUTPUT_JSON marker in CRE output.", file=sys.stderr)
+    raise SystemExit(1)
 
 snapshot = {
     "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
