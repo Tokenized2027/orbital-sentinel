@@ -85,25 +85,18 @@ contract SentinelRegistryTest is Test {
         registry.recordHealth(hash, riskLevel);
     }
 
-    /// @notice Any address can record health (CRE DON compatibility)
-    function test_recordHealth_allowsAnyCaller() public {
+    /// @notice Non-owner cannot record health
+    function test_recordHealth_revertsForNonOwner() public {
         vm.prank(address(0xDEAD));
+        vm.expectRevert(OrbitalSentinelRegistry.NotOwner.selector);
         registry.recordHealth(keccak256("test"), "ok");
-        assertEq(registry.count(), 1);
-
-        // Verify recorder is the actual caller
-        (,,, address recorder) = registry.records(0);
-        assertEq(recorder, address(0xDEAD));
     }
 
-    /// @notice address(0) can record health (CRE DON executes as zeroAddress)
-    function test_recordHealth_allowsZeroAddress() public {
+    /// @notice address(0) cannot record health unless it is the owner
+    function test_recordHealth_revertsForZeroAddress() public {
         vm.prank(address(0));
+        vm.expectRevert(OrbitalSentinelRegistry.NotOwner.selector);
         registry.recordHealth(keccak256("zero"), "queue:ok");
-        assertEq(registry.count(), 1);
-
-        (,,, address recorder) = registry.records(0);
-        assertEq(recorder, address(0));
     }
 
     // ─── Duplicate Prevention ──────────────────────────────────────
@@ -181,9 +174,10 @@ contract SentinelRegistryTest is Test {
     }
 
     /// @notice The recorder field should be msg.sender (the owner)
-    function test_recordHealth_storesRecorder() public view {
-        // Owner is address(this), which is msg.sender for all calls in this test
-        assertEq(registry.owner(), address(this));
+    function test_recordHealth_storesRecorder() public {
+        registry.recordHealth(keccak256("recorder"), "ok");
+        (,,, address recorder) = registry.records(0);
+        assertEq(recorder, address(this));
     }
 
     /// @notice Record "ok", "warning", "critical" and verify all stored correctly

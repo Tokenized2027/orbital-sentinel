@@ -68,20 +68,18 @@ contract SentinelRegistryFuzzTest is Test {
         assertEq(registry.count(), n);
     }
 
-    /// @notice Any address can record health (CRE DON compatibility).
-    function testFuzz_anyCaller_canRecord(
+    /// @notice Non-owners are always blocked from recording health.
+    function testFuzz_nonOwner_alwaysReverts(
         address sender,
         bytes32 hash,
         string calldata riskLevel
     ) public {
+        vm.assume(sender != address(this));
         if (bytes(riskLevel).length == 0) return;
 
         vm.prank(sender);
+        vm.expectRevert(OrbitalSentinelRegistry.NotOwner.selector);
         registry.recordHealth(hash, riskLevel);
-
-        assertEq(registry.count(), 1);
-        (,,, address recorder) = registry.records(0);
-        assertEq(recorder, sender);
     }
 
     /// @notice Duplicate hashes always revert.
@@ -117,7 +115,12 @@ contract SentinelRegistryFuzzTest is Test {
         vm.expectRevert(OrbitalSentinelRegistry.NotOwner.selector);
         registry.transferOwnership(address(0xBEEF));
 
-        // But old owner CAN still record health (open access)
+        // Old owner can no longer record health
+        vm.expectRevert(OrbitalSentinelRegistry.NotOwner.selector);
+        registry.recordHealth(keccak256("after-transfer"), "ok");
+
+        // New owner can
+        vm.prank(newOwner);
         registry.recordHealth(keccak256("after-transfer"), "ok");
         assertEq(registry.count(), 1);
     }
