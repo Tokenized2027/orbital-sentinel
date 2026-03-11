@@ -38,7 +38,7 @@ function computeAge(generatedAt: string | null): { ageMinutes: number | null; st
   const ts = new Date(generatedAt).getTime();
   if (isNaN(ts)) return { ageMinutes: null, stale: true };
   const ageMinutes = Math.max(0, Math.round((Date.now() - ts) / 60000));
-  return { ageMinutes, stale: ageMinutes > 45 };
+  return { ageMinutes, stale: ageMinutes > 200 };
 }
 
 function extractRisk(data: Record<string, unknown>, key: WorkflowKey): string {

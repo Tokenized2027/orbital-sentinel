@@ -17,4 +17,5 @@ binary.wasm.br.b64
 intelligence/data/
 out/
 lib/
+!dashboard/lib/
 cache/
