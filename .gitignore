@@ -19,3 +19,5 @@ out/
 lib/
 !dashboard/lib/
 cache/
+foundry.lock
+.venv/
