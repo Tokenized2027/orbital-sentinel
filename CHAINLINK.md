@@ -142,7 +142,7 @@ Schedules (per workflow config):
 
 **All 8 CRE workflows** write verifiable proof hashes to `OrbitalSentinelRegistry` on Sepolia after each run. A bridge script (`scripts/record-all-snapshots.mjs`) reads live CRE snapshots and writes proofs on-chain 7 times per day via the unified cycle.
 
-**File:** `contracts/SentinelRegistry.sol` — [Security Audit](./AUDIT-REPORT.md) (4 findings fixed, 31 tests, 80k fuzz iterations)
+**File:** `contracts/SentinelRegistry.sol` — [Security Audit](./AUDIT-REPORT.md) (4 findings fixed, 32 tests, 80k fuzz iterations)
 
 ```solidity
 function recordHealth(bytes32 snapshotHash, string calldata riskLevel) external onlyOwner
@@ -153,6 +153,10 @@ event HealthRecorded(bytes32 indexed snapshotHash, string riskLevel, uint256 ts)
 event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner)
 event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 ```
+
+Operational note:
+- `recordHealth()` is owner-only on purpose.
+- The bridge writer (`scripts/record-all-snapshots.mjs`) must use the active owner signer, or ownership should be transferred to a dedicated writer account before the unified cycle is enabled.
 
 Risk levels use a prefixed format: `treasury:ok`, `feeds:warning`, `morpho:critical`, `governance:ok`, `flows:ok`, `ccip:ok`, `laa:ok`.
 

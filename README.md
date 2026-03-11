@@ -183,7 +183,11 @@ function count() external view returns (uint256)
 function recorded(bytes32) external view returns (bool)
 ```
 
-**Security:** Owner-only writes, Ownable2Step transfer, on-chain duplicate prevention (`AlreadyRecorded`), input validation (`EmptyRiskLevel`, `RiskLevelTooLong`). Audited: 4 findings fixed, 31 tests (17 unit + 7 fuzz + 7 deep audit), 80,000 fuzz iterations. See [AUDIT-REPORT.md](./AUDIT-REPORT.md).
+**Security:** Owner-only writes, Ownable2Step transfer, on-chain duplicate prevention (`AlreadyRecorded`), input validation (`EmptyRiskLevel`, `RiskLevelTooLong`). Audited: 4 findings fixed, 32 tests (18 unit + 7 fuzz + 7 deep audit), 80,000 fuzz iterations. See [AUDIT-REPORT.md](./AUDIT-REPORT.md).
+
+Operational note:
+- `recordHealth()` is intentionally owner-gated.
+- The unified cycle writer (`scripts/record-all-snapshots.mjs`) must run with the current registry owner, or ownership should be transferred to the dedicated writer signer before automation starts.
 
 ---
 
