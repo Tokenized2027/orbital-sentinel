@@ -7,11 +7,13 @@
  * writes cre_composite_snapshot.json for on-chain proof recording.
  *
  * Env:
- *   AI_ENDPOINT  — full URL to the composite analysis route (default: http://localhost:5050/api/cre/analyze-composite)
+ *   AI_ENDPOINT  — full URL to the composite analysis route (default: http://127.0.0.1:5060/api/cre/analyze-composite)
  *   CRE_SECRET   — auth header value for the AI endpoint
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import http from 'node:http';
+import https from 'node:https';
 import { config } from 'dotenv';
 
 // Load .env from repo root (same pattern as record-all-snapshots.mjs)
@@ -22,7 +24,7 @@ const DATA_DIR =
   `${process.env.HOME}/projects/orbital/clients/stake-link/sdl/orchestration/intelligence/data`;
 
 const AI_ENDPOINT =
-  process.env.AI_ENDPOINT || 'http://localhost:5050/api/cre/analyze-composite';
+  process.env.AI_ENDPOINT || 'http://127.0.0.1:5060/api/cre/analyze-composite';
 
 const CRE_SECRET = process.env.CRE_SECRET || process.env.CRE_ANALYZE_SECRET || '';
 
@@ -38,6 +40,47 @@ const SNAPSHOT_FILES = {
 const OUTPUT_FILE = `${DATA_DIR}/cre_composite_snapshot.json`;
 
 const log = (msg) => console.log(`[${new Date().toISOString()}] [composite] ${msg}`);
+
+function postJson(urlString, payload, headers = {}) {
+  const url = new URL(urlString);
+  const client = url.protocol === 'https:' ? https : http;
+  const body = JSON.stringify(payload);
+
+  return new Promise((resolve, reject) => {
+    const req = client.request(
+      {
+        protocol: url.protocol,
+        hostname: url.hostname,
+        port: url.port || undefined,
+        path: `${url.pathname}${url.search}`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+          ...headers,
+        },
+      },
+      (res) => {
+        let responseBody = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+          responseBody += chunk;
+        });
+        res.on('end', () => {
+          resolve({
+            ok: (res.statusCode ?? 500) >= 200 && (res.statusCode ?? 500) < 300,
+            status: res.statusCode ?? 500,
+            body: responseBody,
+          });
+        });
+      },
+    );
+
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
 
 async function readSnapshot(file) {
   const path = `${DATA_DIR}/${file}`;
@@ -69,22 +112,17 @@ async function main() {
   log(`Read ${available}/${Object.keys(SNAPSHOT_FILES).length} snapshots`);
 
   // POST to AI endpoint
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = {};
   if (CRE_SECRET) headers['X-CRE-Secret'] = CRE_SECRET;
 
-  const res = await fetch(AI_ENDPOINT, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(snapshots),
-  });
+  const res = await postJson(AI_ENDPOINT, snapshots, headers);
 
   if (!res.ok) {
-    const body = await res.text();
-    log(`AI endpoint returned ${res.status}: ${body}`);
+    log(`AI endpoint returned ${res.status}: ${res.body}`);
     process.exit(1);
   }
 
-  const aiResult = await res.json();
+  const aiResult = JSON.parse(res.body);
   log(
     `AI response: rec=${aiResult.recommendation} risk=${aiResult.composite_risk} confidence=${aiResult.confidence}`,
   );

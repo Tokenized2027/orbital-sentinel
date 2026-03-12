@@ -106,7 +106,7 @@ fi
 
 log "Running composite LAA intelligence..."
 cd "${SCRIPT_DIR}"
-if AI_ENDPOINT="http://localhost:5050/api/cre/analyze-composite" /usr/bin/node composite-laa-intelligence.mjs; then
+if AI_ENDPOINT="http://127.0.0.1:5060/api/cre/analyze-composite" /usr/bin/node composite-laa-intelligence.mjs; then
   log "Composite intelligence OK"
 else
   log "Composite intelligence FAILED (non-blocking, continuing to proof write)"
