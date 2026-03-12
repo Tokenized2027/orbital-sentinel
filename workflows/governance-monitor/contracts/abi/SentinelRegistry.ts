@@ -3,7 +3,7 @@
  * Deployed to Ethereum Sepolia — address configured in workflow config.registry.address
  *
  * Security: owner-only writes, on-chain duplicate prevention, non-empty riskLevel validation.
- * Audit: AUDIT-REPORT.md — 4 findings fixed, 31 tests, 80k fuzz iterations.
+ * Audit: AUDIT-REPORT.md — 4 findings fixed, 32 tests, 80k fuzz iterations.
  */
 export const SentinelRegistry = [
 	{

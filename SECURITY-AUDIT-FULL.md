@@ -4,7 +4,7 @@
 **Auditor:** Claude Opus 4.6 (Smart Contract + Infrastructure Security)
 **Scope:** Entire repository: Solidity contracts, 8 CRE workflows, bridge scripts, AI endpoint, dashboard
 **Repository:** `Tokenized2027/orbital-sentinel` (PUBLIC on GitHub)
-**Contract:** `OrbitalSentinelRegistry` at `0x5D15952f672fCAaf2492591668A869E26B815aE3` (Sepolia)
+**Contract:** `OrbitalSentinelRegistry` at `0x35EFB15A46Fa63262dA1c4D8DE02502Dd8b6E3a5` (Sepolia)
 
 ---
 
@@ -26,7 +26,7 @@ However, the audit identified **31 findings** including 1 CRITICAL, 4 HIGH, 7 ME
 
 ## Layer 1: Smart Contract (SentinelRegistry.sol)
 
-The existing AUDIT-REPORT.md covers this layer thoroughly. The contract is well-hardened: Ownable2Step, dedup via recorded mapping, input validation, 31 tests, 80k fuzz iterations. **No new Solidity vulnerabilities found.**
+The existing AUDIT-REPORT.md covers this layer thoroughly. The contract is well-hardened: Ownable2Step, dedup via recorded mapping, input validation, 32 tests, 80k fuzz iterations. **No new Solidity vulnerabilities found.**
 
 Confirmed non-applicable attack vectors: reentrancy (no external calls), flash loans (no price dependency), MEV/sandwich (no swaps), oracle manipulation (no oracle reads), token exploits (no tokens), cross-chain replay (single chain).
 

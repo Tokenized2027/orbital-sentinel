@@ -10,7 +10,7 @@
 | Prize Tracks | CRE & AI, DeFi & Tokenization, Autonomous Agents (Moltbook) |
 | GitHub | https://github.com/Tokenized2027/orbital-sentinel |
 | Chainlink Usage | https://github.com/Tokenized2027/orbital-sentinel/blob/main/CHAINLINK.md |
-| Contract (Sepolia) | https://sepolia.etherscan.io/address/0x5D15952f672fCAaf2492591668A869E26B815aE3 |
+| Contract (Sepolia) | https://sepolia.etherscan.io/address/0x35EFB15A46Fa63262dA1c4D8DE02502Dd8b6E3a5 |
 | Demo Video | https://www.youtube.com/watch?v=CR2ckpE-SC8 |
 | Companion Vault Audits | https://github.com/Tokenized2027/orbital-sentinel/blob/main/docs/arb-vault-security-audit.md and https://github.com/Tokenized2027/orbital-sentinel/blob/main/docs/arb-vault-production-readiness.md |
 

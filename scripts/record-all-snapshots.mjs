@@ -30,7 +30,7 @@ config({ path: new URL('../.env', import.meta.url).pathname });
 
 // ── Constants ──────────────────────────────────────────────────────────
 
-const REGISTRY_ADDRESS = '0x5D15952f672fCAaf2492591668A869E26B815aE3';
+const REGISTRY_ADDRESS = '0x35EFB15A46Fa63262dA1c4D8DE02502Dd8b6E3a5';
 const DEPLOYER_KEY = process.env.PRIVATE_KEY;
 if (!DEPLOYER_KEY) {
   console.error('PRIVATE_KEY not set in .env');
@@ -360,10 +360,10 @@ async function insertRecord({ snapshotHash, riskLevel, blockTimestamp, blockNumb
   const pool = getPool();
   if (!pool) { log('DB insert skipped (DATABASE_URL not set)'); return; }
   await pool.query(
-    `INSERT INTO sentinel_records (protocol_id, snapshot_hash, risk_level, block_timestamp, block_number, tx_hash, recorder)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO sentinel_records (protocol_id, snapshot_hash, risk_level, block_timestamp, block_number, tx_hash, recorder, registry_address)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      ON CONFLICT ON CONSTRAINT uq_sentinel_tx DO NOTHING`,
-    ['stake.link', snapshotHash, riskLevel, blockTimestamp, blockNumber, txHash, recorder],
+    ['stake.link', snapshotHash, riskLevel, blockTimestamp, blockNumber, txHash, recorder, REGISTRY_ADDRESS],
   );
 }
 

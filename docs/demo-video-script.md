@@ -98,7 +98,7 @@ All coordinated through one SentinelRegistry contract.
 
 Built with TypeScript, Solidity, Next.js, Python, and viem.
 AI powered by Claude and GPT.
-Audited: 31 tests, 80,000 fuzz iterations.
+Audited: 32 tests, 80,000 fuzz iterations.
 
 This isn't a prototype.
 It's live on the CRE mainnet DON right now,
@@ -113,7 +113,7 @@ Sentinel gives them eyes.
 
 **Tabs to have open before recording:**
 1. Sentinel Dashboard (Cloudflare tunnel or localhost:3016)
-2. Sepolia Etherscan: `https://sepolia.etherscan.io/address/0x5D15952f672fCAaf2492591668A869E26B815aE3`
+2. Sepolia Etherscan: `https://sepolia.etherscan.io/address/0x35EFB15A46Fa63262dA1c4D8DE02502Dd8b6E3a5`
 
 **Pre-run checklist:**
 - Dashboard running (PM2 or `npm run dev` in dashboard/)
