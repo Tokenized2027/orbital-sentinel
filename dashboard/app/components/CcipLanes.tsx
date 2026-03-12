@@ -41,7 +41,7 @@ export default function CcipLanes({ workflow }: { workflow: Workflow | null }) {
       <SectionHeader
         title="wstLINK CCIP Lanes"
         right={
-          <span style={{ fontSize: 14, color: 'var(--t2)' }}>
+          <span style={{ fontSize: 15, color: 'var(--t2)' }}>
             {okCount}/{total} lanes operational
           </span>
         }
@@ -53,14 +53,14 @@ export default function CcipLanes({ workflow }: { workflow: Workflow | null }) {
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <StatusDot risk={lane.risk} pulse={lane.status === 'ok'} />
-              <span style={{ fontSize: 14, color: 'var(--t1)', fontWeight: 500 }}>
+              <span style={{ fontSize: 15, color: 'var(--t1)', fontWeight: 500 }}>
                 {lane.destChainName.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
               </span>
 
             </div>
             {lane.rateLimiter?.isEnabled && (
               <div style={{ maxWidth: 200 }}>
-                <div style={{ fontSize: 14, color: 'var(--t3)', marginBottom: 3 }}>
+                <div style={{ fontSize: 15, color: 'var(--t3)', marginBottom: 3 }}>
                   Rate limiter: {lane.rateLimiter.usedPct}% used
                 </div>
                 <ProgressBar pct={lane.rateLimiter.usedPct} risk={lane.rateLimiter.risk} />

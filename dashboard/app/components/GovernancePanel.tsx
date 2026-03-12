@@ -69,7 +69,7 @@ export default function GovernancePanel({ workflow }: { workflow: Workflow | nul
       <SectionHeader
         title="Governance"
         right={
-          <span style={{ fontSize: 14, color: 'var(--t2)' }}>
+          <span style={{ fontSize: 15, color: 'var(--t2)' }}>
             {active.length} active proposal{active.length !== 1 ? 's' : ''}
           </span>
         }
@@ -97,11 +97,11 @@ export default function GovernancePanel({ workflow }: { workflow: Workflow | nul
                   <Badge risk="info">{council ? 'Council' : 'Community'}</Badge>
                   {p.isUrgent && <Badge risk="warning">Urgent</Badge>}
                 </div>
-                <div style={{ fontSize: 15, color: 'var(--t1)', fontWeight: 600, marginBottom: 8, lineHeight: 1.4 }}>
+                <div style={{ fontSize: 16, color: 'var(--t1)', fontWeight: 600, marginBottom: 8, lineHeight: 1.4 }}>
                   {p.title}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, fontSize: 13 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, fontSize: 14 }}>
                   {council ? (
                     <span style={{ color: 'var(--t2)' }}>
                       <span style={{ color: 'var(--t1)', fontWeight: 600 }}>{voterCount}</span>/{COUNCIL_SIZE} council members voted
@@ -135,7 +135,7 @@ export default function GovernancePanel({ workflow }: { workflow: Workflow | nul
                   <div className="vote-bar-yes" style={{ width: `${yesPct}%` }} />
                   <div className="vote-bar-no" style={{ width: `${noPct}%` }} />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--t3)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--t3)' }}>
                   <span style={{ color: 'var(--green)' }}>
                     {p.choices[0] ?? 'YES'} {yesPct.toFixed(0)}%{' '}
                     ({council ? p.scores[0] ?? 0 : `${((p.scores[0] ?? 0) / 1e6).toFixed(1)}M`})
@@ -152,7 +152,7 @@ export default function GovernancePanel({ workflow }: { workflow: Workflow | nul
       )}
 
       {active.length === 0 && (
-        <div style={{ color: 'var(--t3)', fontSize: 14, marginBottom: 16, fontStyle: 'italic' }}>
+        <div style={{ color: 'var(--t3)', fontSize: 15, marginBottom: 16, fontStyle: 'italic' }}>
           No active proposals
         </div>
       )}
@@ -160,7 +160,7 @@ export default function GovernancePanel({ workflow }: { workflow: Workflow | nul
       {/* SLURP History */}
       {slurps.length > 0 && (
         <>
-          <div style={{ fontSize: 13, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, fontWeight: 600 }}>
+          <div style={{ fontSize: 14, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, fontWeight: 600 }}>
             Recent SLURPs
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -179,7 +179,7 @@ export default function GovernancePanel({ workflow }: { workflow: Workflow | nul
                   gap: 10,
                   padding: '8px 0',
                   borderBottom: '1px solid var(--border)',
-                  fontSize: 13,
+                  fontSize: 14,
                 }}>
                   <span style={{ color: 'var(--cl-blue)', fontWeight: 700, minWidth: 28, fontFamily: 'var(--mono)' }}>
                     {slurpNum}
@@ -193,13 +193,13 @@ export default function GovernancePanel({ workflow }: { workflow: Workflow | nul
                   }}>
                     {cleanTitle}
                   </span>
-                  <span style={{ color: 'var(--t3)', fontSize: 13, minWidth: 70, textAlign: 'right' }}>
+                  <span style={{ color: 'var(--t3)', fontSize: 14, minWidth: 70, textAlign: 'right' }}>
                     {formatDate(p.end)}
                   </span>
-                  <span style={{ color: 'var(--t3)', fontSize: 13, minWidth: 42, textAlign: 'right' }}>
+                  <span style={{ color: 'var(--t3)', fontSize: 14, minWidth: 42, textAlign: 'right' }}>
                     {council ? `${p.votes}/${COUNCIL_SIZE}` : `${p.votes}v`}
                   </span>
-                  <span style={{ color: 'var(--green)', fontSize: 13, minWidth: 32, textAlign: 'right' }}>
+                  <span style={{ color: 'var(--green)', fontSize: 14, minWidth: 32, textAlign: 'right' }}>
                     {yesPct.toFixed(0)}%
                   </span>
                   <Badge risk={outcome.risk}>{outcome.label}</Badge>

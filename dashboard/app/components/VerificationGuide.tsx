@@ -37,7 +37,7 @@ export default function VerificationGuide() {
     <div className="card card-neon">
       <h2 className="section-title">What Do These Proofs Prove?</h2>
 
-      <p style={{ color: 'var(--t2)', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
+      <p style={{ color: 'var(--t2)', fontSize: 16, lineHeight: 1.6, marginBottom: 24 }}>
         Every workflow run creates a verifiable chain from live on-chain data to an immutable Sepolia record.
         Anyone can independently verify that a specific health assessment was made at a specific time.
       </p>
@@ -67,16 +67,16 @@ export default function VerificationGuide() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 700,
               fontFamily: 'var(--mono)',
             }}>
               {s.num}
             </div>
-            <div style={{ fontWeight: 600, color: 'var(--t1)', fontSize: 14, marginBottom: 6, marginTop: 4 }}>
+            <div style={{ fontWeight: 600, color: 'var(--t1)', fontSize: 15, marginBottom: 6, marginTop: 4 }}>
               {s.title}
             </div>
-            <div style={{ color: 'var(--t3)', fontSize: 13, lineHeight: 1.5 }}>
+            <div style={{ color: 'var(--t3)', fontSize: 14, lineHeight: 1.5 }}>
               {s.desc}
             </div>
           </div>
@@ -91,10 +91,10 @@ export default function VerificationGuide() {
         padding: 20,
         marginBottom: 20,
       }}>
-        <div style={{ fontWeight: 600, color: 'var(--green)', fontSize: 14, marginBottom: 8 }}>
+        <div style={{ fontWeight: 600, color: 'var(--green)', fontSize: 15, marginBottom: 8 }}>
           How to verify a record
         </div>
-        <div style={{ color: 'var(--t2)', fontSize: 14, lineHeight: 1.7, fontFamily: 'var(--mono)' }}>
+        <div style={{ color: 'var(--t2)', fontSize: 15, lineHeight: 1.7, fontFamily: 'var(--mono)' }}>
           1. Take any snapshot JSON from this dashboard<br />
           2. ABI-encode the key fields (timestamp, workflow, risk, metrics)<br />
           3. Compute keccak256 of the encoded bytes<br />
@@ -119,10 +119,10 @@ export default function VerificationGuide() {
           borderRadius: 'var(--r-sm)',
           padding: 18,
         }}>
-          <div style={{ fontWeight: 600, color: 'var(--green)', fontSize: 14, marginBottom: 8 }}>
+          <div style={{ fontWeight: 600, color: 'var(--green)', fontSize: 15, marginBottom: 8 }}>
             LAA: Live on CRE Mainnet DON
           </div>
-          <div style={{ color: 'var(--t3)', fontSize: 13, lineHeight: 1.6 }}>
+          <div style={{ color: 'var(--t3)', fontSize: 14, lineHeight: 1.6 }}>
             The LINK AI Arbitrage workflow runs on Chainlink&apos;s Decentralized Oracle Network, 7x/day.
             Multiple independent nodes execute the workflow and reach consensus.
             Real mainnet data, real AI analysis, real on-chain proofs.
@@ -134,10 +134,10 @@ export default function VerificationGuide() {
           borderRadius: 'var(--r-sm)',
           padding: 18,
         }}>
-          <div style={{ fontWeight: 600, color: 'var(--t2)', fontSize: 14, marginBottom: 8 }}>
+          <div style={{ fontWeight: 600, color: 'var(--t2)', fontSize: 15, marginBottom: 8 }}>
             Other Workflows: Local Simulate
           </div>
-          <div style={{ color: 'var(--t3)', fontSize: 13, lineHeight: 1.6 }}>
+          <div style={{ color: 'var(--t3)', fontSize: 14, lineHeight: 1.6 }}>
             The remaining 7 workflows run via <span style={{ fontFamily: 'var(--mono)', color: 'var(--t2)' }}>cre simulate</span> locally.
             Snapshot data is real (live mainnet reads via EVMClient), but proofs are signed by a single operator key.
           </div>

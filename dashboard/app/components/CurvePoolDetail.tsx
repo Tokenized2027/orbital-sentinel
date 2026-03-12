@@ -61,23 +61,23 @@ export default function CurvePoolDetail({ workflow }: { workflow: Workflow | nul
 
       {/* TVL */}
       <div style={{ textAlign: 'center', padding: '12px 0 20px' }}>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 36, fontWeight: 700, color: 'var(--t1)', lineHeight: 1 }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 37, fontWeight: 700, color: 'var(--t1)', lineHeight: 1 }}>
           {Number.isFinite(tvlUsd)
             ? tvlUsd >= 1e6
               ? `$${(tvlUsd / 1e6).toFixed(2)}M`
               : `$${(tvlUsd / 1e3).toFixed(0)}K`
             : '\u2014'}
         </div>
-        <div style={{ fontSize: 14, color: 'var(--t3)', marginTop: 4 }}>Total Value Locked</div>
+        <div style={{ fontSize: 15, color: 'var(--t3)', marginTop: 4 }}>Total Value Locked</div>
       </div>
 
       {/* Pool composition bar */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 14, color: 'var(--t2)' }}>
+          <span style={{ fontSize: 15, color: 'var(--t2)' }}>
             LINK {Number.isFinite(linkPct) ? `${linkPct.toFixed(1)}%` : '\u2014'}
           </span>
-          <span style={{ fontSize: 14, color: 'var(--t2)' }}>
+          <span style={{ fontSize: 15, color: 'var(--t2)' }}>
             stLINK {Number.isFinite(stlinkPct) ? `${stlinkPct.toFixed(1)}%` : '\u2014'}
           </span>
         </div>
@@ -103,10 +103,10 @@ export default function CurvePoolDetail({ workflow }: { workflow: Workflow | nul
           }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-          <span style={{ fontSize: 14, fontFamily: 'var(--mono)', color: 'var(--t3)' }}>
+          <span style={{ fontSize: 15, fontFamily: 'var(--mono)', color: 'var(--t3)' }}>
             {Number.isFinite(linkBalance) ? `${(linkBalance / 1e3).toFixed(1)}K` : '\u2014'}
           </span>
-          <span style={{ fontSize: 14, fontFamily: 'var(--mono)', color: 'var(--t3)' }}>
+          <span style={{ fontSize: 15, fontFamily: 'var(--mono)', color: 'var(--t3)' }}>
             {Number.isFinite(stlinkBalance) ? `${(stlinkBalance / 1e3).toFixed(1)}K` : '\u2014'}
           </span>
         </div>
@@ -116,7 +116,7 @@ export default function CurvePoolDetail({ workflow }: { workflow: Workflow | nul
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
           <span className="metric-label">Pool Imbalance</span>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'var(--t1)' }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 15, color: 'var(--t1)' }}>
             {Number.isFinite(imbalancePct) ? `${imbalancePct.toFixed(1)}%` : '\u2014'}
           </span>
         </div>
@@ -124,7 +124,7 @@ export default function CurvePoolDetail({ workflow }: { workflow: Workflow | nul
       </div>
 
       {/* Context note */}
-      <div style={{ fontSize: 14, color: 'var(--t2)', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 15, color: 'var(--t2)', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
         {imbalancePct <= 15
           ? 'Pool is well-balanced. Swaps between LINK and stLINK have low slippage.'
           : imbalancePct <= 30
@@ -135,17 +135,17 @@ export default function CurvePoolDetail({ workflow }: { workflow: Workflow | nul
       {/* Gauge incentives */}
       {gauge && (
         <div style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(79,212,229,0.06)', borderRadius: 8, border: '1px solid rgba(79,212,229,0.15)' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--t1)', marginBottom: 8 }}>Gauge Incentives</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--t1)', marginBottom: 8 }}>Gauge Incentives</div>
           <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
             <div>
               <div className="metric-label">LP Staked in Gauge</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--t1)' }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 17, color: 'var(--t1)' }}>
                 {gaugeStaked > 0 ? `${(gaugeStaked / 1e3).toFixed(1)}K` : '\u2014'}
               </div>
             </div>
             <div>
               <div className="metric-label">Reward Tokens</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--t1)' }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 17, color: 'var(--t1)' }}>
                 {gauge.rewardCount}
               </div>
             </div>
@@ -157,10 +157,10 @@ export default function CurvePoolDetail({ workflow }: { workflow: Workflow | nul
                   <div className="metric-label">
                     {r.isActive ? 'Active' : 'Ended'} #{i + 1}
                   </div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 14, color: r.isActive ? '#4FD4E5' : 'var(--t3)' }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 15, color: r.isActive ? '#4FD4E5' : 'var(--t3)' }}>
                     {daily < 1 ? daily.toFixed(4) : daily.toFixed(1)}/day
                   </div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--t3)' }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'var(--t3)' }}>
                     {r.token.slice(0, 8)}...
                   </div>
                 </div>
@@ -174,14 +174,14 @@ export default function CurvePoolDetail({ workflow }: { workflow: Workflow | nul
       <div style={{ display: 'flex', justifyContent: 'center', gap: 32, borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 16 }}>
         <div style={{ textAlign: 'center' }}>
           <div className="metric-label">Total Tokens</div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'var(--t1)' }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 15, color: 'var(--t1)' }}>
             {totalTokens > 0 ? `${(totalTokens / 1e3).toFixed(1)}K` : '\u2014'}
           </div>
         </div>
         {Number.isFinite(amplification) && amplification > 0 && (
           <div style={{ textAlign: 'center' }}>
             <div className="metric-label">Amp Factor</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'var(--t1)' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 15, color: 'var(--t1)' }}>
               {amplification}
             </div>
           </div>

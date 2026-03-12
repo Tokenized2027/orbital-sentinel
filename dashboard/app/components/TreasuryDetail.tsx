@@ -53,11 +53,11 @@ export default function TreasuryDetail({ workflow }: { workflow: Workflow | null
         {/* Community Pool */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 14, color: 'var(--t2)' }}>Community Pool</span>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'var(--t1)' }}>{communityFill.toFixed(0)}%</span>
+            <span style={{ fontSize: 15, color: 'var(--t2)' }}>Community Pool</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 15, color: 'var(--t1)' }}>{communityFill.toFixed(0)}%</span>
           </div>
           <ProgressBar pct={communityFill} risk={communityRisk} />
-          <div style={{ fontSize: 14, color: 'var(--t3)', marginTop: 4 }}>
+          <div style={{ fontSize: 15, color: 'var(--t3)', marginTop: 4 }}>
             {fmt(staking?.community?.staked)} / {fmt(staking?.community?.cap)} LINK
           </div>
         </div>
@@ -65,11 +65,11 @@ export default function TreasuryDetail({ workflow }: { workflow: Workflow | null
         {/* Operator Pool */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 14, color: 'var(--t2)' }}>Operator Pool</span>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'var(--t1)' }}>{operatorFill.toFixed(0)}%</span>
+            <span style={{ fontSize: 15, color: 'var(--t2)' }}>Operator Pool</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 15, color: 'var(--t1)' }}>{operatorFill.toFixed(0)}%</span>
           </div>
           <ProgressBar pct={operatorFill} risk={operatorRisk} />
-          <div style={{ fontSize: 14, color: 'var(--t3)', marginTop: 4 }}>
+          <div style={{ fontSize: 15, color: 'var(--t3)', marginTop: 4 }}>
             {fmt(staking?.operator?.staked)} / {fmt(staking?.operator?.cap)} LINK
           </div>
         </div>
@@ -77,13 +77,13 @@ export default function TreasuryDetail({ workflow }: { workflow: Workflow | null
         {/* Reward Runway */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 14, color: 'var(--t2)' }}>Reward Runway</span>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'var(--t1)' }}>{runwayDays.toFixed(0)}d</span>
+            <span style={{ fontSize: 15, color: 'var(--t2)' }}>Reward Runway</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 15, color: 'var(--t1)' }}>{runwayDays.toFixed(0)}d</span>
           </div>
           <div className="gauge-track">
             <div className={`gauge-fill progress-fill ${runwayRisk}`} style={{ width: `${runwayPct}%` }} />
           </div>
-          <div style={{ fontSize: 14, color: 'var(--t3)', marginTop: 4 }}>
+          <div style={{ fontSize: 15, color: 'var(--t3)', marginTop: 4 }}>
             {fmt(rewards?.vaultBalance)} LINK vault · {fmt(rewards?.emissionPerDay)} LINK/day
           </div>
         </div>
@@ -91,13 +91,13 @@ export default function TreasuryDetail({ workflow }: { workflow: Workflow | null
         {/* Priority Pool Queue */}
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 14, color: 'var(--t2)' }}>Priority Pool Queue</span>
+            <span style={{ fontSize: 15, color: 'var(--t2)' }}>Priority Pool Queue</span>
             <Badge risk={queueRisk}>{queueLink > 100_000 ? 'high demand' : 'active'}</Badge>
           </div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 600, color: 'var(--t1)', marginTop: 6 }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 21, fontWeight: 600, color: 'var(--t1)', marginTop: 6 }}>
             {fmt(queueLink)} LINK
           </div>
-          <div style={{ fontSize: 14, color: 'var(--t3)', marginTop: 2 }}>
+          <div style={{ fontSize: 15, color: 'var(--t3)', marginTop: 2 }}>
             Queued for staking — high demand signals protocol health
           </div>
         </div>
@@ -109,7 +109,7 @@ export default function TreasuryDetail({ workflow }: { workflow: Workflow | null
 
         {/* Registry TX */}
         {txHash && (
-          <div style={{ fontSize: 14, color: 'var(--t3)' }}>
+          <div style={{ fontSize: 15, color: 'var(--t3)' }}>
             On-chain proof:{' '}
             <ExternalLink href={`https://sepolia.etherscan.io/tx/${txHash}`}>
               {txHash.slice(0, 10)}...{txHash.slice(-6)}

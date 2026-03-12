@@ -49,12 +49,12 @@ export default function Hero({ overallStatus, healthyCount, totalCount, totalAle
         ) : (
           <div className="status-ring">
             <StatusDot risk={overallStatus} pulse />
-            <span style={{ fontSize: 14, color: 'var(--t1)', marginLeft: 8 }}>{statusText}</span>
+            <span style={{ fontSize: 15, color: 'var(--t1)', marginLeft: 8 }}>{statusText}</span>
           </div>
         )}
 
         {!loading && (
-          <span style={{ fontSize: 14, color: 'var(--t3)' }}>
+          <span style={{ fontSize: 15, color: 'var(--t3)' }}>
             {healthyCount}/{totalCount} workflows healthy
           </span>
         )}
@@ -70,13 +70,13 @@ export default function Hero({ overallStatus, healthyCount, totalCount, totalAle
       </div>
 
       <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <p style={{ fontSize: 14, color: 'var(--t3)', fontStyle: 'italic', margin: 0 }}>
+        <p style={{ fontSize: 15, color: 'var(--t3)', fontStyle: 'italic', margin: 0 }}>
           Select a workflow below to explore real-time metrics and on-chain proofs
         </p>
         <a
           href="/whitepaper.html"
           style={{
-            fontSize: 13,
+            fontSize: 14,
             padding: '4px 12px',
             borderRadius: 'var(--r-sm)',
             background: 'rgba(55, 91, 210, 0.15)',

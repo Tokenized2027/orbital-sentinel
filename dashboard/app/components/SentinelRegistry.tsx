@@ -107,19 +107,19 @@ export default function SentinelRegistry() {
         <div style={{ display: 'flex', gap: 24, marginBottom: 16, flexWrap: 'wrap' }}>
           <div>
             <div className="metric-label">Total Records</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 600, color: 'var(--t1)' }}>{stats.total}</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 600, color: 'var(--t1)' }}>{stats.total}</div>
           </div>
           <div>
             <div className="metric-label">OK</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 600, color: 'var(--green)' }}>{stats.ok}</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 600, color: 'var(--green)' }}>{stats.ok}</div>
           </div>
           <div>
             <div className="metric-label">Warning</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 600, color: 'var(--amber)' }}>{stats.warning}</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 600, color: 'var(--amber)' }}>{stats.warning}</div>
           </div>
           <div>
             <div className="metric-label">Critical</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 600, color: 'var(--red)' }}>{stats.critical}</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 600, color: 'var(--red)' }}>{stats.critical}</div>
           </div>
         </div>
       )}
@@ -136,7 +136,7 @@ export default function SentinelRegistry() {
                 gap: 4,
                 padding: '2px 8px',
                 borderRadius: 4,
-                fontSize: 14,
+                fontSize: 15,
                 fontFamily: 'var(--mono)',
                 background: 'var(--bg-card)',
                 border: `1px solid ${WORKFLOW_COLORS[wf] ?? 'var(--t3)'}`,
@@ -174,7 +174,7 @@ export default function SentinelRegistry() {
                           display: 'inline-block',
                           padding: '1px 6px',
                           borderRadius: 3,
-                          fontSize: 14,
+                          fontSize: 15,
                           fontFamily: 'var(--mono)',
                           color: WORKFLOW_COLORS[workflow] ?? 'var(--t3)',
                           border: `1px solid ${WORKFLOW_COLORS[workflow] ?? 'var(--t3)'}`,
@@ -184,7 +184,7 @@ export default function SentinelRegistry() {
                       </span>
                     </td>
                     <td>
-                      <span className={`badge ${riskColor(risk)}`} style={{ fontSize: 14 }}>
+                      <span className={`badge ${riskColor(risk)}`} style={{ fontSize: 15 }}>
                         {risk}
                       </span>
                     </td>

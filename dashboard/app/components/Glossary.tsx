@@ -164,7 +164,7 @@ export default function Glossary() {
           {GLOSSARY.map((section) => (
             <div key={section.title}>
               <div style={{
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: '0.6px',
@@ -186,14 +186,14 @@ export default function Glossary() {
                   >
                     <div style={{
                       fontFamily: 'var(--mono)',
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: 600,
                       color: 'var(--t1)',
                       marginBottom: 4,
                     }}>
                       {entry.term}
                     </div>
-                    <div style={{ fontSize: 14, color: 'var(--t2)', lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 15, color: 'var(--t2)', lineHeight: 1.5 }}>
                       {entry.definition}
                     </div>
                   </div>

@@ -1,3 +1,35 @@
+@font-face {
+  font-family: 'TASA Orbiter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/tasaorbiter/v2/3XF4Erw3860rsdSUVZx78hPcTvQoDGHxaFGfVH4C8pw.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'TASA Orbiter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/tasaorbiter/v2/3XF4Erw3860rsdSUVZx78hPcTvQoDGHxaFGfVEwC8pw.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'TASA Orbiter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/tasaorbiter/v2/3XF4Erw3860rsdSUVZx78hPcTvQoDGHxaFGfVKAF8pw.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'TASA Orbiter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/tasaorbiter/v2/3XF4Erw3860rsdSUVZx78hPcTvQoDGHxaFGfVJkF8pw.ttf') format('truetype');
+}
+
 :root {
   /* ── Lighter dark palette ── */
   --bg:            #151519;
@@ -27,6 +59,7 @@
 
   --mono:          'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
   --sans:          var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  --display:       var(--font-display), 'TASA Orbiter', var(--sans);
 
   --r-sm:          4px;
   --r-md:          6px;
@@ -111,7 +144,7 @@ a:hover {
 /* ── Section headers ── */
 
 .section-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--t3);
   text-transform: uppercase;
@@ -120,6 +153,7 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-family: var(--display);
 }
 
 /* ── Grid layouts ── */
@@ -201,7 +235,7 @@ a:hover {
   gap: 4px;
   padding: 2px 8px;
   border-radius: 3px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   font-family: var(--mono);
   text-transform: uppercase;
@@ -237,20 +271,20 @@ a:hover {
 
 .metric-value {
   font-family: var(--mono);
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 600;
   color: var(--t1);
   line-height: 1.2;
 }
 .metric-label {
-  font-size: 13px;
+  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--t3);
   margin-bottom: 2px;
 }
 .metric-sub {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--t2);
   margin-top: 2px;
 }
@@ -260,11 +294,11 @@ a:hover {
 .compact-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 14px;
 }
 .compact-table th {
   text-align: left;
-  font-size: 13px;
+  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--t3);
@@ -277,7 +311,7 @@ a:hover {
   border-bottom: 1px solid var(--border);
   color: var(--t2);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14px;
 }
 .compact-table tr:last-child td {
   border-bottom: none;
@@ -287,7 +321,7 @@ a:hover {
 }
 .compact-table .mono {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* ── External link ── */
@@ -297,7 +331,7 @@ a:hover {
   align-items: center;
   gap: 3px;
   color: var(--cl-blue);
-  font-size: 13px;
+  font-size: 14px;
   transition: color 0.15s;
 }
 .ext-link:hover {
@@ -306,7 +340,7 @@ a:hover {
 }
 .ext-link::after {
   content: '↗';
-  font-size: 9px;
+  font-size: 10px;
   opacity: 0.6;
 }
 
@@ -317,7 +351,7 @@ a:hover {
   border-left: 2px solid var(--t3);
   padding: 10px 14px;
   border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--t2);
   line-height: 1.5;
   font-family: var(--mono);
@@ -346,19 +380,19 @@ a:hover {
   border-color: var(--border-bright);
 }
 .arch-node-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--t1);
   margin-bottom: 2px;
-  font-family: var(--mono);
+  font-family: var(--display);
 }
 .arch-node-desc {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--t3);
 }
 .arch-arrow {
   color: var(--t3);
-  font-size: 14px;
+  font-size: 15px;
   padding: 0 6px;
   opacity: 0.4;
 }
@@ -379,7 +413,7 @@ a:hover {
   text-align: center;
   padding: 24px 0;
   color: var(--t3);
-  font-size: 13px;
+  font-size: 14px;
   border-top: 1px solid var(--border);
 }
 .footer a {
@@ -440,7 +474,7 @@ a:hover {
   border-radius: 3px;
   background: rgba(91, 154, 255, 0.06);
   border: 1px solid rgba(91, 154, 255, 0.12);
-  font-size: 13px;
+  font-size: 14px;
   color: var(--cl-blue);
   font-weight: 500;
   font-family: var(--mono);
@@ -468,22 +502,23 @@ a:hover {
   text-align: center;
   padding: 24px;
   color: var(--t3);
-  font-size: 13px;
+  font-size: 14px;
   font-family: var(--mono);
 }
 
 /* ── Hero section ── */
 
 .hero-title {
-  font-size: 24px;
+  font-size: 25px;
   font-weight: 600;
   color: var(--t1);
   letter-spacing: -0.01em;
   margin-bottom: 4px;
+  font-family: var(--display);
 }
 
 .hero-subtitle {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--t3);
   max-width: 480px;
   margin: 0 auto 16px;
@@ -523,7 +558,7 @@ a:hover {
   border: 1px solid var(--border-bright);
   background: transparent;
   color: var(--t2);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;

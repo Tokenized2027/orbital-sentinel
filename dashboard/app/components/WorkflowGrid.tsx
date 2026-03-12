@@ -69,7 +69,7 @@ export default function WorkflowGrid({ workflows, labels, selected, onSelect }: 
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <span style={{ color: 'var(--cl-blue)', display: 'flex' }}>{ICONS[key]}</span>
-              <span style={{ fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--t3)', fontWeight: 500 }}>
+              <span style={{ fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--t3)', fontWeight: 500 }}>
                 {labels[key] ?? key}
               </span>
               <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -86,15 +86,15 @@ export default function WorkflowGrid({ workflows, labels, selected, onSelect }: 
             </div>
             {km && (
               <div style={{ marginBottom: 6 }}>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 600, color: 'var(--t1)' }}>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 21, fontWeight: 600, color: 'var(--t1)' }}>
                   {km.value}
                 </div>
                 {km.label && (
-                  <div style={{ fontSize: 14, color: 'var(--t2)', marginTop: 2 }}>{km.label}</div>
+                  <div style={{ fontSize: 15, color: 'var(--t2)', marginTop: 2 }}>{km.label}</div>
                 )}
               </div>
             )}
-            <div style={{ fontSize: 14, color: wf.stale ? 'var(--amber)' : 'var(--t3)', marginBottom: CRE_CAPS[key] ? 6 : 0 }}>
+            <div style={{ fontSize: 15, color: wf.stale ? 'var(--amber)' : 'var(--t3)', marginBottom: CRE_CAPS[key] ? 6 : 0 }}>
               {wf.stale ? 'stale' : wf.generatedAt ? timeAgoShort(wf.generatedAt) : '—'}
             </div>
             {CRE_CAPS[key] && (
@@ -103,7 +103,7 @@ export default function WorkflowGrid({ workflows, labels, selected, onSelect }: 
                   <span
                     key={cap}
                     style={{
-                      fontSize: 14,
+                      fontSize: 15,
                       padding: '1px 5px',
                       borderRadius: 3,
                       color: 'var(--t3)',

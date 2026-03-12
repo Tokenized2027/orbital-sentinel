@@ -76,13 +76,13 @@ export default function GenericDetail({ workflow, label }: { workflow: Workflow;
           <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', marginBottom: 16, padding: '12px 16px', background: 'rgba(79,212,229,0.06)', borderRadius: 8, border: '1px solid rgba(79,212,229,0.15)' }}>
             <div>
               <div className="metric-label">Supply APY</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: '#4FD4E5' }}>{supplyApy.toFixed(2)}%</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 21, fontWeight: 700, color: '#4FD4E5' }}>{supplyApy.toFixed(2)}%</div>
             </div>
             <div>
               <div className="metric-label">Borrow APY</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--t1)' }}>{borrowApy.toFixed(2)}%</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 21, fontWeight: 700, color: 'var(--t1)' }}>{borrowApy.toFixed(2)}%</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', fontSize: 13, color: 'var(--t3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', fontSize: 14, color: 'var(--t3)' }}>
               From on-chain IRM
             </div>
           </div>
@@ -91,22 +91,22 @@ export default function GenericDetail({ workflow, label }: { workflow: Workflow;
         {/* Utilization bar */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 14, color: 'var(--t2)' }}>Utilization</span>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'var(--t1)' }}>{(util * 100).toFixed(1)}%</span>
+            <span style={{ fontSize: 15, color: 'var(--t2)' }}>Utilization</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 15, color: 'var(--t1)' }}>{(util * 100).toFixed(1)}%</span>
           </div>
           <ProgressBar pct={util * 100} risk={utilRisk} />
         </div>
 
         {/* Contract addresses */}
         {meta && (
-          <div style={{ marginTop: 16, fontSize: 14, color: 'var(--t3)' }}>
-            Morpho: <span style={{ fontFamily: 'var(--mono)', fontSize: 14 }}>{String(meta.morphoAddress ?? '').slice(0, 10)}...</span>
+          <div style={{ marginTop: 16, fontSize: 15, color: 'var(--t3)' }}>
+            Morpho: <span style={{ fontFamily: 'var(--mono)', fontSize: 15 }}>{String(meta.morphoAddress ?? '').slice(0, 10)}...</span>
             {' · '}
-            Vault: <span style={{ fontFamily: 'var(--mono)', fontSize: 14 }}>{String(meta.vaultAddress ?? '').slice(0, 10)}...</span>
+            Vault: <span style={{ fontFamily: 'var(--mono)', fontSize: 15 }}>{String(meta.vaultAddress ?? '').slice(0, 10)}...</span>
             {apyData?.irmAddress ? (
               <>
                 {' · '}
-                IRM: <span style={{ fontFamily: 'var(--mono)', fontSize: 14 }}>{String(apyData.irmAddress).slice(0, 10)}...</span>
+                IRM: <span style={{ fontFamily: 'var(--mono)', fontSize: 15 }}>{String(apyData.irmAddress).slice(0, 10)}...</span>
               </>
             ) : null}
           </div>
@@ -154,7 +154,7 @@ export default function GenericDetail({ workflow, label }: { workflow: Workflow;
         </div>
 
         {/* Breakdown by group */}
-        <div style={{ fontSize: 14, color: 'var(--t2)' }}>
+        <div style={{ fontSize: 15, color: 'var(--t2)' }}>
           {Object.entries(groups)
             .sort((a, b) => b[1].sdl - a[1].sdl)
             .map(([group, info]) => (
