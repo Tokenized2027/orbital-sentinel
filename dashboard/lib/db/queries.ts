@@ -24,11 +24,14 @@ function mapRecord(r: RawRecord) {
 }
 
 export function createQueries(db: NodePgDatabase) {
+  const currentRegistry = '0x35EFB15A46Fa63262dA1c4D8DE02502Dd8b6E3a5';
+
   return {
     async getSentinelRecords(limit = 30) {
       const rows = await db.execute(sql`
         SELECT protocol_id, snapshot_hash, risk_level, block_timestamp, block_number, tx_hash, recorder
         FROM sentinel_records
+        WHERE LOWER(COALESCE(registry_address, '')) = LOWER(${currentRegistry})
         ORDER BY block_timestamp DESC
         LIMIT ${limit}
       `);
@@ -43,6 +46,7 @@ export function createQueries(db: NodePgDatabase) {
           COUNT(*) FILTER (WHERE risk_level LIKE '%:warning')::int AS warning,
           COUNT(*) FILTER (WHERE risk_level LIKE '%:critical')::int AS critical
         FROM sentinel_records
+        WHERE LOWER(COALESCE(registry_address, '')) = LOWER(${currentRegistry})
       `);
       return (rows.rows[0] as { total: number; ok: number; warning: number; critical: number }) ?? { total: 0, ok: 0, warning: 0, critical: 0 };
     },
@@ -51,6 +55,7 @@ export function createQueries(db: NodePgDatabase) {
       const rows = await db.execute(sql`
         SELECT protocol_id, snapshot_hash, risk_level, block_timestamp, block_number, tx_hash, recorder
         FROM sentinel_records
+        WHERE LOWER(COALESCE(registry_address, '')) = LOWER(${currentRegistry})
         ORDER BY block_timestamp DESC
         LIMIT 1
       `);
@@ -65,6 +70,7 @@ export function createQueries(db: NodePgDatabase) {
           COUNT(*)::int AS count
         FROM sentinel_records
         WHERE risk_level LIKE '%:%'
+          AND LOWER(COALESCE(registry_address, '')) = LOWER(${currentRegistry})
         GROUP BY workflow
         ORDER BY count DESC
       `);

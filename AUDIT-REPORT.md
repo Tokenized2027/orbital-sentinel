@@ -192,7 +192,7 @@ Added during the Ownable2Step + RiskLevelTooLong upgrade to verify the new secur
 | `test_ownershipTransfer_newOwnerCanRecord` | PASS | Full two-step ownership transfer flow: transfer → accept → record |
 | `testFuzz_deepAudit_recordConsistency` | PASS (10,000 runs) | Fuzz: arbitrary hashes and risk levels store and retrieve consistently |
 
-**Total across all test files:** 31 tests (17 unit + 7 fuzz + 7 deep audit). 80,000 fuzz iterations. 0 failures.
+**Total across all test files:** 32 tests (18 unit + 7 fuzz + 7 deep audit). 80,000 fuzz iterations. 0 failures.
 
 ---
 
@@ -218,7 +218,7 @@ Added during the Ownable2Step + RiskLevelTooLong upgrade to verify the new secur
 | `test_recordHealth_differentRiskLevels` | PASS | All three risk levels stored correctly |
 | `test_records_accessByIndex` | PASS | Index-based access returns correct data |
 
-**Total:** 17 unit tests. 0 failures.
+**Total:** 18 unit tests. 0 failures.
 
 ---
 
@@ -244,7 +244,7 @@ Added during the Ownable2Step + RiskLevelTooLong upgrade to verify the new secur
 ## Recommendations
 
 ### Pre-Deployment (Complete)
-1. ~~**Redeploy to Sepolia**~~ — **DONE.** Redeployed to `0x5D15952f672fCAaf2492591668A869E26B815aE3` with all fixes active. All 30 downstream references updated (scripts, configs, dashboard, docs).
+1. ~~**Redeploy to Sepolia**~~ — **DONE.** Redeployed on March 12, 2026 to `0x35EFB15A46Fa63262dA1c4D8DE02502Dd8b6E3a5` with all fixes active. Downstream scripts, configs, dashboard files, and docs were updated to the new registry.
 
 ### For Production Hardening (Recommended)
 2. **Use an enum for risk levels** — Replace `string riskLevel` with `enum RiskLevel` to save gas. (Note: the 256-byte max length guard now bounds the string, reducing the urgency of this change.)
@@ -258,7 +258,7 @@ Added during the Ownable2Step + RiskLevelTooLong upgrade to verify the new secur
 | File | Change |
 |------|--------|
 | `contracts/SentinelRegistry.sol` | Added owner + onlyOwner, duplicate prevention, riskLevel validation, pinned pragma |
-| `contracts/test/SentinelRegistry.t.sol` | Updated with 17 unit tests covering access control, dedup, validation |
+| `contracts/test/SentinelRegistry.t.sol` | Updated with 18 unit tests covering access control, dedup, validation |
 | `contracts/test/SentinelRegistry.Fuzz.t.sol` | Updated with 7 fuzz test functions covering all new guards |
 | `contracts/test/DeepAudit.t.sol` | 7 deep audit tests: Ownable2Step blast radius, O(1) access, gas ceilings, RiskLevelTooLong, ownership transfer flow, fuzz consistency |
 
@@ -370,7 +370,7 @@ None of the enhanced attack scenarios (#14–25) are meaningfully applicable to 
 | 24 | Liquidation cascade | NO | No liquidations |
 | 25 | Inflation attack | NO | No shares/deposits |
 
-**No new test files required for enhanced attack scenarios.** The existing 31 tests (17 unit + 7 fuzz + 7 deep audit) provide comprehensive coverage for the contract's actual attack surface.
+**No new test files required for enhanced attack scenarios.** The existing 32 tests (18 unit + 7 fuzz + 7 deep audit) provide comprehensive coverage for the contract's actual attack surface.
 
 ---
 
@@ -412,8 +412,8 @@ None of the enhanced attack scenarios (#14–25) are meaningfully applicable to 
 
 Four findings were fixed during this audit: access control (F-1), duplicate prevention (F-3), pragma pinning (F-4), and input validation (F-5). The remaining findings are Info-level design tradeoffs acceptable for a hackathon demo on Sepolia.
 
-The contract is now significantly hardened — only the owner can write records, duplicates are rejected on-chain, and empty inputs are blocked. The audited version is deployed on Sepolia at `0x5D15952f672fCAaf2492591668A869E26B815aE3` with all fixes active.
+The contract is now significantly hardened — only the owner can write records, duplicates are rejected on-chain, and empty inputs are blocked. The audited version is deployed on Sepolia at `0x35EFB15A46Fa63262dA1c4D8DE02502Dd8b6E3a5` with all fixes active.
 
 **Enhanced methodology assessment (2026-03-01):** No new vulnerabilities found. The contract's minimal attack surface (no tokens, no ETH, no external calls, no oracle reads) renders all 12 enhanced attack scenarios inapplicable. The primary risk remains owner key compromise, mitigable via multi-sig ownership for production.
 
-**31 tests passing (17 unit + 7 fuzz + 7 deep audit). 80,000 fuzz iterations. 0 failures.**
+**32 tests passing (18 unit + 7 fuzz + 7 deep audit). 80,000 fuzz iterations. 0 failures.**
