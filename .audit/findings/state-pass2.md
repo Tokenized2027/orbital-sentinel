@@ -133,7 +133,7 @@ From Pass 1, the key suspects to investigate further:
 ### S-ST-04: Private Key Exposed in .env Comment
 File: `./.env`, line 7
 The .env file contains a comment: "Rotated 2026-03-03 (old key was exposed in public repo)"
-The CURRENT key is: `***REDACTED-COMPROMISED-KEY***`
+The CURRENT key is: `[REDACTED — rotated 2026-03-13 after compromise]`
 While .env is gitignored, this key is the Sepolia deployer. If this file is ever accidentally committed or leaked, the registry owner is compromised.
 
 ### S-ST-05: CRE_ETH_PRIVATE_KEY is same key in different format

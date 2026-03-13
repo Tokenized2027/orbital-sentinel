@@ -376,7 +376,7 @@ Before any commit:
 - Workflow ID: `005f8a760f4b41e09d4646bfeb7ae17d00140408fc9e7d89ae10d570ff62fe96`
 - Workflow Registry: `0x4Ac54353FA4Fa961AfcC5ec4B118596d3305E7e5` (Ethereum mainnet)
 - Deploy TX: `0x3ab827b80223329dceb3875c0f7b04606f14c1e44fd05be9ea5b48bbac86aa71`
-- Owner: `0xB250152756E2d6E3bD237a6875aE5E26e3D3877b`
+- Owner: `0x703Ca5d857e5eF57B445a0810741b45C80FAe3a8`
 - AI Endpoint: `https://sentinel-ai.schuna.co.il/api/cre/analyze-arb` (auth: `X-CRE-Secret` header)
 - DON Family: `zone-a`
 - Estimated AI cost: ~$0.004/call (GPT-5.3-Codex), ~$0.14 total through March 8
