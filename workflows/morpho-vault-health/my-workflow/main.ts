@@ -1,11 +1,13 @@
 import {
 	bytesToHex,
 	cre,
+	consensusIdenticalAggregation,
 	encodeCallMsg,
 	getNetwork,
 	Runner,
 	type Runtime,
 	type CronPayload,
+	type HTTPSendRequester,
 } from '@chainlink/cre-sdk';
 import { encodeFunctionData, decodeFunctionResult, formatUnits, keccak256, encodeAbiParameters, parseAbiParameters, type Address, zeroAddress } from 'viem';
 import { z } from 'zod';
@@ -47,11 +49,20 @@ type MorphoMarketResult = {
 	utilization: number;
 };
 
+type IncentiveData = {
+	totalNetApy: number;      // base + all incentives
+	baseApy: number;          // base lending yield only
+	sdlIncentiveApy: number;  // SDL reward component
+	wstlinkIncentiveApy: number; // wstLINK reward component
+	netBorrowApy: number;     // gross borrow minus incentive rebate
+};
+
 type ApyResult = {
 	borrowRatePerSecond: string;
 	borrowApy: number;
 	supplyApy: number;
 	irmAddress: string;
+	incentives?: IncentiveData;
 };
 
 type VaultResult = {
@@ -300,6 +311,59 @@ function readBorrowRate(
 	};
 }
 
+// ---------- Incentive Data (Morpho GraphQL API) ----------
+
+const MORPHO_GQL_URL = 'https://api.morpho.org/graphql';
+const MORPHO_VAULT_ADDR = '0x610f5B68bD1EED68Af649A3fD3DC2CAa1ee4Ae7E';
+
+type MorphoGqlResponse = {
+	data?: {
+		vaultV2ByAddress?: {
+			avgNetApy?: number;
+			avgNetApyExcludingRewards?: number;
+			rewards?: Array<{ supplyApr?: number; asset?: { symbol?: string } }>;
+		};
+	};
+};
+
+function fetchMorphoIncentives(
+	sendRequester: HTTPSendRequester,
+	_args: Record<string, never>,
+): MorphoGqlResponse {
+	const query = `{ vaultV2ByAddress(address: "${MORPHO_VAULT_ADDR}", chainId: 1) { avgNetApy avgNetApyExcludingRewards rewards { supplyApr asset { symbol } } } }`;
+	const resp = sendRequester
+		.sendRequest({
+			method: 'POST',
+			url: MORPHO_GQL_URL,
+			headers: { 'Content-Type': 'application/json' },
+			body: Buffer.from(JSON.stringify({ query })).toString('base64'),
+		})
+		.result();
+	return JSON.parse(Buffer.from(resp.body).toString('utf-8'));
+}
+
+function parseIncentives(raw: MorphoGqlResponse, grossBorrowApy: number): IncentiveData {
+	const vault = raw?.data?.vaultV2ByAddress;
+	const totalNetApy = (vault?.avgNetApy ?? 0) * 100;
+	const baseApy = (vault?.avgNetApyExcludingRewards ?? 0) * 100;
+	const rewards = vault?.rewards ?? [];
+
+	let sdlIncentiveApy = 0;
+	let wstlinkIncentiveApy = 0;
+	for (const r of rewards) {
+		const sym = (r.asset?.symbol ?? '').toUpperCase();
+		const apr = (r.supplyApr ?? 0) * 100;
+		if (sym === 'SDL') sdlIncentiveApy = apr;
+		else if (sym === 'WSTLINK' || sym === 'STLINK') wstlinkIncentiveApy = apr;
+	}
+
+	// Net borrow = gross borrow minus total incentive rebate
+	const totalIncentive = sdlIncentiveApy + wstlinkIncentiveApy;
+	const netBorrowApy = grossBorrowApy - totalIncentive;
+
+	return { totalNetApy, baseApy, sdlIncentiveApy, wstlinkIncentiveApy, netBorrowApy };
+}
+
 // ---------- Handler ----------
 
 function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
@@ -316,6 +380,25 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 	} catch (e) {
 		runtime.log(`APY read failed (degraded): ${e instanceof Error ? e.message : String(e)}`);
 		apy = { borrowRatePerSecond: '0', borrowApy: 0, supplyApy: 0, irmAddress: '' };
+	}
+
+	// Fetch incentive data from Morpho GraphQL API
+	try {
+		const http = new cre.capabilities.HTTPClient();
+		const gqlResult = http
+			.sendRequest(
+				runtime,
+				fetchMorphoIncentives,
+				consensusIdenticalAggregation<MorphoGqlResponse>(),
+			)({})
+			.result();
+		const incentives = parseIncentives(gqlResult, apy.borrowApy);
+		apy.incentives = incentives;
+		runtime.log(
+			`Incentives | totalNetAPY=${incentives.totalNetApy.toFixed(2)}% base=${incentives.baseApy.toFixed(2)}% SDL=${incentives.sdlIncentiveApy.toFixed(2)}% wstLINK=${incentives.wstlinkIncentiveApy.toFixed(2)}% netBorrow=${incentives.netBorrowApy.toFixed(2)}%`,
+		);
+	} catch (e) {
+		runtime.log(`Incentive fetch failed (degraded, using base APY only): ${e instanceof Error ? e.message : String(e)}`);
 	}
 
 	const outputPayload: OutputPayload = {

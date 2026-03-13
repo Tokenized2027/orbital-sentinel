@@ -67,22 +67,26 @@ from pathlib import Path
 
 
 def parse_output(text: str) -> dict | None:
-    marker_matches = re.findall(r"MORPHO_OUTPUT_JSON=(\{.*\})", text)
-    if marker_matches:
+    # Try marker-based extraction (handles MORPHO_OUTPUT_JSON and MORPHO_CRE_OUTPUT_JSON)
+    for line in text.splitlines():
+        for marker in ("MORPHO_CRE_OUTPUT_JSON=", "MORPHO_OUTPUT_JSON="):
+            idx = line.find(marker)
+            if idx >= 0:
+                json_str = line[idx + len(marker):]
+                try:
+                    return json.loads(json_str)
+                except Exception:
+                    pass
+
+    # Fallback: parse the pretty-printed Workflow Simulation Result
+    m = re.search(r'Workflow Simulation Result:\s*"(.*)"', text, re.DOTALL)
+    if m:
         try:
-            return json.loads(marker_matches[-1])
+            unescaped = m.group(1).replace("\\n", "\n").replace('\\"', '"').replace("\\t", "\t")
+            return json.loads(unescaped)
         except Exception:
             pass
 
-    # Fallback: find JSON object with morphoMarket key
-    decoder = json.JSONDecoder()
-    for idx in range(len(text)):
-        try:
-            obj, _ = decoder.raw_decode(text[idx:])
-        except Exception:
-            continue
-        if isinstance(obj, dict) and "morphoMarket" in obj:
-            return obj
     return None
 
 
