@@ -126,9 +126,9 @@ Coverage includes:
 ### Not Yet Done
 
 - no live mainnet deployment was performed
-- no live keeper rehearsal was completed on BOSGAME
+- no live keeper rehearsal was completed on the dev server
 
-The BOSGAME rehearsal is currently blocked by the simple truth: there is no deployed vault address configured locally yet.
+The dev server rehearsal is currently blocked by the simple truth: there is no deployed vault address configured locally yet.
 
 ## v1 Release Boundary
 

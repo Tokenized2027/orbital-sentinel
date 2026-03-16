@@ -26,8 +26,8 @@
 1. SPRINT-025 (CRITICAL, Mar 6-8): Final submission
 
 ## Hard Blockers
-- Demo video not recorded yet (Avi task)
-- Submission form not submitted (Avi task)
+- Demo video not recorded yet (PM task)
+- Submission form not submitted (PM task)
 
 ## Key Files
 - CHAINLINK.md

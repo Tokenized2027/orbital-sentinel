@@ -20,7 +20,7 @@ module.exports = {
       name: 'sentinel-dashboard',
       cwd: __dirname + '/dashboard',
       script: 'node_modules/.bin/next',
-      args: 'start -p 3016',
+      args: 'start -p 3016 --hostname 127.0.0.1',
       autorestart: true,
       max_restarts: 10,
       min_uptime: '10s',
@@ -30,12 +30,13 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: '3016',
+        HOST: '127.0.0.1',
       },
     },
     {
       name: 'sentinel-tunnel',
       script: '/usr/local/bin/cloudflared',
-      args: 'tunnel --config /home/avi/.cloudflared/sentinel-dashboard-tunnel.yml run',
+      args: 'tunnel --config ' + (process.env.HOME || '/home/' + require('os').userInfo().username) + '/.cloudflared/sentinel-dashboard-tunnel.yml run',
       autorestart: true,
       max_restarts: 10,
       min_uptime: '10s',
@@ -45,7 +46,7 @@ module.exports = {
     {
       name: 'sentinel-ai-tunnel',
       script: '/usr/local/bin/cloudflared',
-      args: 'tunnel --config /home/avi/.cloudflared/sentinel-ai-tunnel.yml run',
+      args: 'tunnel --config ' + (process.env.HOME || '/home/' + require('os').userInfo().username) + '/.cloudflared/sentinel-ai-tunnel.yml run',
       autorestart: true,
       max_restarts: 10,
       min_uptime: '10s',

@@ -1,7 +1,7 @@
 <!-- ECOSYSTEM METADATA
 repo: orbital-sentinel
 language: TypeScript, Solidity, Python
-deploy_target: Sepolia (contracts), BOSGAME (dashboard + scripts), CRE Runtime (workflows)
+deploy_target: Sepolia (contracts), dev server (dashboard + scripts), CRE Runtime (workflows)
 production_status: hackathon-demo (LAA workflow live on CRE mainnet)
 ci: GitHub Actions (contracts + dashboard + workflows + format)
 health_check: dashboard at :3016, SentinelRegistry on Sepolia
@@ -37,7 +37,7 @@ Autonomous DeFi health monitoring platform built on Chainlink CRE for the Chainl
 
 ## Sprint Management
 
-All sprints are tracked in a shared PostgreSQL database on BOSGAME. Use the CLI or `/sprint` command, never raw SQL INSERTs.
+All sprints are tracked in a shared PostgreSQL database on the dev server. Use the CLI or `/sprint` command, never raw SQL INSERTs.
 
 **CLI invocation:**
 ```bash

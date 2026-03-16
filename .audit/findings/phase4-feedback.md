@@ -38,7 +38,7 @@
 5. On-chain, two records exist for the same time period with different data
 6. The bridge-written record has false data but appears legitimate
 
-**Mitigation**: The bridge reads from a directory that is only written to by the orchestration scripts (which are triggered by CRE workflow simulations). To exploit this, the attacker needs filesystem access to BOSGAME. If they have that, they already have the .env with the private key. So this is NOT an independent attack vector -- it's subsumed by the private key compromise scenario.
+**Mitigation**: The bridge reads from a directory that is only written to by the orchestration scripts (which are triggered by CRE workflow simulations). To exploit this, the attacker needs filesystem access to the dev server. If they have that, they already have the .env with the private key. So this is NOT an independent attack vector -- it's subsumed by the private key compromise scenario.
 
 **Verdict**: S-BR-01 downgraded to LOW (requires already-compromised host).
 

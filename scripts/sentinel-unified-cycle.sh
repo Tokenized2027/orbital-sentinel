@@ -10,7 +10,7 @@
 # ──────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-export HOME="/home/avi"
+export HOME="${HOME:-/home/$(whoami)}"
 export PATH="${HOME}/.local/bin:${HOME}/.bun/bin:${PATH}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
