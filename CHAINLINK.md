@@ -180,6 +180,21 @@ Each workflow encodes domain-specific metrics:
 - **ccip**: `okLanes`, `totalLanes`
 - **laa**: `premiumBps`, `linkBalance`
 
+### Canonical Hash Encoding Per Workflow
+
+The following table documents the exact `encodeAbiParameters` schema used by each workflow. These are the **canonical encodings** — any change here breaks on-chain proof verification. The bridge script (`scripts/record-all-snapshots.mjs`) must match these exactly.
+
+| Workflow | ABI Parameters | Precision Notes |
+|----------|---------------|-----------------|
+| `laa` | `uint256 ts, string wf, string signal, uint256 premium, uint256 linkBal` | `premium` = `premiumBps` raw; `linkBal` = raw wei |
+| `treasury` | `uint256 ts, string wf, string risk, uint256 communityStaked, uint256 communityCap, uint256 communityFillPct, uint256 operatorStaked, uint256 operatorCap, uint256 operatorFillPct, uint256 queueLink, uint256 vaultBalance, uint256 runwayDays` | fillPct × 100 (2 decimal places); runwayDays × 100 |
+| `feeds` | `uint256 ts, string wf, string risk, uint256 ratio, uint256 depegBps, uint256 linkUsd, uint256 ethUsd` | ratio × 1e6; depegBps × 100; prices × 1e8 (Chainlink feed decimals) |
+| `governance` | `uint256 ts, string wf, string risk, uint256 active, uint256 urgent, uint256 slurpNums, uint256 slurpYesPcts, uint256 slurpVotes, uint256 slurpOutcomes` | SLURP data packed: 7 × 16-bit fields per uint256 |
+| `morpho` | `uint256 ts, string wf, string risk, uint256 util, uint256 totalSupply, uint256 totalBorrow, uint256 sharePrice, uint256 vaultAssets, uint256 borrowApyBps, uint256 supplyApyBps` | util × 1e6; supply/borrow truncated to whole tokens (÷ 1e18); APY × 100 = basis points |
+| `curve` | `uint256 ts, string wf, string risk, uint256 linkBalance, uint256 stlinkBalance, uint256 imbalancePct, uint256 virtualPrice, uint256 tvlUsd, uint256 linkUsd, uint256 gaugeStaked, uint256 gaugeRewardCount, uint256 totalRewardRate` | imbalancePct × 100; virtualPrice × 1e6; linkUsd × 1e8; gaugeStaked ÷ 1e18 |
+| `ccip` | `uint256 ts, string wf, string risk, uint256 okLanes, uint256 totalLanes` | raw counts |
+| `composite` | `uint256 ts, string wf, string risk, uint256 premiumBps, uint256 linkUsd, uint256 communityFillPct, uint256 queueLink, uint256 morphoUtil, uint256 ccipOk, uint256 curveImbalance, uint256 confidence` | linkUsd × 1e8; communityFillPct × 100; morphoUtil × 1e6; curveImbalance × 100; confidence × 100 |
+
 This creates an immutable, verifiable audit trail: every CRE workflow run → one on-chain record per workflow type.
 
 ---
