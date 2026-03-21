@@ -20,6 +20,12 @@ import { sepolia } from 'viem/chains';
 // Load .env from repo root
 config({ path: new URL('../.env', import.meta.url).pathname });
 
+// ── Single-EOA Warning ────────────────────────────────────────────────
+if (!process.env.MULTISIG_ENABLED) {
+  console.warn('⚠️  WARNING: Running with single EOA. Use multisig for production.');
+  console.warn('⚠️  Set MULTISIG_ENABLED=true after migrating to Gnosis Safe.');
+}
+
 // --- Config ---
 const REGISTRY_ADDRESS = '0x35EFB15A46Fa63262dA1c4D8DE02502Dd8b6E3a5';
 const DEPLOYER_KEY = process.env.PRIVATE_KEY;

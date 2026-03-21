@@ -585,20 +585,30 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 		try {
 			const sepoliaClient = getEvmClient(runtime.config.registry.chainName, true);
 
+			// Deterministic override: AI can escalate risk but NEVER de-escalate a deterministic critical.
+			// e.g. if on-chain data says "critical", AI cannot downgrade it to "ok" or "warning".
+			const RISK_LEVELS: Record<string, number> = { 'ok': 0, 'info': 1, 'warning': 2, 'critical': 3 };
+			const deterministicLevel = RISK_LEVELS[overallRisk] ?? 0;
+			const aiLevel = RISK_LEVELS[aiResult?.risk_label?.toLowerCase() ?? ''] ?? 0;
+			const finalRisk = deterministicLevel > aiLevel ? overallRisk : (aiResult?.risk_label ?? overallRisk);
+			if (finalRisk !== (aiResult?.risk_label ?? overallRisk)) {
+				runtime.log(`Deterministic override: AI risk_label="${aiResult?.risk_label}" overridden by deterministic "${overallRisk}"`);
+			}
+
 			// Compute snapshot hash: keccak256(abi.encode(timestamp_unix, overallRisk, assessment_snippet))
 			const timestampUnix = BigInt(Math.floor(Date.now() / 1000));
 			const assessmentSnippet = aiResult?.assessment.slice(0, 32) ?? overallRisk;
 			const snapshotHash = keccak256(
 				encodeAbiParameters(
 					parseAbiParameters('uint256 ts, string risk, string assessment'),
-					[timestampUnix, overallRisk, assessmentSnippet],
+					[timestampUnix, finalRisk, assessmentSnippet],
 				),
 			);
 
 			const writeCallData = encodeFunctionData({
 				abi: SentinelRegistry,
 				functionName: 'recordHealth',
-				args: [snapshotHash, `treasury:${overallRisk}`],
+				args: [snapshotHash, `treasury:${finalRisk}`],
 			});
 
 			const writeTxResp = sepoliaClient

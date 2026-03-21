@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import { homedir } from "os";
 
 export const revalidate = 60;
 export const dynamic = 'force-dynamic';
@@ -27,10 +28,16 @@ const WORKFLOW_FILES: Record<WorkflowKey, { file: string; label: string }> = {
 };
 
 const DEFAULT_DATA_DIR = process.env.CRE_DATA_DIR
-  || "$HOME/projects/orbital/clients/stake-link/sdl/orchestration/intelligence/data";
+  || path.join(homedir(), 'projects/orbital/clients/stake-link/sdl/orchestration/intelligence/data');
 
 function resolvePath(wf: { file: string }): string {
-  return path.resolve(DEFAULT_DATA_DIR, wf.file);
+  const dataDir = DEFAULT_DATA_DIR;
+  const resolvedPath = path.resolve(dataDir, wf.file);
+  // Path traversal guard: ensure the resolved path stays within the data dir
+  if (!resolvedPath.startsWith(path.resolve(dataDir))) {
+    throw new Error(`Invalid path: ${wf.file}`);
+  }
+  return resolvedPath;
 }
 
 function computeAge(generatedAt: string | null): { ageMinutes: number | null; stale: boolean } {
