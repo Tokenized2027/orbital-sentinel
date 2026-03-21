@@ -22,6 +22,8 @@ contract SentinelRegistryFuzzTest is Test {
     ) public {
         // Skip empty risk levels (would revert)
         if (bytes(riskLevel).length == 0) return;
+        // Enforce the 256-byte max length that the contract validates (RiskLevelTooLong)
+        vm.assume(bytes(riskLevel).length <= 256);
 
         uint256 countBefore = registry.count();
 

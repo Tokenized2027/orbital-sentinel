@@ -299,9 +299,14 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 	const feedsByName = new Map(results.map((r) => [r.name, toNumberOrUndefined(r.scaled)]));
 	const ratio = internalData.stlinkLinkPriceRatio;
 	const depegBps = ratio != null ? Math.abs(ratio - 1) * 10000 : undefined;
+	const hasStaleFeeds = results.some((r) => r.stale);
 	// Thresholds: OK up to 100 bps, warning 100-300, critical only for genuine depeg (>300 bps)
-	const depegStatus: MonitorResult['depegStatus'] =
+	let depegStatus: MonitorResult['depegStatus'] =
 		depegBps == null ? 'unknown' : depegBps <= 100 ? 'healthy' : depegBps <= 300 ? 'warning' : 'critical';
+	// L-1: Stale feeds must not be silently reported as healthy — escalate to at least 'warning'
+	if (hasStaleFeeds && depegStatus === 'healthy') {
+		depegStatus = 'warning';
+	}
 
 	const outputPayload: OutputPayload = {
 		timestamp: new Date().toISOString(),
@@ -326,8 +331,8 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 			const sepoliaClient = new cre.capabilities.EVMClient(net.chainSelector.selector);
 
 			const timestampUnix = BigInt(Math.floor(Date.now() / 1000));
-			const hasStaleFeeds = results.some((r) => r.stale);
-			const risk = depegStatus === 'critical' ? 'critical' : hasStaleFeeds ? 'warning' : depegStatus === 'healthy' ? 'ok' : depegStatus;
+			// depegStatus already accounts for stale feeds (escalated to 'warning' above)
+			const risk = depegStatus === 'critical' ? 'critical' : depegStatus === 'healthy' ? 'ok' : depegStatus;
 			const ratioScaled = BigInt(Math.round((ratio ?? 0) * 1e6));
 			const bpsScaled = BigInt(Math.round((depegBps ?? 0) * 100));
 			const snapshotHash = keccak256(
