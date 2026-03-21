@@ -120,6 +120,14 @@ type GovernanceOutputPayload = {
 const safeJsonStringify = (obj: unknown) =>
 	JSON.stringify(obj, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2);
 
+function sanitizeGovernanceText(text: string, maxLen = 500): string {
+	return text
+		.replace(/[\x00-\x1f]/g, '')
+		.replace(/---+/g, '-')
+		.replace(/ignore\s+(all\s+)?previous/gi, '[filtered]')
+		.slice(0, maxLen);
+}
+
 const SNAPSHOT_PROPOSALS_QUERY = `
 query Proposals($spaces: [String!]!) {
   proposals(
@@ -263,14 +271,14 @@ function onCron(runtime: Runtime<Config>, _payload: CronPayload): string {
 
 			return {
 				id: p.id,
-				title: p.title,
+				title: sanitizeGovernanceText(p.title, 200),
 				space: p.space.id,
 				state: p.state,
 				start: p.start,
 				end: p.end,
 				votes: p.votes,
 				scores_total: p.scores_total,
-				choices: p.choices,
+				choices: p.choices.map((c) => sanitizeGovernanceText(c, 100)),
 				scores: p.scores,
 				author: p.author,
 				hoursRemaining: hoursRemaining !== null ? Math.round(hoursRemaining * 100) / 100 : null,

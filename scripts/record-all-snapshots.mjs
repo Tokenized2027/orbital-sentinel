@@ -28,6 +28,12 @@ import { sepolia } from 'viem/chains';
 // Load .env from repo root
 config({ path: new URL('../.env', import.meta.url).pathname });
 
+// ── Single-EOA Warning ────────────────────────────────────────────────
+if (!process.env.MULTISIG_ENABLED) {
+  console.warn('⚠️  WARNING: Running with single EOA. Use multisig for production.');
+  console.warn('⚠️  Set MULTISIG_ENABLED=true after migrating to Gnosis Safe.');
+}
+
 // ── Constants ──────────────────────────────────────────────────────────
 
 const REGISTRY_ADDRESS = '0x35EFB15A46Fa63262dA1c4D8DE02502Dd8b6E3a5';
@@ -80,6 +86,8 @@ const WORKFLOWS = [
       return 'ok'; // 'wait' is normal
     },
     hashFields: (d) => {
+      // CANONICAL ENCODING for 'laa' workflow (see CHAINLINK.md § Canonical Hash Encoding Per Workflow)
+      // premium = premiumBps raw; linkBal = raw wei from poolState.linkBalance
       const ts = BigInt(Math.floor(new Date(d.generated_at_utc || d.metadata?.timestamp).getTime() / 1000));
       const signal = d.signal ?? 'wait';
       const premium = BigInt(d.premiumQuotes?.[0]?.premiumBps ?? 0);
@@ -423,6 +431,8 @@ async function main() {
       }
 
       state[wf.key] = generatedAt;
+      // L-8: Save state incrementally so progress is not lost if a later workflow fails
+      await saveState(state);
       successes++;
     } catch (err) {
       const msg = err.message || String(err);
