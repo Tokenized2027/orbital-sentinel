@@ -26,6 +26,7 @@ import json
 import logging
 import os
 import re
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -44,6 +45,24 @@ _CRE_SECRET = os.environ.get("CRE_ANALYZE_SECRET", "")
 if not _CRE_SECRET:
     logger.warning("CRE_ANALYZE_SECRET not set. All endpoints will reject requests until configured.")
 
+# ─── Per-tenant circuit breaker (MED: prevents one tenant from exhausting API budget) ───
+DAILY_API_CALL_LIMIT = int(os.environ.get("DAILY_API_CALL_LIMIT", "500"))
+_daily_api_calls_per_tenant: dict[str, int] = {}
+_circuit_reset_date_per_tenant: dict[str, str] = {}
+
+
+def _check_circuit_breaker(tenant_id: str = "default") -> bool:
+    """Per-tenant daily API call limit. Returns True if call is allowed, False if tripped."""
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    if _circuit_reset_date_per_tenant.get(tenant_id) != today:
+        _daily_api_calls_per_tenant[tenant_id] = 0
+        _circuit_reset_date_per_tenant[tenant_id] = today
+    _daily_api_calls_per_tenant[tenant_id] += 1
+    if _daily_api_calls_per_tenant[tenant_id] > DAILY_API_CALL_LIMIT:
+        logger.warning("Circuit breaker tripped for tenant=%s calls=%d", tenant_id, _daily_api_calls_per_tenant[tenant_id])
+        return False
+    return True
+
 
 def _check_auth() -> bool:
     """Timing-safe auth check. Returns True if authorized, False otherwise."""
@@ -53,13 +72,45 @@ def _check_auth() -> bool:
     return hmac.compare_digest(provided, _CRE_SECRET)
 
 
+# ─── Injection pattern constants ───
+_INJECTION_PATTERNS = [
+    (re.compile(r'ignore\s+(all\s+)?previous\s+instructions?', re.IGNORECASE), '[filtered]'),
+    (re.compile(r'you\s+are\s+now\s+', re.IGNORECASE), '[filtered] '),
+    (re.compile(r'new\s+instructions?\s*:', re.IGNORECASE), '[filtered]:'),
+    (re.compile(r'system\s*:\s*', re.IGNORECASE), '[filtered]: '),
+    (re.compile(r'<\s*/?\s*system\s*>', re.IGNORECASE), ''),
+    (re.compile(r'-{3,}', re.IGNORECASE), '---'),
+]
+
+
 def _sanitize_str(value: str, max_len: int = 500) -> str:
-    """Sanitize string inputs before prompt interpolation (F-B4 audit fix)."""
+    """Sanitize string inputs before prompt interpolation.
+
+    Strips control characters and defangs common prompt injection patterns.
+    Applied to all externally-sourced free-text fields that flow into LLM prompts.
+    """
     if not isinstance(value, str):
         return str(value)[:max_len]
-    # Strip control characters and known prompt injection patterns
+    # Strip control characters (keep newlines/tabs for readability)
     cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', value)
+    # Defang injection keywords
+    for pattern, replacement in _INJECTION_PATTERNS:
+        cleaned = pattern.sub(replacement, cleaned)
     return cleaned[:max_len]
+
+
+def _sanitize_agent_output(output: str) -> str:
+    """Sanitize LLM response text before it is persisted or passed downstream.
+
+    Removes potential system-prompt leaks and injection attempts that could
+    propagate through cross-workflow pipelines (HIGH: cross-agent pipeline fix).
+    """
+    # Remove leaked system prompt blocks
+    output = re.sub(r'<system>.*?</system>', '[redacted]', output, flags=re.DOTALL | re.IGNORECASE)
+    # Strip injection attempts targeting downstream consumers
+    for pattern, replacement in _INJECTION_PATTERNS:
+        output = pattern.sub(replacement, output)
+    return output
 
 _SYSTEM_PROMPT = """\
 You are Orbital Sentinel, an autonomous AI risk analyst for DeFi protocols built on Chainlink staking.
@@ -181,6 +232,10 @@ def analyze():
     if not _check_auth():
         return jsonify({"error": "unauthorized"}), 401
 
+    tenant_id = request.headers.get("X-Tenant-Id", "default")
+    if not _check_circuit_breaker(tenant_id):
+        return jsonify({"error": "daily API call limit reached"}), 429
+
     data = request.get_json(force=True, silent=True) or {}
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
@@ -196,7 +251,7 @@ def analyze():
             system=_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": _format_prompt(data)}],
         )
-        text = response.content[0].text.strip()
+        text = _sanitize_agent_output(response.content[0].text.strip())
         if text.startswith("```"):
             text = text.split("```")[1]
             if text.startswith("json"):
@@ -259,7 +314,7 @@ Rules:
 
 
 def _format_arb_prompt(data: dict) -> str:
-    signal = data.get("signal", "unknown")
+    signal = _sanitize_str(data.get("signal", "unknown"))
     pool = data.get("poolState", {})
     quotes = data.get("premiumQuotes", [])
     pp_status = data.get("priorityPoolStatus", -1)
@@ -268,19 +323,25 @@ def _format_arb_prompt(data: dict) -> str:
 
     pp_status_str = {0: "OPEN", 1: "DRAINING", 2: "CLOSED"}.get(pp_status, f"UNKNOWN({pp_status})")
 
+    link_balance = _sanitize_str(str(pool.get('linkBalanceFormatted', '?')))
+    stlink_balance = _sanitize_str(str(pool.get('stLINKBalanceFormatted', '?')))
+
     lines = [
         f"Deterministic signal: {signal.upper()}",
         "",
         "## Curve Pool State",
-        f"LINK balance: {pool.get('linkBalanceFormatted', '?')}",
-        f"stLINK balance: {pool.get('stLINKBalanceFormatted', '?')}",
+        f"LINK balance: {link_balance}",
+        f"stLINK balance: {stlink_balance}",
         f"Imbalance ratio (LINK/stLINK): {pool.get('imbalanceRatio', 0):.4f}",
         "",
-        "## Premium Quotes (stLINK → LINK)",
+        "## Premium Quotes (stLINK \u2192 LINK)",
     ]
 
     for q in quotes:
-        lines.append(f"  {q.get('amountInFormatted', '?')} stLINK → {q.get('amountOutFormatted', '?')} LINK ({q.get('premiumBps', 0)} bps)")
+        amt_in = _sanitize_str(str(q.get('amountInFormatted', '?')))
+        amt_out = _sanitize_str(str(q.get('amountOutFormatted', '?')))
+        premium_bps = int(q.get('premiumBps', 0)) if isinstance(q.get('premiumBps', 0), (int, float)) else 0
+        lines.append(f"  {amt_in} stLINK \u2192 {amt_out} LINK ({premium_bps} bps)")
 
     lines.extend([
         "",
@@ -290,14 +351,16 @@ def _format_arb_prompt(data: dict) -> str:
     ])
 
     if vault:
+        cycle_count = _sanitize_str(str(vault.get('cycleCount', '0')), max_len=20)
+        min_profit = _sanitize_str(str(vault.get('minProfitBps', '?')), max_len=20)
         lines.extend([
             "",
             "## Vault State",
             f"stLINK held: {formatUnits_py(vault.get('totalStLINKHeld', '0'))}",
             f"LINK queued: {formatUnits_py(vault.get('totalLINKQueued', '0'))}",
-            f"Cycle count: {vault.get('cycleCount', '0')}",
+            f"Cycle count: {cycle_count}",
             f"Capital assets: {formatUnits_py(vault.get('totalCapitalAssets', '0'))} LINK",
-            f"Min profit threshold: {vault.get('minProfitBps', '?')} bps",
+            f"Min profit threshold: {min_profit} bps",
         ])
 
     return "\n".join(lines)
@@ -318,6 +381,10 @@ def analyze_arb():
     if not _check_auth():
         return jsonify({"error": "unauthorized"}), 401
 
+    tenant_id = request.headers.get("X-Tenant-Id", "default")
+    if not _check_circuit_breaker(tenant_id):
+        return jsonify({"error": "daily API call limit reached"}), 429
+
     data = request.get_json(force=True, silent=True) or {}
     api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
@@ -331,7 +398,7 @@ def analyze_arb():
             instructions=_ARB_SYSTEM_PROMPT,
             input=_format_arb_prompt(data),
         )
-        text = response.output_text.strip()
+        text = _sanitize_agent_output(response.output_text.strip())
         if text.startswith("```"):
             text = text.split("```")[1]
             if text.startswith("json"):
@@ -507,7 +574,8 @@ def _format_composite_prompt(data: dict) -> str:
         if alerts:
             lines.append("Active alerts:")
             for a in alerts:
-                lines.append(f"  - {a}")
+                # Sanitize free-text alert strings before injecting into cross-workflow LLM context
+                lines.append(f"  - {_sanitize_str(str(a), 300)}")
     else:
         lines.append("No treasury data available.")
 
@@ -605,6 +673,10 @@ def analyze_composite():
     if not _check_auth():
         return jsonify({"error": "unauthorized"}), 401
 
+    tenant_id = request.headers.get("X-Tenant-Id", "default")
+    if not _check_circuit_breaker(tenant_id):
+        return jsonify({"error": "daily API call limit reached"}), 429
+
     data = request.get_json(force=True, silent=True) or {}
     api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
@@ -613,12 +685,14 @@ def analyze_composite():
     try:
         from openai import OpenAI
         client = OpenAI(api_key=api_key)
+        # Sanitize composite input before passing between pipeline stages (HIGH: cross-agent pipeline fix)
+        sanitized_prompt = _sanitize_agent_output(_format_composite_prompt(data))
         response = client.responses.create(
             model="gpt-5.3-codex",
             instructions=_COMPOSITE_SYSTEM_PROMPT,
-            input=_format_composite_prompt(data),
+            input=sanitized_prompt,
         )
-        text = response.output_text.strip()
+        text = _sanitize_agent_output(response.output_text.strip())
         if text.startswith("```"):
             text = text.split("```")[1]
             if text.startswith("json"):
@@ -702,6 +776,11 @@ def _bridge_heuristic(vault_state: dict) -> dict:
 def analyze_bridge():
     if not _bridge_check_auth():
         return jsonify({"error": "unauthorized"}), 401
+
+    tenant_id = request.headers.get("X-Tenant-Id", "default")
+    if not _check_circuit_breaker(tenant_id):
+        return jsonify({"error": "daily API call limit reached"}), 429
+
     data = request.get_json(force=True, silent=True) or {}
     vault_state = data.get("vaultState", {})
     api_key = os.environ.get("OPENAI_API_KEY", "")
@@ -763,7 +842,7 @@ Respond with ONLY valid JSON (no markdown, no explanation outside JSON):
             max_completion_tokens=500,
             messages=[{"role": "user", "content": prompt}],
         )
-        text = response.choices[0].message.content.strip()
+        text = _sanitize_agent_output(response.choices[0].message.content.strip())
         if text.startswith("```"):
             text = text.split("\n", 1)[1]
             if text.endswith("```"):
