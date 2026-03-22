@@ -34,7 +34,7 @@ def analyze_bridge():
 
 **Cross-reference with .env**:
 ```
-CRE_ANALYZE_SECRET=12320d14d3bc927e9314c51a5cfdde7a673ad4e7f8b8ef803e97e28f18d99a36
+CRE_ANALYZE_SECRET=[REDACTED — was exposed, rotated March 22 2026]
 ```
 No `CRE_SECRET` variable exists.
 
