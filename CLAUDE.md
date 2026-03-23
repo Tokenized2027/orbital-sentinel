@@ -19,6 +19,8 @@ Autonomous DeFi health monitoring platform built on Chainlink CRE for the Chainl
 
 8 CRE workflows read Ethereum mainnet, run AI analysis (Claude Haiku + GPT-5.3-Codex), and write keccak256 risk proofs to `SentinelRegistry` on Sepolia. A Next.js dashboard displays workflow status and on-chain proof history.
 
+Repo prompt library: `PROMPT-LIBRARY.md`. Read it after this file for Claude CLI task routing, recommended prompt order, and repo-specific workflow, proof, and deployment prompts.
+
 ---
 
 ## Critical Rules

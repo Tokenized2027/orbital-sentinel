@@ -2,6 +2,8 @@
 
 **AI-powered DeFi arbitrage intelligence built on Chainlink CRE, with cross-workflow ecosystem awareness and on-chain proof verification.**
 
+**Claude CLI start:** read `START-CLAUDE.md` first, then use `PROMPT-LIBRARY.md` for repo-specific task routing.
+
 Orbital Sentinel's core product is the **LINK AI Arbitrage (LAA)** workflow: an autonomous system that detects stLINK/LINK arbitrage opportunities on Curve and makes execution decisions informed by real-time data from 5 additional CRE workflows monitoring the entire stake.link ecosystem. The LAA workflow is **live on CRE mainnet**, running 7x/day on the DON. All 8 workflows are implemented and simulating successfully, with the remaining 7 ready for CRE deployment. Every decision is backed by a verifiable `keccak256` proof hash written to Ethereum Sepolia.
 
 The monitored execution layer behind LAA, the **stLINK Premium Arbitrage Vault**, is maintained in the companion `Tokenized2027/orbital` repo. Its security audit and production-readiness audit are mirrored in this repo for reviewer convenience.
