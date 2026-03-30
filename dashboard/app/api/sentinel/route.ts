@@ -8,7 +8,12 @@ export const dynamic = 'force-dynamic';
 const REGISTRY_ADDRESS = '0x35EFB15A46Fa63262dA1c4D8DE02502Dd8b6E3a5';
 const EXPLORER_BASE = 'https://sepolia.etherscan.io';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const apiKey = request.headers.get('x-api-key');
+  if (apiKey !== process.env.DASHBOARD_API_KEY) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const db = createDb();
   if (!db) {
     return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });

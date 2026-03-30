@@ -27,6 +27,7 @@ import logging
 import os
 import re
 import time
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -898,7 +899,7 @@ Respond with ONLY valid JSON (no markdown, no explanation outside JSON):
         logger.error(f"AI analysis failed, falling back to heuristic: {e}")
         result = _bridge_heuristic(vault_state)
         result['_fallback'] = True
-        result['_fallback_reason'] = str(e)
+        result['_fallback_reason'] = 'AI unavailable'
         import hashlib
         input_hash = hashlib.sha256(json.dumps(vault_state, sort_keys=True).encode()).hexdigest()[:8]
         result["_inputHash"] = input_hash

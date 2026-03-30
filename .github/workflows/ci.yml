@@ -10,11 +10,11 @@ jobs:
   # ── Solidity Contracts ─────────────────────────────────────────────
   contracts:
     name: Contracts (build + test)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
@@ -28,16 +28,16 @@ jobs:
   # ── Dashboard (Next.js) ────────────────────────────────────────────
   dashboard:
     name: Dashboard (typecheck + build)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 10
     defaults:
       run:
         working-directory: dashboard
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .node-version
           cache: npm
@@ -57,11 +57,11 @@ jobs:
   # ── CRE Workflows (Bun + TypeScript) ──────────────────────────────
   workflows:
     name: Workflows (typecheck)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -118,13 +118,13 @@ jobs:
   # ── Prettier Format Check ──────────────────────────────────────────
   format:
     name: Format check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .node-version
 
