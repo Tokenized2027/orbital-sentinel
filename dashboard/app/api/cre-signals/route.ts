@@ -186,7 +186,12 @@ function extractKeyMetric(data: Record<string, unknown>, key: WorkflowKey): { la
   return { label: "Status", value: "\u2014" };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const apiKey = request.headers.get('x-api-key');
+  if (apiKey !== process.env.DASHBOARD_API_KEY) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const workflows: Record<string, WorkflowSignal> = {};
   const riskLevels: string[] = [];
 

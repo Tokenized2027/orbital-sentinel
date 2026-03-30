@@ -12,7 +12,7 @@ const ROOT = resolve(__dirname, '..');
 
 const REGISTRY_ADDRESS = '0x35EFB15A46Fa63262dA1c4D8DE02502Dd8b6E3a5';
 const CHAIN_ID = 11155111; // Sepolia
-const COMPILER_VERSION = 'v0.8.24+commit.e11b9ed9';
+const COMPILER_VERSION = 'v0.8.19+commit.7dd6d404';
 const CONTRACT_NAME = 'OrbitalSentinelRegistry';
 
 const sourceCode = readFileSync(resolve(ROOT, 'contracts/SentinelRegistry.sol'), 'utf-8');
